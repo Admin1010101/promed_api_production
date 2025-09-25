@@ -16,16 +16,33 @@ sentry_sdk.init(
     send_default_pii=True    
 )
 
+AZURE_HOSTNAME = os.getenv('WEBSITE_HOSTNAME')
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['.onrender.com', '127.0.0.1', 'localhost', 'pythonanywhere.com', 'wchandler2025.pythonanywhere.com']
+ALLOWED_HOSTS = [
+    # Existing development/testing hosts
+    '127.0.0.1', 
+    'localhost',
+    # Existing previous hosts (can be removed if no longer used)
+    'pythonanywhere.com', 
+    'wchandler2025.pythonanywhere.com',
+    # Required for Azure App Service
+    '.azurewebsites.net',  # Allows any subdomain of azurewebsites.net (safest for deployment)
+    # If the environment variable is set, use it
+    AZURE_HOSTNAME
+]
+# Clean up the list to ensure no 'None' or blank values are included
+ALLOWED_HOSTS = [host for host in ALLOWED_HOSTS if host]
+
 CSRF_TRUSTED_ORIGINS = [
     "https://promedhealthplus-portal-api-1.onrender.com",
 ]
+
 
 USER_APPS = [
     'provider_auth.apps.ProviderAuthConfig',
@@ -97,23 +114,15 @@ TEMPLATES = [
 WSGI_APPLICATION = 'promed_backend_api.wsgi.application'
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('NEON_DB_CONN_STRING'),
-        conn_max_age=600,
-        ssl_require=True
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.environ.get('MYSQL_DB_NAME'),
+        'USER': os.environ.get('MYSQL_DB_USER'),
+        'PASSWORD': os.environ.get('MYSQL_DB_PASSWORD'),
+        'HOST': os.environ.get('MYSQL_DB_HOST'), 
+        'PORT': os.environ.get('MYSQL_DB_PORT', '3306'),
+    }
 }
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': os.getenv('DB_NAME'),
-#         'USER': os.getenv('DB_USER'),
-#         'PASSWORD': os.getenv('DB_PASSWORD'),
-#         'HOST': 'localhost',
-#         'PORT': '5432',
-#     }
-# }
 
 AUTH_PASSWORD_VALIDATORS = [
     {
