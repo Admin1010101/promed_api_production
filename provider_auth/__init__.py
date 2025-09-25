@@ -1,0 +1,1 @@
+default_app_config = 'provider_auth.apps.ProviderAuthConfig'

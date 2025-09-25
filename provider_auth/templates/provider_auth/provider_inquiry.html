@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <script
+      src="https://kit.fontawesome.com/678db39ab5.js"
+      crossorigin="anonymous"
+    ></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
+      rel="stylesheet"
+    />
+    <title>Promed Health + | New Provider Inquiry</title>
+    <style type="text/css">
+      body,
+      html {
+        font-family: "Montserrat", sans-serif;
+        background-color: #f2f4f6;
+        margin: 0;
+        padding: 0;
+        -webkit-text-size-adjust: none;
+        width: 100% !important;
+      }
+      table {
+        border-collapse: collapse;
+      }
+      .wrapper {
+        width: 100%;
+        table-layout: fixed;
+        background-color: #f2f4f6;
+      }
+      .main {
+        width: 100%;
+        max-width: 600px;
+        color: #44413d;
+        background-color: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      }
+      .header {
+        padding: 40px 0 20px;
+      }
+      .logo-link {
+        font-weight: 700;
+        text-decoration: none;
+        color: #444;
+        font-size: 24px;
+        line-height: 1;
+      }
+      .info-row {
+        text-align: center;
+        padding-top: 10px;
+      }
+      .info-text {
+        color: #6a737d;
+        font-size: 14px;
+        line-height: 20px;
+        margin: 0;
+        padding: 0;
+      }
+      .content-area {
+        padding: 30px 20px;
+        text-align: left;
+      }
+      .headline {
+        font-size: 28px;
+        font-weight: 700;
+        margin: 0 0 10px 0;
+        color: #1a202c;
+        text-align: center;
+      }
+      .intro-text {
+        font-size: 16px;
+        line-height: 24px;
+        margin: 0 0 15px 0;
+        color: #5d6674;
+      }
+      .data-point {
+        margin: 10px 0;
+      }
+      .data-label {
+        font-weight: 700;
+        color: #1a202c;
+      }
+      .footer {
+        padding: 20px;
+        text-align: center;
+      }
+      .footer-text {
+        font-size: 12px;
+        color: #93a2b1;
+        line-height: 18px;
+      }
+      a {
+        color: #1E90FF;
+        word-break: break-all;
+      }
+      @media only screen and (max-width: 600px) {
+        .main {
+          width: 100% !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+        }
+        .header {
+          padding-top: 20px !important;
+        }
+        .info-row {
+          text-align: center !important;
+        }
+        .info-text {
+          font-size: 12px !important;
+        }
+        .headline {
+          font-size: 22px !important;
+        }
+        .intro-text {
+          font-size: 14px !important;
+        }
+        .content-area {
+          padding: 20px 15px !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <center class="wrapper">
+      <table
+        class="main"
+        width="100%"
+        cellpadding="0"
+        cellspacing="0"
+        border="0"
+      >
+        <tr>
+          <td class="header">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="text-align: center">
+                  <a href="#" class="logo-link">Promed Health Plus</a>
+                </td>
+              </tr>
+              <tr>
+                <td class="info-row">
+                  <p class="info-text">
+                    <i class="fa-solid fa-location-dot"></i> 1100 Ludlow Street,
+                    Philadelphia, PA 19107
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td class="info-row">
+                  <p class="info-text">
+                    <i class="fa-solid fa-phone"></i> (267) 555 - 1212
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td class="info-row">
+                  <p class="info-text">
+                    <i class="fa-solid fa-envelope"></i>
+                    admin@promedhealthplus.com
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding-top: 20px"></td>
+        </tr>
+        <tr>
+          <td>
+            <table
+              width="100%"
+              cellpadding="0"
+              cellspacing="0"
+              border="0"
+              class="container-card"
+            >
+              <tr>
+                <td style="display: flex; justify-content: center;">
+                  <img
+                    src="https://kinsta.com/wp-content/uploads/2022/05/html-email.jpg"
+                    alt="New Provider Inquiry"
+                    width="400"
+                    style="border: 0; max-width: 100%; height: auto; display: block; border-radius: 12px;"
+                  />
+                </td>
+              </tr>
+              <tr>
+                <td class="content-area">
+                  <h1 class="headline">New Provider Inquiry</h1>
+                  <p class="intro-text">Hello **{{ rep_name }}**, </p>
+                  <p class="intro-text">
+                    You have received a new inquiry from a provider via the ProMed Health Plus Portal.
+                  </p>
+                  
+                  <p class="data-point"><span class="data-label">Provider Name:</span> {{ sender_name }}</p>
+                  <p class="data-point"><span class="data-label">Email:</span> <a href="mailto:{{ sender_email }}">{{ sender_email }}</a></p>
+                  <p class="data-point"><span class="data-label">Phone:</span> {{ sender_phone }}</p>
+                  
+                  <p class="data-point" style="margin-top: 20px;"><span class="data-label">Message:</span></p>
+                  <p class="intro-text">{{ message_body }}</p>
+
+                  <p class="intro-text" style="font-weight: bold; margin-top: 20px; text-align: center;">Please follow up at your earliest convenience.</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding-bottom: 20px"></td>
+        </tr>
+        <tr>
+          <td style="text-align: center">
+            <p class="footer-text">
+              &copy; <span id="year"></span> Promed Health Plus. All Rights Reserved.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </center>
+    <script>
+      document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
+  </body>
+</html>

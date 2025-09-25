@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Promed Health + | New Provider Inquiry</title>
+    <style type="text/css">
+      body,
+      html {
+        font-family: Arial, sans-serif;
+        background-color: #f2f4f6;
+        margin: 0;
+        padding: 0;
+        -webkit-text-size-adjust: none;
+        width: 100% !important;
+      }
+
+      table {
+        border-collapse: collapse;
+      }
+
+      .wrapper {
+        width: 100%;
+        table-layout: fixed;
+        background-color: #f2f4f6;
+      }
+
+      .main {
+        width: 100%;
+        max-width: 600px;
+        color: #44413d;
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      }
+
+      .header {
+        padding: 40px 0 20px;
+      }
+
+      .logo-link {
+        font-weight: bold;
+        text-decoration: none;
+        color: #444;
+        font-size: 24px;
+        line-height: 1;
+      }
+
+      .info-row {
+        text-align: center;
+        padding-top: 10px;
+      }
+
+      .info-text {
+        color: #6a737d;
+        font-size: 14px;
+        line-height: 20px;
+        margin: 0;
+        padding: 0;
+      }
+
+      .content-area {
+        padding: 30px 20px;
+        text-align: left;
+      }
+
+      .headline {
+        font-size: 28px;
+        font-weight: bold;
+        margin: 0 0 10px 0;
+        color: #1a202c;
+        text-align: center;
+      }
+
+      .sub-headline {
+        font-size: 18px;
+        font-weight: 500;
+        margin: 0 0 20px 0;
+        color: #4a5568;
+        text-align: center;
+      }
+
+      .intro-text {
+        font-size: 16px;
+        line-height: 24px;
+        margin: 0 0 15px 0;
+        color: #5d6674;
+      }
+
+      .data-point {
+        margin: 10px 0;
+      }
+
+      .data-label {
+        font-weight: bold;
+        color: #1a202c;
+      }
+
+      .footer {
+        padding: 20px;
+        text-align: center;
+      }
+
+      .footer-text {
+        font-size: 12px;
+        color: #93a2b1;
+        line-height: 18px;
+      }
+
+      a {
+        color: #1e90ff;
+        word-break: break-word;
+      }
+
+      @media only screen and (max-width: 600px) {
+        .main {
+          width: 100% !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+        }
+
+        .header {
+          padding-top: 20px !important;
+        }
+
+        .info-text {
+          font-size: 12px !important;
+        }
+
+        .headline {
+          font-size: 22px !important;
+        }
+
+        .sub-headline {
+          font-size: 16px !important;
+        }
+
+        .intro-text {
+          font-size: 14px !important;
+        }
+
+        .content-area {
+          padding: 20px 15px !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <center class="wrapper">
+      <table class="main" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td class="header">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="text-align: center">
+                  <a href="#" class="logo-link">Promed Health Plus</a>
+                </td>
+              </tr>
+              <tr>
+                <td class="info-row">
+                  <p class="info-text">📍 1100 Ludlow Street, Philadelphia, PA 19107</p>
+                </td>
+              </tr>
+              <tr>
+                <td class="info-row">
+                  <p class="info-text">📞 (267) 555 - 1212</p>
+                </td>
+              </tr>
+              <tr>
+                <td class="info-row">
+                  <p class="info-text">✉️ admin@promedhealthplus.com</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr><td style="padding-top: 20px;"></td></tr>
+
+        <tr>
+          <td>
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="text-align: center;">
+                  <img
+                    src="https://kinsta.com/wp-content/uploads/2022/05/html-email.jpg"
+                    alt="New Inquiry"
+                    width="400"
+                    style="border: 0; max-width: 100%; height: auto; display: block; border-radius: 12px;"
+                  />
+                </td>
+              </tr>
+              <tr>
+                <td class="content-area">
+                  <h1 class="headline">New Public Inquiry</h1>
+                  <p class="intro-text">Hello,</p>
+                  <p class="intro-text">
+                    A provider has submitted a new inquiry through the ProMed Health Plus portal.
+                  </p>
+
+                  <p class="data-point"><span class="data-label">Provider Name:</span> {{ name }}</p>
+                  <p class="data-point"><span class="data-label">Facility:</span> {{ facility }}</p>
+                  <p class="data-point"><span class="data-label">City/State/Zip:</span> {{ city }}, {{ state }} {{ zip }}</p>
+                  <p class="data-point"><span class="data-label">Email:</span> <a href="mailto:{{ email }}">{{ email }}</a></p>
+                  <p class="data-point"><span class="data-label">Phone:</span> {{ phone }}</p>
+
+                  <p class="data-point" style="margin-top: 20px;">
+                    <span class="data-label">Message:</span>
+                  </p>
+                  <p class="intro-text">{{ question }}</p>
+
+                  <p class="intro-text" style="font-weight: bold; margin-top: 20px; text-align: center;">
+                    Please follow up at your earliest convenience.
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr><td style="padding-bottom: 20px;"></td></tr>
+
+        <tr>
+          <td style="text-align: center">
+            <p class="footer-text">
+              &copy; {{ current_year }} Promed Health Plus. All Rights Reserved.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </center>
+  </body>
+</html>
