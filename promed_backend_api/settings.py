@@ -22,7 +22,7 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['.onrender.com', '127.0.0.1', 'localhost', 'pythonanywhere.com', 'wchandler2025.pythonanywhere.com']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'pythonanywhere.com', 'wchandler2025.pythonanywhere.com']
 CSRF_TRUSTED_ORIGINS = [
     "https://promedhealthplus-portal-api-1.onrender.com",
 ]
