@@ -1,0 +1,23 @@
+# .env.example
+
+# Django
+DJANGO_SECRET_KEY=your-secret-key
+DEBUG=True
+
+# Database
+DB_NAME=your-db-name
+DB_USER=your-db-user
+DB_PASSWORD=your-db-password
+
+# Azure Storage
+AZURE_ACCOUNT_NAME=your-account-name
+AZURE_ACCOUNT_KEY=your-account-key
+AZURE_CONTAINER=media
+
+# Email
+SENDGRID_API_KEY=your-sendgrid-api-key
+DEFAULT_FROM_EMAIL=you@example.com
+
+# Twilio
+TWILIO_API_KEY=your-twilio-api-key
+TWILIO_SECRET_KEY=your-twilio-secret-key

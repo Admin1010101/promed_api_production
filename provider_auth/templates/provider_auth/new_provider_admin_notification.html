@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>New Provider Awaiting Approval</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Lato", Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+        color: #374151;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 20px auto;
+        background-color: #ffffff;
+        padding: 24px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+      }
+
+      .header {
+        background-color: #10b981;
+        color: #ffffff;
+        padding: 16px 24px;
+        text-align: center;
+        border-radius: 8px 8px 0 0;
+      }
+
+      .header h2 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 700;
+      }
+
+      .content {
+        padding: 24px;
+        font-size: 16px;
+        line-height: 1.5;
+      }
+
+      .footer {
+        margin-top: 24px;
+        font-size: 12px;
+        color: #9ca3af;
+        text-align: center;
+      }
+
+      a {
+        color: #10b981;
+        word-break: break-word;
+      }
+
+      .label {
+        font-weight: bold;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+      }
+
+      th,
+      td {
+        padding: 8px 12px;
+        border: 1px solid #e5e7eb;
+        text-align: left;
+      }
+
+      th {
+        background-color: #f9fafb;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h2>New Provider Awaiting Approval</h2>
+      </div>
+      <div class="content">
+        <p>Hello Admin,</p>
+        <p>
+          A new provider has verified their email and is now awaiting your
+          approval to activate their account on the ProMed Health Plus platform.
+        </p>
+
+        <table>
+          <tr>
+            <th>Provider Name</th>
+            <td>{{ user.full_name }}</td>
+          </tr>
+          <tr>
+            <th>Email</th>
+            <td><a href="mailto:{{ user.email }}">{{ user.email }}</a></td>
+          </tr>
+          <tr>
+            <th>Phone Number</th>
+            <td>{{ user.phone_number }}</td>
+          </tr>
+          <tr>
+            <th>Verification Date</th>
+            <td>{{ verification_date|date:"F j, Y, g:i a" }}</td>
+          </tr>
+          {% if profile %}
+          <tr>
+            <th>Specialty</th>
+            <td>{{ profile.specialty }}</td>
+          </tr>
+          <tr>
+            <th>Location</th>
+            <td>{{ profile.location }}</td>
+          </tr>
+          {% endif %}
+        </table>
+
+        <p>
+          Please review their profile and approve their account as soon as
+          possible.
+        </p>
+        <p>Thank you!</p>
+      </div>
+      <div class="footer">
+        <p>
+          &copy; {{ verification_date|date:"Y" }} ProMed Health Plus. All rights
+          reserved.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
