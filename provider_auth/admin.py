@@ -109,7 +109,7 @@ class UserAdmin(BaseUserAdmin):
         if is_new and not obj.is_verified:
             # Send verification email
             token, _ = EmailVerificationToken.objects.get_or_create(user=obj)
-            verification_link = f"https://wchandler2020.github.io/promedhealthplus_portal_client/#/verify-email/{token.token}"
+            verification_link = f"http://localhost:8000/api/v1/promedhealthplus_portal_client/#/verify-email/{token.token}"
 
             html_message = render_to_string('provider_auth/email_verification.html', {
                 'user': obj,

@@ -144,11 +144,18 @@ class VerifyEmailView(generics.GenericAPIView):
             return Response(status=status.HTTP_200_OK)
 
         try:
+            # Convert string token to UUID if needed
+            if isinstance(token, str):
+                token = uuid.UUID(token)
+            
             verification_token = api_models.EmailVerificationToken.objects.get(token=token)
             user = verification_token.user
 
             if user.is_verified:
-                return Response({"message": "Email already verified."}, status=status.HTTP_200_OK)
+                return Response(
+                    {"message": "Email already verified."}, 
+                    status=status.HTTP_200_OK
+                )
 
             user.is_verified = True
             user.save()
@@ -180,7 +187,7 @@ class VerifyEmailView(generics.GenericAPIView):
             admin_recipients = [
                 'admin@yourdomain.com',
                 'william.d.chandler1@gmail.com',
-                'kayvoncrenshaw@gmail.com'
+                'kayvoncrenshaw@gmail.com',
                 'harold@promedhealthplus.com'
             ]
 
@@ -198,9 +205,13 @@ class VerifyEmailView(generics.GenericAPIView):
                 status=status.HTTP_200_OK
             )
 
-        except api_models.EmailVerificationToken.DoesNotExist:
-            return Response({"error": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
-
+        except (api_models.EmailVerificationToken.DoesNotExist, ValueError) as e:
+            print(f"Token verification error: {e}")
+            print(f"Token received: {token}")
+            return Response(
+                {"error": "Invalid or expired token."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 class VerifyCodeView(generics.CreateAPIView):
     serializer_class = api_serializers.VerifyCodeSerializer

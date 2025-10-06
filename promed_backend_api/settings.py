@@ -1,4 +1,4 @@
-#settings.py
+# settings.py
 from pathlib import Path
 from datetime import timedelta
 from dotenv import load_dotenv
@@ -6,6 +6,8 @@ import os
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 import dj_database_url
+# import pymysql
+# pymysql.install_as_MySQLdb()
 
 load_dotenv()
 
@@ -20,12 +22,40 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
-DEBUG = True
+# Set DEBUG based on environment variable, defaulting to True locally
+DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['.onrender.com', '127.0.0.1', 'localhost', 'pythonanywhere.com', 'wchandler2025.pythonanywhere.com']
+# --- START FIX: ALLOWED_HOSTS ---
+ALLOWED_HOSTS = [
+    # Local Development
+    '127.0.0.1', 
+    'localhost', 
+    
+    # Azure App Service URLs
+    # 1. Internal IP used by Azure's health probes (Required)
+    '169.254.129.3',
+    
+    # 2. Your specific public URL from the logs (Without the port)
+    'app-promed-backend-prod-dev-c5dsbef8d0e6gjb9.westus2-01.azurewebsites.net',
+    
+    # 3. Your base Azure URL (Standard access)
+    'app-promed-backend-prod-dev.azurewebsites.net',
+    
+    # Wildcard for all subdomains on azurewebsites.net (More general, if needed)
+    '.azurewebsites.net',
+
+    # Other existing entries
+    '.onrender.com', 
+    'pythonanywhere.com', 
+    'wchandler2025.pythonanywhere.com',
+]
+
 CSRF_TRUSTED_ORIGINS = [
     "https://promedhealthplus-portal-api-1.onrender.com",
+    "https://app-promed-backend-prod-dev-c5dsbef8d0e6gjb9.westus2-01.azurewebsites.net",
+    "https://app-promed-backend-prod-dev.azurewebsites.net",
 ]
+# --- END FIX: ALLOWED_HOSTS ---
 
 USER_APPS = [
     'provider_auth.apps.ProviderAuthConfig',
@@ -96,24 +126,30 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'promed_backend_api.wsgi.application'
 
+# --- START FIX: DATABASES ---
+# Ensure your MySQL connection uses required ENV variables set in Azure App Service Configuration
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('NEON_DB_CONN_STRING'),
-        conn_max_age=600,
-        ssl_require=True
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.getenv('MYSQL_DB_NAME'),
+        'USER': os.getenv('MYSQL_DB_USER'),
+        'PASSWORD': os.getenv('MYSQL_DB_PASSWORD'),
+        'HOST': os.getenv('MYSQL_DB_HOST'),
+        'PORT': os.getenv('MYSQL_DB_PORT', '3306'),
+        'OPTIONS': {
+            # Standard MySQL Options
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'charset': 'utf8mb4',
+            
+            # --- CRITICAL FIX: UNCOMMENT AND USE SSL PATH ---
+            # Azure MySQL REQUIRES SSL with a CA certificate
+            'ssl': {
+                'ca': os.getenv('MYSQL_DB_SSL_CA_PATH') 
+            } 
+        }
+    }
 }
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': os.getenv('DB_NAME'),
-#         'USER': os.getenv('DB_USER'),
-#         'PASSWORD': os.getenv('DB_PASSWORD'),
-#         'HOST': 'localhost',
-#         'PORT': '5432',
-#     }
-# }
+# --- END FIX: DATABASES ---
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -246,8 +282,9 @@ AZURE_CONTAINER = 'media'
 
 LOCAL_HOST = 'http://localhost:3000'
 
-AZURE_ACCOUNT_NAME = os.getenv('AZURE_ACCOUNT_NAME')
-AZURE_ACCOUNT_KEY = os.getenv('AZURE_ACCOUNT_KEY')
+# Duplication cleanup: Removed duplicate definition for AZURE_ACCOUNT_NAME/KEY
+# AZURE_ACCOUNT_NAME = os.getenv('AZURE_ACCOUNT_NAME')
+# AZURE_ACCOUNT_KEY = os.getenv('AZURE_ACCOUNT_KEY')
 
 # Static files root directory
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
@@ -267,4 +304,3 @@ STATIC_URL = f'https://{AZURE_CUSTOM_DOMAIN}/static/'
 MEDIA_URL = f'https://{AZURE_CUSTOM_DOMAIN}/media/'
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-

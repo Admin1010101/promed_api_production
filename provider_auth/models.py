@@ -138,26 +138,28 @@ def post_save_profile(sender, instance, **kwargs):
 # New signal handler to send the verification email
 def send_email_verification_on_create(sender, instance, created, **kwargs):
     # This condition will then pass:
-    if created and not instance.is_verified:
-        token, _ = EmailVerificationToken.objects.get_or_create(user=instance)
-        verification_link = f"https://wchandler2020.github.io/promedhealthplus_portal_client/#/verify-email/{token.token}"
+    # if created and not instance.is_verified:
+    #     token, _ = EmailVerificationToken.objects.get_or_create(user=instance)
+    #     verification_link = f"http://localhost:8000/api/v1/promedhealthplus_portal_client/#/verify-email/{token.token}"
 
-        email_html_message = render_to_string(
-            'provider_auth/email_verification.html',
-            {
-                'user': instance,
-                'verification_link': verification_link
-            }
-        )
-        send_mail(
-            subject='Verify Your Email Address',
-            message=f"Click the link to verify your email: {verification_link}",
-            html_message=email_html_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[instance.email],
-            fail_silently=False
-        )
+    #     email_html_message = render_to_string(
+    #         'provider_auth/email_verification.html',
+    #         {
+    #             'user': instance,
+    #             'verification_link': verification_link
+    #         }
+    #     )
+    #     send_mail(
+    #         subject='Verify Your Email Address',
+    #         message=f"Click the link to verify your email: {verification_link}",
+    #         html_message=email_html_message,
+    #         from_email=settings.DEFAULT_FROM_EMAIL,
+    #         recipient_list=[instance.email],
+    #         fail_silently=False
+    #     )
+    
+    pass
 
 # ----------------- Connect Signals -----------------
 post_save.connect(create_user_profile, sender=User)
-post_save.connect(send_email_verification_on_create, sender=User)
+# post_save.connect(send_email_verification_on_create, sender=User)

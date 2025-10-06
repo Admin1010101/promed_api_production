@@ -9,26 +9,35 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # Install system dependencies
+# ----------------------------------------------------------------------
+# IMPORTANT CHANGE: Replaced libpq-dev (PostgreSQL) with
+# default-libmysqlclient-dev (MySQL/MariaDB client libraries)
+# ----------------------------------------------------------------------
 RUN apt-get update && apt-get install -y \
     build-essential \
-    libpq-dev \
+    # MySQL/MariaDB development libraries
+    default-libmysqlclient-dev \
+    libcairo2-dev \
+    pkg-config \
+    python3-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements file and install Python dependencies
 COPY requirements.txt .
 
-# Upgrade pip and install dependencies
-RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy project files
 COPY . .
 
-# Pre-collect static files (optional, only if you want to do it during build)
+# Pre-collect static files (optional)
 RUN python manage.py collectstatic --noinput || true
 
-# Expose port for Render
+# Expose port for Render or local development
 EXPOSE 8000
 
-# Start the Django app with Gunicorn
-CMD ["gunicorn", "promed_backend_api.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
+# Start the Django app with Gunicorn, binding to the port specified by the Azure 'PORT' environment variable
+CMD gunicorn promed_backend_api.wsgi:application --bind 0.0.0.0:$PORT --workers 3
+
+COPY ./certs /usr/src/app/certs 
