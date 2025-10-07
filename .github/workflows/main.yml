@@ -18,83 +18,74 @@ env:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-
+      
       - name: Create Entrypoint Script
         env:
           BACKEND_PATH: promed_api_production
         run: |
           ENTRYPOINT_PATH="$BACKEND_PATH/entrypoint.sh"
           echo "Creating entrypoint script at: $ENTRYPOINT_PATH"
-
           cat > "$ENTRYPOINT_PATH" << 'EOF'
-#!/bin/sh
-
-echo "Starting entrypoint script..."
-
-echo "Waiting for database to be ready..."
-DB_HOST="${MYSQL_DB_HOST:-mysql-promedhealthplue-dev.mysql.database.azure.com}"
-DB_PORT="${MYSQL_DB_PORT:-3306}"
-
-timeout=60
-counter=0
-while ! nc -z "$DB_HOST" "$DB_PORT"; do
-  sleep 1
-  counter=$((counter + 1))
-  if [ $counter -ge $timeout ]; then
-    echo "Database connection timeout after ${timeout} seconds"
-    break
-  fi
-done
-
-echo "Database connection available, running migrations..."
-python manage.py migrate --noinput
-
-echo "Starting Gunicorn server..."
-exec "$@"
-EOF
-
+          #!/bin/sh
+          echo "Starting entrypoint script..."
+          echo "Waiting for database to be ready..."
+          DB_HOST="${MYSQL_DB_HOST:-mysql-promedhealthplue-dev.mysql.database.azure.com}"
+          DB_PORT="${MYSQL_DB_PORT:-3306}"
+          timeout=60
+          counter=0
+          while ! nc -z "$DB_HOST" "$DB_PORT"; do
+            sleep 1
+            counter=$((counter + 1))
+            if [ $counter -ge $timeout ]; then
+              echo "Database connection timeout after ${timeout} seconds"
+              break
+            fi
+          done
+          echo "Database connection available, running migrations..."
+          python manage.py migrate --noinput
+          echo "Starting Gunicorn server..."
+          exec "$@"
+          EOF
           chmod +x "$ENTRYPOINT_PATH"
           echo "Entrypoint script created:"
           ls -la "$ENTRYPOINT_PATH"
-
+      
       - name: Log in to Azure Container Registry
         uses: azure/docker-login@v2
         with:
           login-server: ${{ env.AZURE_CR_NAME }}.azurecr.io
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
-
+      
       - name: Build and push Docker image to ACR
         run: |
           IMAGE_FULL_NAME="${{ env.AZURE_CR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
           DOCKERFILE_PATH="${{ env.BACKEND_PATH }}/Dockerfile"
-
           docker build \
             --platform linux/amd64 \
             -t "$IMAGE_FULL_NAME" \
             -f "$DOCKERFILE_PATH" \
             .
-
           docker push "$IMAGE_FULL_NAME"
-
+      
       - name: Azure Login for Deployment
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-
+      
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           images: ${{ env.AZURE_CR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-
+      
       - name: Restart App Service
         run: |
           az webapp restart --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group PromedHealth-Dev
-
+      
       - name: Logout of Azure
         run: az logout
