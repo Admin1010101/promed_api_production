@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'promed_api_production/**'
+      - '**'
       - '.github/workflows/main.yml'
 
 env:
@@ -13,27 +13,20 @@ env:
   AZURE_CR_NAME: promedhealthdashboard
   IMAGE_NAME: backend
   IMAGE_TAG: latest
-  BACKEND_PATH: promed_api_production
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout Code
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
       
       - name: Create Entrypoint Script
         run: |
-          ENTRYPOINT_PATH="${{ env.BACKEND_PATH }}/entrypoint.sh"
-          
-          if [ ! -d "${{ env.BACKEND_PATH }}" ]; then
-            echo "WARNING: Backend path does not exist. Creating it."
-            mkdir -p "${{ env.BACKEND_PATH }}"
-          fi
-          
+          ENTRYPOINT_PATH="./entrypoint.sh"
           echo "Creating entrypoint script at: $ENTRYPOINT_PATH"
           
           cat > "$ENTRYPOINT_PATH" << 'EOF'
@@ -70,22 +63,21 @@ jobs:
           password: ${{ secrets.ACR_PASSWORD }}
       
       - name: Build and Push Docker Image
-        working-directory: ${{ env.BACKEND_PATH }}
         run: |
           IMAGE_FULL_NAME="${{ env.AZURE_CR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+          echo "Dockerfile location: $(pwd)/Dockerfile"
           
           if [ ! -f "Dockerfile" ]; then
             echo "ERROR: Dockerfile not found in $(pwd)"
             exit 1
           fi
           
-          echo "Building Docker image: $IMAGE_FULL_NAME"
           docker build \
             --platform linux/amd64 \
             -t "$IMAGE_FULL_NAME" \
             .
           
-          echo "Pushing Docker image to ACR"
+          echo "Pushing Docker image to ACR: $IMAGE_FULL_NAME"
           docker push "$IMAGE_FULL_NAME"
       
       - name: Azure Login for Deployment
