@@ -27,6 +27,7 @@ jobs:
           ENTRYPOINT_PATH="${{ env.BACKEND_PATH }}/entrypoint.sh"
           echo "Creating corrected entrypoint script at: $ENTRYPOINT_PATH"
 
+          # Use single quotes for EOFMARKER to prevent shell variable substitution
           cat > "$ENTRYPOINT_PATH" <<'EOFMARKER'
 #!/bin/sh
 
