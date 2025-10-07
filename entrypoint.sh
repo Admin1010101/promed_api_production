@@ -31,8 +31,8 @@ python manage.py migrate --noinput
 
 echo "Starting Gunicorn server..."
 
-# Execute the main command
-exec "$@"
+# Execute the main command (Note: $@ should be the Gunicorn command)
+exec gunicorn --workers 4 --bind 0.0.0.0:8000 promed_backend_api.wsgi:application
 EOF
 
 # Make it executable
@@ -41,5 +41,5 @@ chmod +x entrypoint.sh
 # Verify it was created
 ls -la entrypoint.sh
 
-# Check the file type
+# Check the file type (This should confirm 'ASCII text' or similar, not 'with CRLF line terminators')
 file entrypoint.sh
