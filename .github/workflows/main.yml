@@ -18,11 +18,14 @@ env:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Code
+      - name: 📥 Checkout Code
         uses: actions/checkout@v4
 
-      - name: Create Entrypoint Script
+      - name: 📝 Create Entrypoint Script
+        env:
+          BACKEND_PATH: ${{ env.BACKEND_PATH }}
         run: |
           ENTRYPOINT_PATH="${BACKEND_PATH}/entrypoint.sh"
           echo "Creating entrypoint script at: $ENTRYPOINT_PATH"
@@ -55,20 +58,25 @@ exec "$@"
 EOFMARKER
 
           chmod +x "$ENTRYPOINT_PATH"
-          echo "Entrypoint script created and made executable:"
+          echo "Entrypoint script created:"
           ls -la "$ENTRYPOINT_PATH"
 
-      - name: Log in to Azure Container Registry
+      - name: 🔐 Log in to Azure Container Registry
         uses: azure/docker-login@v2
         with:
           login-server: ${{ env.AZURE_CR_NAME }}.azurecr.io
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
 
-      - name: Build and Push Docker Image to ACR
+      - name: 🐳 Build and Push Docker Image to ACR
+        env:
+          BACKEND_PATH: ${{ env.BACKEND_PATH }}
+          AZURE_CR_NAME: ${{ env.AZURE_CR_NAME }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
         run: |
-          IMAGE_FULL_NAME="${{ env.AZURE_CR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
-          DOCKERFILE_PATH="${{ env.BACKEND_PATH }}/Dockerfile"
+          IMAGE_FULL_NAME="${AZURE_CR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}"
+          DOCKERFILE_PATH="${BACKEND_PATH}/Dockerfile"
 
           docker build \
             --platform linux/amd64 \
@@ -78,22 +86,22 @@ EOFMARKER
 
           docker push "$IMAGE_FULL_NAME"
 
-      - name: Azure Login for Deployment
+      - name: 🔑 Azure Login for Deployment
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy to Azure Web App
+      - name: 🚀 Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           images: ${{ env.AZURE_CR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
 
-      - name: Restart App Service
+      - name: 🔁 Restart App Service (Force Refresh)
         run: |
           az webapp restart \
             --name ${{ env.AZURE_WEBAPP_NAME }} \
             --resource-group PromedHealth-Dev
 
-      - name: Logout of Azure
+      - name: 🔒 Logout of Azure
         run: az logout
