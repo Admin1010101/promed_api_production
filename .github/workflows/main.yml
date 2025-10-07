@@ -26,41 +26,36 @@ jobs:
         run: |
           ENTRYPOINT_PATH="${{ env.BACKEND_PATH }}/entrypoint.sh"
           echo "Creating corrected entrypoint script at: $ENTRYPOINT_PATH"
-          
-          # Ensure the directory exists
-          mkdir -p ${{ env.BACKEND_PATH }}
-          
+
           cat > "$ENTRYPOINT_PATH" <<'EOFMARKER'
-          #!/bin/sh
-          
-          echo "Starting entrypoint script..."
-          
-          echo "Waiting for database to be ready..."
-          DB_HOST="${MYSQL_DB_HOST:-mysql-promedhealthplue-dev.mysql.database.azure.com}"
-          DB_PORT="${MYSQL_DB_PORT:-3306}"
-          
-          timeout=60
-          counter=0
-          while ! nc -z "$DB_HOST" "$DB_PORT"; do
-            sleep 1
-            counter=$((counter + 1))
-            if [ $counter -ge $timeout ]; then
-              echo "Database connection timeout after ${timeout} seconds"
-              break
-            fi
-          done
-          
-          echo "Database connection available, running migrations..."
-          python manage.py migrate --noinput
-          
-          echo "Starting Gunicorn server..."
-          exec "$@"
-          EOFMARKER
-          
+#!/bin/sh
+
+echo "Starting entrypoint script..."
+
+echo "Waiting for database to be ready..."
+DB_HOST="${MYSQL_DB_HOST:-mysql-promedhealthplue-dev.mysql.database.azure.com}"
+DB_PORT="${MYSQL_DB_PORT:-3306}"
+
+timeout=60
+counter=0
+while ! nc -z "$DB_HOST" "$DB_PORT"; do
+  sleep 1
+  counter=$((counter + 1))
+  if [ $counter -ge $timeout ]; then
+    echo "Database connection timeout after ${timeout} seconds"
+    break
+  fi
+done
+
+echo "Database connection available, running migrations..."
+python manage.py migrate --noinput
+
+echo "Starting Gunicorn server..."
+exec "$@"
+EOFMARKER
+
           chmod +x "$ENTRYPOINT_PATH"
           echo "Entrypoint script created and made executable."
-          
-          # Verify it was created
           ls -la "$ENTRYPOINT_PATH"
 
       - name: Log in to Azure Container Registry
@@ -73,9 +68,14 @@ jobs:
       - name: Build and push Docker image to ACR
         run: |
           IMAGE_FULL_NAME="${{ env.AZURE_CR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
-          
-          cd ${{ env.BACKEND_PATH }}
-          docker build --platform linux/amd64 -t $IMAGE_FULL_NAME .
+          DOCKERFILE_PATH="${{ env.BACKEND_PATH }}/Dockerfile"
+
+          docker build \
+            --platform linux/amd64 \
+            -t $IMAGE_FULL_NAME \
+            -f $DOCKERFILE_PATH \
+            .
+
           docker push $IMAGE_FULL_NAME
 
       - name: Azure Login for Deployment
