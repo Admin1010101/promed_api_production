@@ -27,6 +27,9 @@ jobs:
           ENTRYPOINT_PATH="${{ env.BACKEND_PATH }}/entrypoint.sh"
           echo "Creating corrected entrypoint script at: $ENTRYPOINT_PATH"
           
+          # Ensure the directory exists
+          mkdir -p ${{ env.BACKEND_PATH }}
+          
           cat > "$ENTRYPOINT_PATH" <<'EOFMARKER'
           #!/bin/sh
           
@@ -56,6 +59,9 @@ jobs:
           
           chmod +x "$ENTRYPOINT_PATH"
           echo "Entrypoint script created and made executable."
+          
+          # Verify it was created
+          ls -la "$ENTRYPOINT_PATH"
 
       - name: Log in to Azure Container Registry
         uses: azure/docker-login@v2
