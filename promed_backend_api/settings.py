@@ -23,39 +23,37 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
 # Set DEBUG based on environment variable, defaulting to True locally
-DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
-
-# --- START FIX: ALLOWED_HOSTS ---
+DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True' 
+# ALLOWED_HOSTS ---
 ALLOWED_HOSTS = [
     # Local Development
     '127.0.0.1', 
     'localhost', 
-    
-    # Azure App Service URLs
     # 1. Internal IP used by Azure's health probes (Required)
     '169.254.129.3',
-    
-    # 2. Your specific public URL from the logs (Without the port)
-    'app-promed-backend-prod-dev-c5dsbef8d0e6gjb9.westus2-01.azurewebsites.net',
-    
-    # 3. Your base Azure URL (Standard access)
+    # 2. Your base Azure URL
     'app-promed-backend-prod-dev.azurewebsites.net',
-    
-    # Wildcard for all subdomains on azurewebsites.net (More general, if needed)
+    # 3. Wildcard for all subdomains of your base URL (Covers temporary hostnames)
+    '.app-promed-backend-prod-dev.azurewebsites.net',
+    # 4. General wildcard for the azurewebsites.net domain (Highly Recommended)
     '.azurewebsites.net',
-
     # Other existing entries
     '.onrender.com', 
     'pythonanywhere.com', 
     'wchandler2025.pythonanywhere.com',
 ]
 
+# --- START FIX: CSRF_TRUSTED_ORIGINS ---
 CSRF_TRUSTED_ORIGINS = [
     "https://promedhealthplus-portal-api-1.onrender.com",
-    "https://app-promed-backend-prod-dev-c5dsbef8d0e6gjb9.westus2-01.azurewebsites.net",
     "https://app-promed-backend-prod-dev.azurewebsites.net",
+    
+    # CRITICAL FIX: Add a secure wildcard for Azure's dynamic hostnames (e.g., westus2-01.azurewebsites.net)
+    "https://*.azurewebsites.net", 
+    # Removed the explicit temporary host since the wildcard covers it:
+    # "https://app-promed-backend-prod-dev-c5dsbef8d0e6gjb9.westus2-01.azurewebsites.net",
 ]
-# --- END FIX: ALLOWED_HOSTS ---
+# --- END FIX: CSRF_TRUSTED_ORIGINS ---
 
 USER_APPS = [
     'provider_auth.apps.ProviderAuthConfig',
@@ -127,7 +125,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'promed_backend_api.wsgi.application'
 
 # --- START FIX: DATABASES ---
-# Ensure your MySQL connection uses required ENV variables set in Azure App Service Configuration
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -141,8 +138,7 @@ DATABASES = {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
             'charset': 'utf8mb4',
             
-            # --- CRITICAL FIX: UNCOMMENT AND USE SSL PATH ---
-            # Azure MySQL REQUIRES SSL with a CA certificate
+            # --- CRITICAL FIX: SSL Configuration for Azure MySQL ---
             'ssl': {
                 'ca': os.getenv('MYSQL_DB_SSL_CA_PATH') 
             } 
@@ -173,7 +169,7 @@ USE_TZ = True
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',  # Optional
+        'rest_framework.authentication.SessionAuthentication', 
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
@@ -224,7 +220,6 @@ JAZZMIN_SETTINGS  = {
     "site_title": "LMS Admin",
     "site_header": "ProMed Health Plus Portal",
     "site_brand": "ProMed Health Plus Portal",
-    # "site_logo": "path-to-logo",
     "welcome_sign": "Welcome to ProMed Health Plus Portal Admin",
     "copyright": "ProMed Health Plus Portal",
     "show_ui_builder": True,
@@ -281,10 +276,6 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_build')
 AZURE_CONTAINER = 'media'
 
 LOCAL_HOST = 'http://localhost:3000'
-
-# Duplication cleanup: Removed duplicate definition for AZURE_ACCOUNT_NAME/KEY
-# AZURE_ACCOUNT_NAME = os.getenv('AZURE_ACCOUNT_NAME')
-# AZURE_ACCOUNT_KEY = os.getenv('AZURE_ACCOUNT_KEY')
 
 # Static files root directory
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')

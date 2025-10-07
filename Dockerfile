@@ -3,41 +3,48 @@ FROM python:3.11-slim
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
-
+    PYTHONUNBUFFERED=1 \
+    PORT=8000
+    
 # Set working directory
 WORKDIR /app
 
 # Install system dependencies
-# ----------------------------------------------------------------------
-# IMPORTANT CHANGE: Replaced libpq-dev (PostgreSQL) with
-# default-libmysqlclient-dev (MySQL/MariaDB client libraries)
-# ----------------------------------------------------------------------
+# Include libraries necessary for psycopg2-binary (PostgreSQL) if needed, 
+# although default-libmysqlclient-dev is correct for MySQL/MariaDB.
 RUN apt-get update && apt-get install -y \
     build-essential \
-    # MySQL/MariaDB development libraries
     default-libmysqlclient-dev \
     libcairo2-dev \
     pkg-config \
-    python3-dev \
+    # Clean up APT caches to reduce image size
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements file and install Python dependencies
 COPY requirements.txt .
-
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy project files
+# Copy project files and certificates
 COPY . .
+COPY ./certs /app/certs
 
-# Pre-collect static files (optional)
+# Pre-collect static files during the build process
+# This prevents it from being a slow step during container runtime
+# The || true ensures the build doesn't fail if no static files are present
 RUN python manage.py collectstatic --noinput || true
 
-# Expose port for Render or local development
+# Install netcat (or add to your existing RUN apt-get line)
+RUN apt-get update && apt-get install -y netcat-openbsd
+
+# Copy and set executable permissions for the entrypoint script
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Expose port
 EXPOSE 8000
 
-# Start the Django app with Gunicorn, binding to the port specified by the Azure 'PORT' environment variable
-CMD gunicorn promed_backend_api.wsgi:application --bind 0.0.0.0:$PORT --workers 3
+# Set the entrypoint
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
-COPY ./certs /usr/src/app/certs 
+CMD ["gunicorn", "promed_backend_api.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120"]
