@@ -24,13 +24,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 📝 Create Entrypoint Script
-        env:
-          BACKEND_PATH: ${{ env.BACKEND_PATH }}
         run: |
-          ENTRYPOINT_PATH="${BACKEND_PATH}/entrypoint.sh"
+          ENTRYPOINT_PATH="${{ env.BACKEND_PATH }}/entrypoint.sh"
           echo "Creating entrypoint script at: $ENTRYPOINT_PATH"
 
-          cat > "$ENTRYPOINT_PATH" <<'EOFMARKER'
+          cat << 'EOF' > "$ENTRYPOINT_PATH"
 #!/bin/sh
 
 echo "Starting entrypoint script..."
@@ -55,7 +53,7 @@ python manage.py migrate --noinput
 
 echo "Starting Gunicorn server..."
 exec "$@"
-EOFMARKER
+EOF
 
           chmod +x "$ENTRYPOINT_PATH"
           echo "Entrypoint script created:"
@@ -69,14 +67,9 @@ EOFMARKER
           password: ${{ secrets.ACR_PASSWORD }}
 
       - name: 🐳 Build and Push Docker Image to ACR
-        env:
-          BACKEND_PATH: ${{ env.BACKEND_PATH }}
-          AZURE_CR_NAME: ${{ env.AZURE_CR_NAME }}
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}
-          IMAGE_TAG: ${{ env.IMAGE_TAG }}
         run: |
-          IMAGE_FULL_NAME="${AZURE_CR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}"
-          DOCKERFILE_PATH="${BACKEND_PATH}/Dockerfile"
+          IMAGE_FULL_NAME="${{ env.AZURE_CR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+          DOCKERFILE_PATH="${{ env.BACKEND_PATH }}/Dockerfile"
 
           docker build \
             --platform linux/amd64 \
