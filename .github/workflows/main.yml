@@ -64,13 +64,12 @@ jobs:
       - name: Build and push Docker image to ACR
         run: |
           IMAGE_FULL_NAME="${{ env.AZURE_CR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
-          DOCKERFILE_PATH="${{ env.BACKEND_PATH }}/Dockerfile"
           
           docker build \
             --platform linux/amd64 \
             -t "$IMAGE_FULL_NAME" \
-            -f "$DOCKERFILE_PATH" \
-            .
+            -f Dockerfile \
+            ${{ env.BACKEND_PATH }}
             
           docker push "$IMAGE_FULL_NAME"
       
