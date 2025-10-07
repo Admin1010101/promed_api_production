@@ -24,8 +24,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 📝 Create Entrypoint Script
+        env:
+          BACKEND_PATH: promed_api_production
         run: |
-          ENTRYPOINT_PATH="${{ env.BACKEND_PATH }}/entrypoint.sh"
+          ENTRYPOINT_PATH="$BACKEND_PATH/entrypoint.sh"
           echo "Creating entrypoint script at: $ENTRYPOINT_PATH"
 
           cat << 'EOF' > "$ENTRYPOINT_PATH"
@@ -96,5 +98,4 @@ EOF
             --name ${{ env.AZURE_WEBAPP_NAME }} \
             --resource-group PromedHealth-Dev
 
-      - name: 🔒 Logout of Azure
-        run: az logout
+      - name: 🔒 Logout of Az
