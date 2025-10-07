@@ -70,8 +70,8 @@ jobs:
           docker build \
             --platform linux/amd64 \
             -t "$IMAGE_FULL_NAME" \
-            -f Dockerfile \
-            ${{ env.BACKEND_PATH }}
+            -f ${{ env.BACKEND_PATH }}/Dockerfile \
+            .
             
           docker push "$IMAGE_FULL_NAME"
       
