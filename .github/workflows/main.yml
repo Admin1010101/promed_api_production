@@ -23,12 +23,30 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
       
-      - name: Create Entrypoint Script
-        env:
-          BACKEND_PATH: promed_api_production
+      - name: Debug - Verify directory structure
         run: |
-          ENTRYPOINT_PATH="$BACKEND_PATH/entrypoint.sh"
+          echo "Current directory:"
+          pwd
+          echo ""
+          echo "Contents of current directory:"
+          ls -la
+          echo ""
+          echo "Checking if promed_api_production exists:"
+          if [ -d "promed_api_production" ]; then
+            echo "✓ promed_api_production directory exists"
+            echo "Contents of promed_api_production:"
+            ls -la promed_api_production/
+          else
+            echo "✗ promed_api_production directory NOT found"
+          fi
+      
+      - name: Create Entrypoint Script
+        run: |
+          ENTRYPOINT_PATH="promed_api_production/entrypoint.sh"
           echo "Creating entrypoint script at: $ENTRYPOINT_PATH"
+          
+          mkdir -p promed_api_production
+          
           cat > "$ENTRYPOINT_PATH" << 'EOF'
           #!/bin/sh
           echo "Starting entrypoint script..."
@@ -50,6 +68,7 @@ jobs:
           echo "Starting Gunicorn server..."
           exec "$@"
           EOF
+          
           chmod +x "$ENTRYPOINT_PATH"
           echo "Entrypoint script created:"
           ls -la "$ENTRYPOINT_PATH"
@@ -89,3 +108,4 @@ jobs:
       
       - name: Logout of Azure
         run: az logout
+        
