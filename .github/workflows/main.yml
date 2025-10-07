@@ -23,25 +23,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
       
-      - name: Debug - Check files
-        run: |
-          echo "Current directory:"
-          pwd
-          echo ""
-          echo "Contents of root:"
-          ls -la
-          echo ""
-          echo "Looking for Dockerfile:"
-          find . -name "Dockerfile" -type f
-          echo ""
-          echo "BACKEND_PATH value: ${{ env.BACKEND_PATH }}"
-          echo "Checking if Dockerfile exists at: ${{ env.BACKEND_PATH }}/Dockerfile"
-          if [ -f "${{ env.BACKEND_PATH }}/Dockerfile" ]; then
-            echo "✓ Dockerfile found!"
-          else
-            echo "✗ Dockerfile NOT found at expected location"
-          fi
-      
       - name: Create Entrypoint Script
         run: |
           ENTRYPOINT_PATH="${{ env.BACKEND_PATH }}/entrypoint.sh"
@@ -83,16 +64,16 @@ jobs:
           password: ${{ secrets.ACR_PASSWORD }}
       
       - name: Build and push Docker image to ACR
+        working-directory: ${{ env.BACKEND_PATH }}
         run: |
           IMAGE_FULL_NAME="${{ env.AZURE_CR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
           
-          echo "Building with Dockerfile at: ${{ env.BACKEND_PATH }}/Dockerfile"
-          echo "Build context: ."
+          echo "Building from directory: $(pwd)"
+          ls -la Dockerfile
           
           docker build \
             --platform linux/amd64 \
             -t "$IMAGE_FULL_NAME" \
-            -f ${{ env.BACKEND_PATH }}/Dockerfile \
             .
             
           docker push "$IMAGE_FULL_NAME"
