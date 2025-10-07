@@ -36,6 +36,7 @@ ALLOWED_HOSTS = [
     # 3. Wildcard for all subdomains of your base URL (Covers temporary hostnames)
     '.app-promed-backend-prod-dev.azurewebsites.net',
     # 4. General wildcard for the azurewebsites.net domain (Highly Recommended)
+    'app-promed-backend-prod-dev-c5dsbef8d0e6gjb9.westus2-01.azurewebsites.net',
     '.azurewebsites.net',
     # Other existing entries
     '.onrender.com', 
