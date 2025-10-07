@@ -23,29 +23,10 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
       
-      - name: Debug - Verify directory structure
-        run: |
-          echo "Current directory:"
-          pwd
-          echo ""
-          echo "Contents of current directory:"
-          ls -la
-          echo ""
-          echo "Checking if promed_api_production exists:"
-          if [ -d "promed_api_production" ]; then
-            echo "✓ promed_api_production directory exists"
-            echo "Contents of promed_api_production:"
-            ls -la promed_api_production/
-          else
-            echo "✗ promed_api_production directory NOT found"
-          fi
-      
       - name: Create Entrypoint Script
         run: |
-          ENTRYPOINT_PATH="promed_api_production/entrypoint.sh"
+          ENTRYPOINT_PATH="${{ env.BACKEND_PATH }}/entrypoint.sh"
           echo "Creating entrypoint script at: $ENTRYPOINT_PATH"
-          
-          mkdir -p promed_api_production
           
           cat > "$ENTRYPOINT_PATH" << 'EOF'
           #!/bin/sh
@@ -84,11 +65,13 @@ jobs:
         run: |
           IMAGE_FULL_NAME="${{ env.AZURE_CR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
           DOCKERFILE_PATH="${{ env.BACKEND_PATH }}/Dockerfile"
+          
           docker build \
             --platform linux/amd64 \
             -t "$IMAGE_FULL_NAME" \
             -f "$DOCKERFILE_PATH" \
             .
+            
           docker push "$IMAGE_FULL_NAME"
       
       - name: Azure Login for Deployment
@@ -108,4 +91,3 @@ jobs:
       
       - name: Logout of Azure
         run: az logout
-        
