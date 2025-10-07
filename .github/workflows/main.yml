@@ -28,6 +28,8 @@ jobs:
           ENTRYPOINT_PATH="${{ env.BACKEND_PATH }}/entrypoint.sh"
           echo "Creating entrypoint script at: $ENTRYPOINT_PATH"
           
+          mkdir -p ${{ env.BACKEND_PATH }}
+          
           cat > "$ENTRYPOINT_PATH" << 'EOF'
           #!/bin/sh
           echo "Starting entrypoint script..."
