@@ -1,4 +1,4 @@
-# Delete the old file
+# Delete the old file to remove symbols
 rm entrypoint.sh
 
 # Create new file (copy this entire block)
