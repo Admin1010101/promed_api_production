@@ -22,14 +22,16 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       
       - name: Create Entrypoint Script
         run: |
           ENTRYPOINT_PATH="${{ env.BACKEND_PATH }}/entrypoint.sh"
           
           if [ ! -d "${{ env.BACKEND_PATH }}" ]; then
-            echo "ERROR: Backend path '${{ env.BACKEND_PATH }}' does not exist!"
-            exit 1
+            echo "WARNING: Backend path does not exist. Creating it."
+            mkdir -p "${{ env.BACKEND_PATH }}"
           fi
           
           echo "Creating entrypoint script at: $ENTRYPOINT_PATH"
@@ -67,23 +69,23 @@ jobs:
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
       
-      - name: Build and Push Docker Image to ACR
+      - name: Build and Push Docker Image
         working-directory: ${{ env.BACKEND_PATH }}
         run: |
           IMAGE_FULL_NAME="${{ env.AZURE_CR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
           
           if [ ! -f "Dockerfile" ]; then
-            echo "ERROR: Dockerfile not found"
+            echo "ERROR: Dockerfile not found in $(pwd)"
             exit 1
           fi
           
-          echo "Building image from Dockerfile"
+          echo "Building Docker image: $IMAGE_FULL_NAME"
           docker build \
             --platform linux/amd64 \
             -t "$IMAGE_FULL_NAME" \
             .
           
-          echo "Pushing image to ACR: $IMAGE_FULL_NAME"
+          echo "Pushing Docker image to ACR"
           docker push "$IMAGE_FULL_NAME"
       
       - name: Azure Login for Deployment
@@ -103,4 +105,4 @@ jobs:
           az webapp restart --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group PromedHealth-Dev
       
       - name: Logout of Azure
-        run: az logout 
+        run: az logout
