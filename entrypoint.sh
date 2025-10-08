@@ -1,8 +1,3 @@
-# Delete the old file to remove symbols
-rm entrypoint.sh
-
-# Create new file (copy this entire block)
-cat > entrypoint.sh << 'EOF'
 #!/bin/sh
 
 echo "Starting entrypoint script..."
@@ -20,7 +15,7 @@ while ! nc -z "$DB_HOST" "$DB_PORT"; do
   counter=$((counter + 1))
   if [ $counter -ge $timeout ]; then
     echo "Database connection timeout after ${timeout} seconds"
-    break
+    exit 1 
   fi
 done
 
@@ -31,15 +26,6 @@ python manage.py migrate --noinput
 
 echo "Starting Gunicorn server..."
 
-# Execute the main command (Note: $@ should be the Gunicorn command)
-exec gunicorn --workers 4 --bind 0.0.0.0:8000 promed_backend_api.wsgi:application
-EOF
-
-# Make it executable
-chmod +x entrypoint.sh
-
-# Verify it was created
-ls -la entrypoint.sh
-
-# Check the file type (This should confirm 'ASCII text' or similar, not 'with CRLF line terminators')
-file entrypoint.sh
+# CRITICAL FIX: Clean, standard Gunicorn execution command
+# This line is correct and replaces the previous broken one.
+exec gunicorn promed_backend_api.wsgi:application --workers 4 --bind 0.0.0.0:8000
