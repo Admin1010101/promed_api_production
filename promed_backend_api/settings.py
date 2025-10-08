@@ -18,12 +18,30 @@ sentry_sdk.init(
     send_default_pii=True
 )
 
+# --- START AZURE PROXY/SECURITY CONFIGURATION ---
+# For Django to trust the headers passed by the Azure Load Balancer/Proxy
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+
+# This tells Django to trust the X-Forwarded-Proto header for 'https'
+# as SSL termination is likely happening at the Azure Load Balancer.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# CRITICAL SECURITY FIXES (HIPAA/Production Best Practice)
+# Forces all non-API requests to use HTTPS and sets secure cookies
+SECURE_SSL_REDIRECT = True 
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True 
+# --- END AZURE PROXY/SECURITY CONFIGURATION ---
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
 # Set DEBUG based on environment variable, defaulting to True locally
-DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True' 
+# CRITICAL FIX: Ensure DEBUG is False in Production
+DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True' 
 # ALLOWED_HOSTS ---
 ALLOWED_HOSTS = [
     # Local Development
@@ -36,8 +54,9 @@ ALLOWED_HOSTS = [
     # 3. Wildcard for all subdomains of your base URL (Covers temporary hostnames)
     '.app-promed-backend-prod-dev.azurewebsites.net',
     # 4. General wildcard for the azurewebsites.net domain (Highly Recommended)
+    '.azurewebsites.net', 
+    # Explicit entry for temporary URL (can be removed once wildcard works)
     'app-promed-backend-prod-dev-c5dsbef8d0e6gjb9.westus2-01.azurewebsites.net',
-    '.azurewebsites.net',
     # Other existing entries
     '.onrender.com', 
     'pythonanywhere.com', 
@@ -49,10 +68,8 @@ CSRF_TRUSTED_ORIGINS = [
     "https://promedhealthplus-portal-api-1.onrender.com",
     "https://app-promed-backend-prod-dev.azurewebsites.net",
     
-    # CRITICAL FIX: Add a secure wildcard for Azure's dynamic hostnames (e.g., westus2-01.azurewebsites.net)
+    # CRITICAL FIX: Add a secure wildcard for Azure's dynamic hostnames
     "https://*.azurewebsites.net", 
-    # Removed the explicit temporary host since the wildcard covers it:
-    # "https://app-promed-backend-prod-dev-c5dsbef8d0e6gjb9.westus2-01.azurewebsites.net",
 ]
 # --- END FIX: CSRF_TRUSTED_ORIGINS ---
 
@@ -169,9 +186,12 @@ USE_I18N = True
 USE_TZ = True
 
 REST_FRAMEWORK = {
+    # CRITICAL FIX: Remove SessionAuthentication for pure API or keep only for Admin
+    # Since you need the Admin, we will keep it, but it causes the 403 error.
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication', 
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # Keep SessionAuth for Admin access, but be aware of CSRF/CORS conflicts
+        'rest_framework.authentication.SessionAuthentication', 
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -182,6 +202,10 @@ AUTH_USER_MODEL = 'provider_auth.User'
 
 CORS_ALLOW_ALL_ORIGINS = True
 X_FRAME_OPTIONS = 'ALLOWALL'
+
+# Ensure X_FRAME_OPTIONS is set to DENY or SAMEORIGIN for security unless necessary
+# For the Django Admin, 'DENY' might break some features.
+X_FRAME_OPTIONS = 'SAMEORIGIN' # Changed to a safer default
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
