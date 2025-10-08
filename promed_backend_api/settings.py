@@ -55,7 +55,7 @@ ALLOWED_HOSTS = [
     # Wildcard covers all Azure subdomains including temporary deployment URLs
     '.azurewebsites.net',
     # Frontdood wildcard
-    '.azurewebsites.net',
+    '.azurefd.net',
     # Other deployment platforms
     '.onrender.com',
     'pythonanywhere.com',
