@@ -6,7 +6,6 @@ echo "Waiting for database to be ready..."
 DB_HOST="${MYSQL_DB_HOST:-mysql-promedhealthplue-dev.mysql.database.azure.com}"
 DB_PORT="${MYSQL_DB_PORT:-3306}"
 
-# Wait for database connection
 timeout=60
 counter=0
 while ! nc -z "$DB_HOST" "$DB_PORT"; do
@@ -18,17 +17,8 @@ while ! nc -z "$DB_HOST" "$DB_PORT"; do
     fi
 done
 
-echo "Database connection available, running migrations..."
-
-# Apply database migrations
+echo "Database is available. Running migrations..."
 python manage.py migrate --noinput
 
 echo "Starting Gunicorn server..."
-
-# Start Gunicorn - clean command with proper spacing
-exec gunicorn promed_backend_api.wsgi:application \
-    --workers 4 \
-    --bind 0.0.0.0:8000 \
-    --timeout 120 \
-    --access-logfile - \
-    --error-logfile -
+exec gunicorn promed_backend_api.wsgi:application --workers 4 --bind 0.0.0.0:8000 --timeout 120
