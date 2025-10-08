@@ -1,5 +1,4 @@
 #!/bin/sh
-
 echo "Starting entrypoint script..."
 
 # Wait for database to be ready
@@ -11,12 +10,12 @@ DB_PORT="${MYSQL_DB_PORT:-3306}"
 timeout=60
 counter=0
 while ! nc -z "$DB_HOST" "$DB_PORT"; do
-  sleep 1
-  counter=$((counter + 1))
-  if [ $counter -ge $timeout ]; then
-    echo "Database connection timeout after ${timeout} seconds"
-    exit 1 
-  fi
+    sleep 1
+    counter=$((counter + 1))
+    if [ $counter -ge $timeout ]; then
+        echo "Database connection timeout after ${timeout} seconds"
+        exit 1
+    fi
 done
 
 echo "Database connection available, running migrations..."
@@ -26,6 +25,10 @@ python manage.py migrate --noinput
 
 echo "Starting Gunicorn server..."
 
-# CRITICAL FIX: Clean, standard Gunicorn execution command
-# This line is correct and replaces the previous broken one.
-exec gunicorn promed_backend_api.wsgi:application --workers 4 --bind 0.0.0.0:8000
+# Start Gunicorn - clean command with proper spacing
+exec gunicorn promed_backend_api.wsgi:application \
+    --workers 4 \
+    --bind 0.0.0.0:8000 \
+    --timeout 120 \
+    --access-logfile - \
+    --error-logfile -
