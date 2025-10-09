@@ -16,6 +16,8 @@ sentry_sdk.init(
     send_default_pii=True
 )
 
+TESTING = False
+
 # --- AZURE PROXY/SECURITY CONFIGURATION ---
 RUNNING_ON_AZURE = os.getenv('WEBSITE_SITE_NAME') is not None
 
