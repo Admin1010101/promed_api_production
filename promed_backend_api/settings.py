@@ -60,7 +60,7 @@ else:
 ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
-    # Azure internal health check IPs
+    # Azure internal health check IPs (expanded for robustness)
     '169.254.129.3',
     '169.254.129.5',
     '169.254.129.1',
@@ -320,7 +320,7 @@ EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = 'vastyle2010@gmail.com'
 
 # ============================================================
-# AZURE STORAGE CONFIGURATION
+# AZURE STORAGE GLOBAL CONFIGURATION (All settings for django-storages)
 # ============================================================
 AZURE_ACCOUNT_NAME = os.getenv('AZURE_ACCOUNT_NAME')
 AZURE_ACCOUNT_KEY = os.getenv('AZURE_ACCOUNT_KEY')
@@ -328,38 +328,53 @@ AZURE_ACCOUNT_KEY = os.getenv('AZURE_ACCOUNT_KEY')
 # Azure Front Door endpoint (CDN)
 AZURE_FRONTDOOR_ENDPOINT = 'promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net'
 
-# Use Front Door for serving files (CDN), or fallback to direct blob storage
-AZURE_CUSTOM_DOMAIN = AZURE_FRONTDOOR_ENDPOINT
+# CRITICAL: This base URL is used by AzureStorage backend for file links.
+# Set it to your CDN/Front Door endpoint.
+AZURE_CUSTOM_DOMAIN = AZURE_FRONTDOOR_ENDPOINT 
 
-# Container names
+# Set the container names for the storage backend to use
 AZURE_STATIC_CONTAINER = 'static'
 AZURE_MEDIA_CONTAINER = 'media'
 
-# Overwrite files on upload
+# This setting forces the collectstatic command to overwrite existing files
 AZURE_OVERWRITE_FILES = True
 
-# ============================================================
-# STATIC FILES CONFIGURATION
-# ============================================================
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATIC_URL = f'https://{AZURE_CUSTOM_DOMAIN}/{AZURE_STATIC_CONTAINER}/'
 
 # ============================================================
-# MEDIA FILES CONFIGURATION
+# STATIC FILES CONFIGURATION 
+# ============================================================
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# STATIC_URL must point to the base URL of your CDN/storage.
+STATIC_URL = f'https://{AZURE_CUSTOM_DOMAIN}/{AZURE_STATIC_CONTAINER}/'
+
+
+# ============================================================
+# MEDIA FILES CONFIGURATION 
 # ============================================================
 MEDIA_URL = f'https://{AZURE_CUSTOM_DOMAIN}/{AZURE_MEDIA_CONTAINER}/'
 
+
 # ============================================================
-# STORAGES CONFIGURATION (Django 4.2+)
+# STORAGES CONFIGURATION (Django 4.2+ using official backend)
+# CRITICAL FIX: Use the native AzureStorage backend directly.
 # ============================================================
 STORAGES = {
-    # Media files (user uploads)
+    # 'default' is for media files (user uploads)
     "default": {
-        "BACKEND": "promed_backend_api.storage_backends.AzureMediaStorage",
+        "BACKEND": "storages.backends.azure_storage.AzureStorage",
+        "OPTIONS": {
+            "azure_container": AZURE_MEDIA_CONTAINER,
+            "overwrite_files": AZURE_OVERWRITE_FILES,
+        },
     },
-    # Static files (CSS, JS, admin assets)
+    # 'staticfiles' is for static files (CSS, JS, admin assets)
     "staticfiles": {
-        "BACKEND": "promed_backend_api.storage_backends.AzureStaticStorage",
+        "BACKEND": "storages.backends.azure_storage.AzureStorage",
+        "OPTIONS": {
+            "azure_container": AZURE_STATIC_CONTAINER,
+            "overwrite_files": AZURE_OVERWRITE_FILES,
+        },
     },
 }
 
