@@ -47,21 +47,27 @@ else:
     BASE_CLIENT_URL = PRODUCTION_CLIENT_URL
 
 ALLOWED_HOSTS = [
-    # Remove the temporary '*' when done debugging
     '127.0.0.1',
     'localhost',
-    '169.254.*', # Azure health probes
-    '.azurewebsites.net', # Catches all App Service default domains
-    '.azurefd.net',       # Catches all Front Door URLs
-    'promedhealthplus.com', # Final domain
+    # Azure internal health check IPs (without ports)
+    '169.254.129.3',
+    '169.254.129.5',
+    '169.254.129.1',
+    # Wildcard for any Azure internal IPs
+    '169.254.*',
+    # Azure domains
+    '.azurewebsites.net',
+    '.azurefd.net',
+    # Production domain
+    'promedhealthplus.com',
+    '.promedhealthplus.com',
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://*.azurewebsites.net",
-    "https://*.azurefd.net", # <-- Added wildcard for FD
+    "https://*.azurefd.net",
     "https://promedhealthplus.com",
-    # Add your specific Front Door URL here for redundancy
-    "https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net",
+    "https://*.promedhealthplus.com",
 ]
 
 USER_APPS = [
@@ -103,9 +109,10 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 # MIDDLEWARE: WhiteNoiseMiddleware must be placed RIGHT AFTER SecurityMiddleware
 MIDDLEWARE = [
+    'core.middleware.StripPortFromHostMiddleware',  # <-- ADD THIS FIRST
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # <-- WhiteNoise HERE (after SecurityMiddleware)
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
