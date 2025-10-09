@@ -35,10 +35,8 @@ COPY ./certs /app/certs
 RUN mkdir -p /app/staticfiles /app/media
 
 # Copy and set executable permissions for the entrypoint script
-# This will be overwritten by the GitHub Actions workflow
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh 2>/dev/null || \
-    echo '#!/bin/sh\necho "No entrypoint.sh found, using default"\nexec "$@"' > /usr/local/bin/entrypoint.sh
-
+# GitHub Actions creates this file before building
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Expose port
