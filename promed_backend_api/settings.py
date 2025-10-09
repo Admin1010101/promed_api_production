@@ -49,14 +49,13 @@ else:
 ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
-    '169.254.129.3',  # Existing
-    '169.254.129.5',  # <--- NEW: The specific IP from the log
-    '169.254.*',      # <--- NEW: Use a wildcard for internal Azure health checks (most robust fix)
-    '.azurewebsites.net',
-    '.azurefd.net',
-    '.onrender.com',
-    'pythonanywhere.com',
-    'wchandler2025.pythonanywhere.com',
+    '169.254.*', # Wildcard for Azure health probes
+    '.azurewebsites.net', 
+    '.azurefd.net',      # <-- Check this one
+    'promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net', # <-- Explicit FD URL
+    'app-promed-backend-prod-dev.azurewebsites.net', # <-- Explicit App Service URL
+    'promedhealthplus.com', # <-- Your final custom domain
+    # ... other hosts
 ]
 
 CSRF_TRUSTED_ORIGINS = [
