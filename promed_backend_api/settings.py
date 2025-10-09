@@ -356,11 +356,16 @@ MEDIA_URL = f'https://{AZURE_CUSTOM_DOMAIN}/{AZURE_MEDIA_CONTAINER}/'
 # ============================================================
 # STORAGES CONFIGURATION (Django 4.2+ using official backend)
 # ============================================================
+# ============================================================
+# STORAGES CONFIGURATION (Django 4.2+ using official backend)
+# ============================================================
 STORAGES = {
     # 'default' is for media files (user uploads)
     "default": {
         "BACKEND": "storages.backends.azure_storage.AzureStorage",
         "OPTIONS": {
+            "account_name": AZURE_ACCOUNT_NAME,
+            "account_key": AZURE_ACCOUNT_KEY,
             "azure_container": AZURE_MEDIA_CONTAINER,
             "overwrite_files": AZURE_OVERWRITE_FILES,
         },
@@ -369,6 +374,8 @@ STORAGES = {
     "staticfiles": {
         "BACKEND": "storages.backends.azure_storage.AzureStorage",
         "OPTIONS": {
+            "account_name": AZURE_ACCOUNT_NAME,
+            "account_key": AZURE_ACCOUNT_KEY,
             "azure_container": AZURE_STATIC_CONTAINER,
             "overwrite_files": AZURE_OVERWRITE_FILES,
         },
