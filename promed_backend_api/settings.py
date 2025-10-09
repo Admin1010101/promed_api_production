@@ -54,13 +54,14 @@ else:
 # ALLOWED HOSTS
 # ============================================================
 ALLOWED_HOSTS = [
-    '127.0.0.1',
+     '127.0.0.1',
     'localhost',
     # Azure internal health check IPs
     '169.254.129.3',
     '169.254.129.5',
     '169.254.129.1',
     '169.254.129.2',
+    '169.254.129.4',  # <--- CRITICAL FIX: Add the exact IP from the error
     '169.254.*',     # Wildcard for Azure internal IPs
     # Azure domains
     '.azurewebsites.net',
