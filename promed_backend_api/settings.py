@@ -17,7 +17,7 @@ sentry_sdk.init(
     send_default_pii=True
 )
 
-TESTING = False
+TESTING = True
 
 # ============================================================
 # BASE CONFIGURATION
@@ -344,18 +344,11 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # STATIC_URL must point to the base URL where files are served.
 # Django-storages will append the full path, but the base URL must be correct.
 STATIC_URL = f'https://{AZURE_CUSTOM_DOMAIN}/{AZURE_STATIC_CONTAINER}/'
-
-
 # ============================================================
 # MEDIA FILES CONFIGURATION 
 # ============================================================
 # MEDIA_URL must point to the base URL where user-uploaded files are served.
 MEDIA_URL = f'https://{AZURE_CUSTOM_DOMAIN}/{AZURE_MEDIA_CONTAINER}/'
-
-
-# ============================================================
-# STORAGES CONFIGURATION (Django 4.2+ using official backend)
-# ============================================================
 # ============================================================
 # STORAGES CONFIGURATION (Django 4.2+ using official backend)
 # ============================================================
