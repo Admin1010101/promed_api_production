@@ -45,6 +45,17 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 # Set DEBUG based on environment variable
 DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
 
+PRODUCTION_CLIENT_URL = os.getenv('CLIENT_BASE_URL', 'https://promedhealthplus.com') # Using your final domain as a fallback
+LOCAL_CLIENT_URL = 'http://localhost:3000' # Your local React server
+
+# Determine the base URL dynamically using the DEBUG setting
+if DEBUG:
+    # Use the local URL when running locally (DEBUG=True)
+    BASE_CLIENT_URL = LOCAL_CLIENT_URL
+else:
+    # Use the Azure URL when deployed (DEBUG=False)
+    BASE_CLIENT_URL = PRODUCTION_CLIENT_URL
+
 # ALLOWED_HOSTS - Covers all Azure deployment scenarios
 ALLOWED_HOSTS = [
     # Local Development
