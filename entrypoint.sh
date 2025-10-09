@@ -1,36 +1,41 @@
 #!/bin/sh
-set -e  # Exit on error
+set -e
 
 echo "=========================================="
 echo "Starting ProMed Health Plus Backend"
 echo "=========================================="
 
-# Simple database wait with timeout
-echo "Checking database connection..."
+# Define DB connection details
 DB_HOST="${MYSQL_DB_HOST:-mysql-promedhealthplue-dev.mysql.database.azure.com}"
 DB_PORT="${MYSQL_DB_PORT:-3306}"
+MAX_WAIT=30
+WAITED=0
 
-# Try to connect, but don't block startup if it fails
-if nc -z -w5 "$DB_HOST" "$DB_PORT"; then
-    echo "✓ Database is reachable"
-else
-    echo "⚠ Warning: Could not reach database at $DB_HOST:$DB_PORT"
-    echo "  Continuing anyway - Django will handle connection errors"
-fi
+# Robust database wait loop (CRITICAL for collectstatic/migrate)
+echo "Checking database connection..."
+while ! nc -z -w5 "$DB_HOST" "$DB_PORT"; do
+    if [ "$WAITED" -ge "$MAX_WAIT" ]; then
+        echo "🚨 ERROR: Database connection failed after $MAX_WAIT seconds. Exiting."
+        exit 1 # Exit the container if DB is unreachable after max wait
+    fi
+    echo "Database is unavailable - waiting 5 seconds..."
+    sleep 5
+    WAITED=$((WAITED+5))
+done
+echo "✓ Database is reachable."
 
-# Run migrations (will fail gracefully if DB is unreachable)
-echo "Running database migrations..."
-python manage.py migrate --noinput 2>&1 || {
-    echo "⚠ Warning: Migrations failed or skipped"
-    echo "  Application will start but may not function correctly"
-}
-
-# Collect static files to Azure Storage
+# Collect static files to Azure Storage (Now that DB is ready)
 echo "Collecting static files to Azure..."
-python manage.py collectstatic --noinput 2>&1 || {
-    echo "⚠ Warning: Static file collection failed"
-    echo "  This may affect admin panel styling"
+python manage.py collectstatic --noinput --clear || {
+    echo "🚨 ERROR: Static file collection failed. Exiting deployment."
+    exit 1 # Exit on static file failure to prevent broken admin
 }
+echo "✓ Static files collected."
+
+# Run migrations
+echo "Running database migrations..."
+python manage.py migrate --noinput
+echo "✓ Migrations complete."
 
 echo "=========================================="
 echo "✓ Initialization complete"

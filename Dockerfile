@@ -35,16 +35,11 @@ COPY ./certs /app/certs
 RUN mkdir -p /app/staticfiles /app/media
 
 # Copy and set executable permissions for the entrypoint script
-# GitHub Actions creates this file before building
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Expose port
 EXPOSE 8000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8000/health/ || exit 1
 
 # Set the entrypoint
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

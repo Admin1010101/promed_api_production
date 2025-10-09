@@ -128,7 +128,7 @@ INSTALLED_APPS = THIRD_PARTY_APPS + DJANGO_APPS + USER_APPS
 CORS_ALLOW_ALL_ORIGINS = True
 
 # ============================================================
-# MIDDLEWARE (WhiteNoise REMOVED - Using Azure Storage)
+# MIDDLEWARE (NO WhiteNoise)
 # ============================================================
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -341,12 +341,12 @@ MEDIA_URL = f'https://{AZURE_CUSTOM_DOMAIN}/media/'
 # Both static and media files use Azure Blob Storage
 # ============================================================
 STORAGES = {
+    # CORRECT: Use custom backend for media files (user uploads)
     "default": {
-        # Media files (user uploads) go to Azure Blob Storage
         "BACKEND": "promed_backend_api.storage_backends.AzureMediaStorage",
     },
+    # CORRECT: Use custom backend for static files (CSS, JS, admin assets)
     "staticfiles": {
-        # Static files (CSS, JS, admin assets) go to Azure Blob Storage
         "BACKEND": "promed_backend_api.storage_backends.AzureStaticStorage",
     },
 }
