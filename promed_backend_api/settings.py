@@ -5,10 +5,12 @@ from dotenv import load_dotenv
 import os
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
-import dj_database_url
 
 load_dotenv()
 
+# ============================================================
+# SENTRY CONFIGURATION
+# ============================================================
 sentry_sdk.init(
     dsn="https://e8b8032c2344202bda64fc938e4dc5db@o4509803038113792.ingest.us.sentry.io/4509803039031296",
     integrations=[DjangoIntegration()],
@@ -18,7 +20,19 @@ sentry_sdk.init(
 
 TESTING = False
 
-# --- AZURE PROXY/SECURITY CONFIGURATION ---
+# ============================================================
+# BASE CONFIGURATION
+# ============================================================
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
+
+# Set DEBUG based on environment variable
+DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
+
+# ============================================================
+# AZURE PROXY/SECURITY CONFIGURATION
+# ============================================================
 RUNNING_ON_AZURE = os.getenv('WEBSITE_SITE_NAME') is not None
 
 USE_X_FORWARDED_HOST = True
@@ -29,15 +43,10 @@ SECURE_SSL_REDIRECT = False
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
-# --- END AZURE PROXY/SECURITY CONFIGURATION ---
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
-
-# Set DEBUG based on environment variable
-DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
-
+# ============================================================
+# CLIENT URL CONFIGURATION
+# ============================================================
 PRODUCTION_CLIENT_URL = os.getenv('CLIENT_BASE_URL', 'https://promedhealthplus.com')
 LOCAL_CLIENT_URL = 'http://localhost:3000'
 
@@ -46,23 +55,28 @@ if DEBUG:
 else:
     BASE_CLIENT_URL = PRODUCTION_CLIENT_URL
 
+# ============================================================
+# ALLOWED HOSTS
+# ============================================================
 ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
-    # Azure internal health check IPs (without ports)
+    # Azure internal health check IPs
     '169.254.129.3',
     '169.254.129.5',
     '169.254.129.1',
-    # Wildcard for any Azure internal IPs
-    '169.254.*',
+    '169.254.*',  # Wildcard for Azure internal IPs
     # Azure domains
     '.azurewebsites.net',
     '.azurefd.net',
-    # Production domain
+    # Production domains
     'promedhealthplus.com',
     '.promedhealthplus.com',
 ]
 
+# ============================================================
+# CSRF TRUSTED ORIGINS
+# ============================================================
 CSRF_TRUSTED_ORIGINS = [
     "https://*.azurewebsites.net",
     "https://*.azurefd.net",
@@ -70,6 +84,9 @@ CSRF_TRUSTED_ORIGINS = [
     "https://*.promedhealthplus.com",
 ]
 
+# ============================================================
+# INSTALLED APPS
+# ============================================================
 USER_APPS = [
     'provider_auth.apps.ProviderAuthConfig',
     'onboarding_ops.apps.OnboardingOpsConfig',
@@ -105,14 +122,17 @@ DJANGO_APPS = [
 
 INSTALLED_APPS = THIRD_PARTY_APPS + DJANGO_APPS + USER_APPS
 
+# ============================================================
+# CORS CONFIGURATION
+# ============================================================
 CORS_ALLOW_ALL_ORIGINS = True
 
-# MIDDLEWARE: WhiteNoiseMiddleware must be placed RIGHT AFTER SecurityMiddleware
+# ============================================================
+# MIDDLEWARE (WhiteNoise REMOVED - Using Azure Storage)
+# ============================================================
 MIDDLEWARE = [
-    'core.middleware.StripPortFromHostMiddleware',  # <-- ADD THIS FIRST
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -121,8 +141,14 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# ============================================================
+# URL CONFIGURATION
+# ============================================================
 ROOT_URLCONF = 'promed_backend_api.urls'
 
+# ============================================================
+# TEMPLATES CONFIGURATION
+# ============================================================
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -138,9 +164,14 @@ TEMPLATES = [
     },
 ]
 
+# ============================================================
+# WSGI CONFIGURATION
+# ============================================================
 WSGI_APPLICATION = 'promed_backend_api.wsgi.application'
 
-# Database Configuration
+# ============================================================
+# DATABASE CONFIGURATION
+# ============================================================
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -159,6 +190,9 @@ DATABASES = {
     }
 }
 
+# ============================================================
+# PASSWORD VALIDATION
+# ============================================================
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'core.validators.HIPAAPasswordValidator',
@@ -171,11 +205,17 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# ============================================================
+# INTERNATIONALIZATION
+# ============================================================
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
+# ============================================================
+# REST FRAMEWORK CONFIGURATION
+# ============================================================
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -186,10 +226,16 @@ REST_FRAMEWORK = {
     ],
 }
 
+# ============================================================
+# AUTH CONFIGURATION
+# ============================================================
 AUTH_USER_MODEL = 'provider_auth.User'
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# ============================================================
+# JWT CONFIGURATION
+# ============================================================
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=120),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=50),
@@ -216,8 +262,11 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
 }
 
+# ============================================================
+# JAZZMIN ADMIN CONFIGURATION
+# ============================================================
 JAZZMIN_SETTINGS = {
-    "site_title": "LMS Admin",
+    "site_title": "ProMed Health Plus Admin",
     "site_header": "ProMed Health Plus Portal",
     "site_brand": "ProMed Health Plus Portal",
     "welcome_sign": "Welcome to ProMed Health Plus Portal Admin",
@@ -257,7 +306,9 @@ JAZZMIN_UI_TWEAKS = {
     }
 }
 
-# Email Configuration
+# ============================================================
+# EMAIL CONFIGURATION (SendGrid)
+# ============================================================
 EMAIL_BACKEND = 'anymail.backends.sendgrid.EmailBackend'
 SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
 EMAIL_HOST = 'smtp.sendgrid.net'
@@ -267,29 +318,27 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = 'vastyle2010@gmail.com'
 
-# Azure Storage Configuration
+# ============================================================
+# AZURE STORAGE CONFIGURATION
+# ============================================================
 AZURE_ACCOUNT_NAME = os.getenv('AZURE_ACCOUNT_NAME')
 AZURE_ACCOUNT_KEY = os.getenv('AZURE_ACCOUNT_KEY')
-AZURE_CONTAINER = 'media'
-
-LOCAL_HOST = 'http://localhost:3000'
+AZURE_CUSTOM_DOMAIN = f'{AZURE_ACCOUNT_NAME}.blob.core.windows.net'
 
 # ============================================================
-# STATIC FILES CONFIGURATION (WhiteNoise)
+# STATIC FILES CONFIGURATION (Azure Blob Storage)
 # ============================================================
-# Static files root directory - where collectstatic puts files
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_URL = f'https://{AZURE_CUSTOM_DOMAIN}/static/'
 
-# URL to serve static files
-STATIC_URL = '/static/'
-
-# WhiteNoise configuration for serving static files
-WHITENOISE_USE_FINDERS = True
-WHITENOISE_MANIFEST_STRICT = False
-WHITENOISE_ALLOW_ALL_ORIGINS = True
+# ============================================================
+# MEDIA FILES CONFIGURATION (Azure Blob Storage)
+# ============================================================
+MEDIA_URL = f'https://{AZURE_CUSTOM_DOMAIN}/media/'
 
 # ============================================================
 # STORAGES CONFIGURATION (Django 4.2+)
+# Both static and media files use Azure Blob Storage
 # ============================================================
 STORAGES = {
     "default": {
@@ -297,18 +346,17 @@ STORAGES = {
         "BACKEND": "promed_backend_api.storage_backends.AzureMediaStorage",
     },
     "staticfiles": {
-        # Static files use WhiteNoise (compressed, cached, served from filesystem)
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        # Static files (CSS, JS, admin assets) go to Azure Blob Storage
+        "BACKEND": "promed_backend_api.storage_backends.AzureStaticStorage",
     },
 }
 
 # ============================================================
-# MEDIA FILES CONFIGURATION (Azure)
+# SESSION CONFIGURATION
 # ============================================================
-# Azure URLs
-AZURE_CUSTOM_DOMAIN = f'{AZURE_ACCOUNT_NAME}.blob.core.windows.net'
-
-# Media files URL - points to Azure Blob Storage
-MEDIA_URL = f'https://{AZURE_CUSTOM_DOMAIN}/media/'
-
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+
+# ============================================================
+# ADDITIONAL SETTINGS
+# ============================================================
+LOCAL_HOST = 'http://localhost:3000'

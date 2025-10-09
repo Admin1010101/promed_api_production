@@ -5,46 +5,37 @@ echo "=========================================="
 echo "Starting ProMed Health Plus Backend"
 echo "=========================================="
 
-# Wait for database
-echo "Waiting for database to be ready..."
+# Simple database wait with timeout
+echo "Checking database connection..."
 DB_HOST="${MYSQL_DB_HOST:-mysql-promedhealthplue-dev.mysql.database.azure.com}"
 DB_PORT="${MYSQL_DB_PORT:-3306}"
-timeout=60
-counter=0
 
-while ! nc -z "$DB_HOST" "$DB_PORT"; do
-    sleep 1
-    counter=$((counter + 1))
-    if [ $counter -ge $timeout ]; then
-        echo "ERROR: Database connection timeout after ${timeout} seconds"
-        exit 1
-    fi
-    if [ $((counter % 10)) -eq 0 ]; then
-        echo "Still waiting for database... (${counter}s elapsed)"
-    fi
-done
+# Try to connect, but don't block startup if it fails
+if nc -z -w5 "$DB_HOST" "$DB_PORT"; then
+    echo "✓ Database is reachable"
+else
+    echo "⚠ Warning: Could not reach database at $DB_HOST:$DB_PORT"
+    echo "  Continuing anyway - Django will handle connection errors"
+fi
 
-echo "✓ Database is available"
-
-# Run database migrations FIRST
+# Run migrations (will fail gracefully if DB is unreachable)
 echo "Running database migrations..."
-python manage.py migrate --noinput || {
-    echo "ERROR: Database migrations failed"
-    exit 1
+python manage.py migrate --noinput 2>&1 || {
+    echo "⚠ Warning: Migrations failed or skipped"
+    echo "  Application will start but may not function correctly"
 }
-echo "✓ Database migrations complete"
 
-# Collect static files AFTER migrations
-echo "Collecting static files..."
-python manage.py collectstatic --noinput --clear || {
-    echo "WARNING: collectstatic failed, but continuing..."
-    # Don't exit - static files not critical for API
+# Collect static files to Azure Storage
+echo "Collecting static files to Azure..."
+python manage.py collectstatic --noinput 2>&1 || {
+    echo "⚠ Warning: Static file collection failed"
+    echo "  This may affect admin panel styling"
 }
-echo "✓ Static files collected (or skipped)"
 
 echo "=========================================="
-echo "Starting Gunicorn server on port 8000..."
+echo "✓ Initialization complete"
+echo "Starting Gunicorn on 0.0.0.0:8000"
 echo "=========================================="
 
-# Execute the CMD from Dockerfile (gunicorn command)
+# Execute gunicorn
 exec "$@"
