@@ -17,22 +17,13 @@ sentry_sdk.init(
 )
 
 # --- AZURE PROXY/SECURITY CONFIGURATION ---
-# Detect if running on Azure
 RUNNING_ON_AZURE = os.getenv('WEBSITE_SITE_NAME') is not None
 
-# For Django to trust the headers passed by the Azure Load Balancer/Proxy
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
-
-# This tells Django to trust the X-Forwarded-Proto header for 'https'
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-# CRITICAL FIX: SECURE_SSL_REDIRECT must be False on Azure App Service
-# Azure handles the HTTPS redirection at the load balancer. Setting this to True
-# causes a redirect loop and a 403 error.
 SECURE_SSL_REDIRECT = False 
 
-# Secure cookies - these are safe to keep enabled
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
@@ -45,41 +36,29 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 # Set DEBUG based on environment variable
 DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
 
-PRODUCTION_CLIENT_URL = os.getenv('CLIENT_BASE_URL', 'https://promedhealthplus.com') # Using your final domain as a fallback
-LOCAL_CLIENT_URL = 'http://localhost:3000' # Your local React server
+PRODUCTION_CLIENT_URL = os.getenv('CLIENT_BASE_URL', 'https://promedhealthplus.com')
+LOCAL_CLIENT_URL = 'http://localhost:3000'
 
-# Determine the base URL dynamically using the DEBUG setting
 if DEBUG:
-    # Use the local URL when running locally (DEBUG=True)
     BASE_CLIENT_URL = LOCAL_CLIENT_URL
 else:
-    # Use the Azure URL when deployed (DEBUG=False)
     BASE_CLIENT_URL = PRODUCTION_CLIENT_URL
 
-# ALLOWED_HOSTS - Covers all Azure deployment scenarios
 ALLOWED_HOSTS = [
-    # Local Development
     '127.0.0.1',
     'localhost',
-    # Azure internal health probe IP (Required for startup checks)
     '169.254.129.3',
-    # Wildcard covers all Azure subdomains including temporary deployment URLs
     '.azurewebsites.net',
-    # Frontdood wildcard
     '.azurefd.net',
-    # Other deployment platforms
     '.onrender.com',
     'pythonanywhere.com',
     'wchandler2025.pythonanywhere.com',
 ]
 
-# CSRF_TRUSTED_ORIGINS - Allow HTTPS from Azure domains
 CSRF_TRUSTED_ORIGINS = [
     "https://promedhealthplus-portal-api-1.onrender.com",
     "https://app-promed-backend-prod-dev.azurewebsites.net",
     "https://*.azurewebsites.net",
-    # Add your React frontend domain here when deployed
-    # "https://your-frontend-domain.com",
 ]
 
 USER_APPS = [
@@ -117,25 +96,20 @@ DJANGO_APPS = [
 
 INSTALLED_APPS = THIRD_PARTY_APPS + DJANGO_APPS + USER_APPS
 
-# CORS Configuration - Allow all origins for now
-# Consider restricting this to specific domains in production (HIPAA best practice)
 CORS_ALLOW_ALL_ORIGINS = True
 
-# --- CRITICAL FIX: Middleware Ordering ---
-# CorsMiddleware and SecurityMiddleware should be first. 
-# Whitenoise is usually last after SessionMiddleware.
+# MIDDLEWARE: WhiteNoiseMiddleware must be placed RIGHT AFTER SecurityMiddleware
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware', # 1st - Must come before other middlewares that might use the CORS headers
-    'django.middleware.security.SecurityMiddleware', # 2nd - Needs to run early
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # <-- WhiteNoise HERE (after SecurityMiddleware)
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware', # Last, or near last
 ]
-# --- END CRITICAL FIX ---
 
 ROOT_URLCONF = 'promed_backend_api.urls'
 
@@ -168,8 +142,6 @@ DATABASES = {
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
             'charset': 'utf8mb4',
-            # SSL Configuration for Azure MySQL
-            # FIX: Use simple truthiness check for SSL options key existence
             'ssl': {
                 'ca': os.getenv('MYSQL_DB_SSL_CA_PATH')
             } if os.getenv('MYSQL_DB_SSL_CA_PATH') else {}
@@ -197,7 +169,7 @@ USE_TZ = True
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication', # Needed for Django Admin
+        'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -205,10 +177,7 @@ REST_FRAMEWORK = {
 }
 
 AUTH_USER_MODEL = 'provider_auth.User'
-
-# X-Frame-Options set to SAMEORIGIN is a good balance for the Admin interface
 X_FRAME_OPTIONS = 'SAMEORIGIN'
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SIMPLE_JWT = {
@@ -295,21 +264,41 @@ AZURE_CONTAINER = 'media'
 
 LOCAL_HOST = 'http://localhost:3000'
 
-# Static files root directory
+# ============================================================
+# STATIC FILES CONFIGURATION (WhiteNoise)
+# ============================================================
+# Static files root directory - where collectstatic puts files
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
+# URL to serve static files
+STATIC_URL = '/static/'
+
+# WhiteNoise configuration for serving static files
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_MANIFEST_STRICT = False
+WHITENOISE_ALLOW_ALL_ORIGINS = True
+
+# ============================================================
+# STORAGES CONFIGURATION (Django 4.2+)
+# ============================================================
 STORAGES = {
     "default": {
+        # Media files (user uploads) go to Azure Blob Storage
         "BACKEND": "promed_backend_api.storage_backends.AzureMediaStorage",
     },
     "staticfiles": {
-        "BACKEND": "promed_backend_api.storage_backends.AzureStaticStorage",
+        # Static files use WhiteNoise (compressed, cached, served from filesystem)
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
 
+# ============================================================
+# MEDIA FILES CONFIGURATION (Azure)
+# ============================================================
 # Azure URLs
 AZURE_CUSTOM_DOMAIN = f'{AZURE_ACCOUNT_NAME}.blob.core.windows.net'
-STATIC_URL = f'https://{AZURE_CUSTOM_DOMAIN}/static/'
+
+# Media files URL - points to Azure Blob Storage
 MEDIA_URL = f'https://{AZURE_CUSTOM_DOMAIN}/media/'
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'

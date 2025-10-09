@@ -1,38 +1,31 @@
+# promed_backend_api/storage_backends.py
 from storages.backends.azure_storage import AzureStorage
 from django.conf import settings
-import os
 
-AZURE_ACCOUNT_NAME = os.getenv('AZURE_ACCOUNT_NAME')
-AZURE_ACCOUNT_KEY = os.getenv('AZURE_ACCOUNT_KEY')
 
-print('AZURE_ACCOUNT_NAME:', AZURE_ACCOUNT_NAME)
-print('AZURE_ACCOUNT_KEY:', AZURE_ACCOUNT_KEY)
-
-# --- 1. AzureMediaStorage (For Private PHI/PDFs) ---
 class AzureMediaStorage(AzureStorage):
-    account_name = AZURE_ACCOUNT_NAME
-    account_key = AZURE_ACCOUNT_KEY
-    azure_container = "media"
+    """
+    Custom storage backend for media files (user uploads).
+    Uses Azure Blob Storage.
+    """
+    account_name = settings.AZURE_ACCOUNT_NAME
+    account_key = settings.AZURE_ACCOUNT_KEY
+    azure_container = 'media'
     expiration_secs = None
-    # Make media files private
-    overwrite_files = False
-
-    def get_default_settings(self):
-        settings = super().get_default_settings()
-        # Ensure media files are private (no public access)
-        settings['blob_public_access'] = None
-        return settings
+    overwrite_files = True  # Allow overwriting files with the same name
 
 
 class AzureStaticStorage(AzureStorage):
-    account_name = AZURE_ACCOUNT_NAME
-    account_key = AZURE_ACCOUNT_KEY
-    azure_container = "static"
+    """
+    Custom storage backend for static files (CSS, JS, admin assets).
+    
+    NOTE: This is currently NOT being used in production.
+    We're using WhiteNoise instead (see settings.py STORAGES config).
+    
+    This class is kept here for reference in case you want to 
+    switch to Azure-based static file serving in the future.
+    """
+    account_name = settings.AZURE_ACCOUNT_NAME
+    account_key = settings.AZURE_ACCOUNT_KEY
+    azure_container = 'static'
     expiration_secs = None
-    overwrite_files = True
-
-    def get_default_settings(self):
-        settings = super().get_default_settings()
-        # Make static files publicly accessible
-        settings['blob_public_access'] = 'blob'
-        return settings
