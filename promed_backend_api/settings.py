@@ -65,7 +65,8 @@ ALLOWED_HOSTS = [
     '169.254.129.3',
     '169.254.129.5',
     '169.254.129.1',
-    '169.254.*',  # Wildcard for Azure internal IPs
+    '169.254.129.2', # <-- ADD THIS SPECIFIC IP
+    '169.254.*',     # Wildcard for Azure internal IPs
     # Azure domains
     '.azurewebsites.net',
     '.azurefd.net',
