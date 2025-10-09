@@ -49,7 +49,9 @@ else:
 ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
-    '169.254.129.3',
+    '169.254.129.3',  # Existing
+    '169.254.129.5',  # <--- NEW: The specific IP from the log
+    '169.254.*',      # <--- NEW: Use a wildcard for internal Azure health checks (most robust fix)
     '.azurewebsites.net',
     '.azurefd.net',
     '.onrender.com',
