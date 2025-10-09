@@ -47,21 +47,29 @@ else:
     BASE_CLIENT_URL = PRODUCTION_CLIENT_URL
 
 ALLOWED_HOSTS = [
+    '*', # <-- TEMPORARY: Use for debugging to confirm ALLOWED_HOSTS is not the issue. REMOVE LATER.
     '127.0.0.1',
     'localhost',
     '169.254.*', # Wildcard for Azure health probes
     '.azurewebsites.net', 
-    '.azurefd.net',      # <-- Check this one
-    'promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net', # <-- Explicit FD URL
-    'app-promed-backend-prod-dev.azurewebsites.net', # <-- Explicit App Service URL
-    'promedhealthplus.com', # <-- Your final custom domain
+    '.azurefd.net',
+    'promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net', # Your Front Door URL
+    'app-promed-backend-prod-dev.azurewebsites.net', # Your Backend App Service URL
+    'promedhealthplus.com', # Your final custom domain
     # ... other hosts
 ]
 
 CSRF_TRUSTED_ORIGINS = [
+    # Existing entries
     "https://promedhealthplus-portal-api-1.onrender.com",
     "https://app-promed-backend-prod-dev.azurewebsites.net",
     "https://*.azurewebsites.net",
+    
+    # NEW: Your Front Door URL
+    "https://promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net", 
+    
+    # NEW: Your final custom client domain (CRITICAL for API calls from the frontend)
+    "https://promedhealthplus.com", 
 ]
 
 USER_APPS = [
