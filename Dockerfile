@@ -17,37 +17,39 @@ RUN apt-get update && apt-get install -y \
     libcairo2-dev \
     pkg-config \
     netcat-openbsd \
+    curl \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements file and install Python dependencies
 COPY requirements.txt .
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip --root-user-action=ignore && \
+    pip install --no-cache-dir -r requirements.txt --root-user-action=ignore
 
-# Copy project files and certificates
+# Copy project files
 COPY . .
+
+# Copy SSL certificates for MySQL
 COPY ./certs /app/certs
 
-# DEBUG: Check if WhiteNoise is installed
-RUN echo "=== Checking WhiteNoise installation ===" && \
-    python -c "import whitenoise; print(f'WhiteNoise version: {whitenoise.__version__}')" && \
-    echo "WhiteNoise is installed!"
-
-# DEBUG: Check Django settings
-RUN echo "=== Checking Django STORAGES configuration ===" && \
-    python manage.py diffsettings | grep -i storage || echo "Could not read storage settings"
-
-# Run collectstatic with full traceback to see the actual error
-RUN echo "=== Running collectstatic with full error output ===" && \
-    python manage.py collectstatic --noinput --clear --traceback
+# Create directories for static and media files
+RUN mkdir -p /app/staticfiles /app/media
 
 # Copy and set executable permissions for the entrypoint script
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+# This will be overwritten by the GitHub Actions workflow
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh 2>/dev/null || \
+    echo '#!/bin/sh\necho "No entrypoint.sh found, using default"\nexec "$@"' > /usr/local/bin/entrypoint.sh
+
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Expose port
 EXPOSE 8000
 
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/health/ || exit 1
+
 # Set the entrypoint
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD ["gunicorn", "promed_backend_api.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120"]
+
+# Default command
+CMD ["gunicorn", "promed_backend_api.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-"]

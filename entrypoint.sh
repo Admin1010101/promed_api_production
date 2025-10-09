@@ -1,24 +1,49 @@
 #!/bin/sh
-echo "Starting entrypoint script..."
+set -e  # Exit on error
 
-# Wait for database to be ready
+echo "=========================================="
+echo "Starting ProMed Health Plus Backend"
+echo "=========================================="
+
+# Wait for database
 echo "Waiting for database to be ready..."
 DB_HOST="${MYSQL_DB_HOST:-mysql-promedhealthplue-dev.mysql.database.azure.com}"
 DB_PORT="${MYSQL_DB_PORT:-3306}"
-
 timeout=60
 counter=0
+
 while ! nc -z "$DB_HOST" "$DB_PORT"; do
     sleep 1
     counter=$((counter + 1))
     if [ $counter -ge $timeout ]; then
-        echo "Database connection timeout after ${timeout} seconds"
+        echo "ERROR: Database connection timeout after ${timeout} seconds"
         exit 1
+    fi
+    if [ $((counter % 10)) -eq 0 ]; then
+        echo "Still waiting for database... (${counter}s elapsed)"
     fi
 done
 
-echo "Database is available. Running migrations..."
-python manage.py migrate --noinput
+echo "✓ Database is available"
 
-echo "Starting Gunicorn server..."
-exec gunicorn promed_backend_api.wsgi:application --workers 4 --bind 0.0.0.0:8000 --timeout 120
+# Collect static files
+echo "Collecting static files..."
+python manage.py collectstatic --noinput --clear || {
+    echo "WARNING: collectstatic failed. Static files may not load properly."
+    echo "This is usually okay for API-only backends."
+}
+
+# Run database migrations
+echo "Running database migrations..."
+python manage.py migrate --noinput || {
+    echo "ERROR: Database migrations failed"
+    exit 1
+}
+
+echo "✓ Database migrations complete"
+echo "=========================================="
+echo "Starting Gunicorn server on port 8000..."
+echo "=========================================="
+
+# Execute the CMD from Dockerfile (gunicorn command)
+exec "$@"
