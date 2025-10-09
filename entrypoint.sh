@@ -26,21 +26,22 @@ done
 
 echo "✓ Database is available"
 
-# Collect static files
-echo "Collecting static files..."
-python manage.py collectstatic --noinput --clear || {
-    echo "WARNING: collectstatic failed. Static files may not load properly."
-    echo "This is usually okay for API-only backends."
-}
-
-# Run database migrations
+# Run database migrations FIRST
 echo "Running database migrations..."
 python manage.py migrate --noinput || {
     echo "ERROR: Database migrations failed"
     exit 1
 }
-
 echo "✓ Database migrations complete"
+
+# Collect static files AFTER migrations
+echo "Collecting static files..."
+python manage.py collectstatic --noinput --clear || {
+    echo "WARNING: collectstatic failed, but continuing..."
+    # Don't exit - static files not critical for API
+}
+echo "✓ Static files collected (or skipped)"
+
 echo "=========================================="
 echo "Starting Gunicorn server on port 8000..."
 echo "=========================================="
