@@ -4,7 +4,8 @@ FROM python:3.11-slim
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PORT=8000
+    PORT=8000 \
+    DJANGO_SETTINGS_MODULE=promed_backend_api.settings
 
 # Set working directory
 WORKDIR /app
@@ -27,16 +28,26 @@ RUN pip install --upgrade pip && \
 COPY . .
 COPY ./certs /app/certs
 
-# upload static files
-RUN python manage.py collectstatic --noinput --clear
+# DEBUG: Check if WhiteNoise is installed
+RUN echo "=== Checking WhiteNoise installation ===" && \
+    python -c "import whitenoise; print(f'WhiteNoise version: {whitenoise.__version__}')" && \
+    echo "WhiteNoise is installed!"
+
+# DEBUG: Check Django settings
+RUN echo "=== Checking Django STORAGES configuration ===" && \
+    python manage.py diffsettings | grep -i storage || echo "Could not read storage settings"
+
+# Run collectstatic with full traceback to see the actual error
+RUN echo "=== Running collectstatic with full error output ===" && \
+    python manage.py collectstatic --noinput --clear --traceback
 
 # Copy and set executable permissions for the entrypoint script
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Expose port 8000
+# Expose port
 EXPOSE 8000
 
-# Set the entrypoint entrypoint.sh
+# Set the entrypoint
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["gunicorn", "promed_backend_api.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120"]
