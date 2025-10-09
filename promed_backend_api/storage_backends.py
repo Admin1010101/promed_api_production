@@ -9,12 +9,12 @@ class AzureMediaStorage(AzureStorage):
     Custom storage backend for media files (user uploads).
     Uses Azure Blob Storage with the 'media' container.
     """
-    account_name = getattr(settings, 'AZURE_ACCOUNT_NAME', None) or os.getenv('AZURE_ACCOUNT_NAME')
-    account_key = getattr(settings, 'AZURE_ACCOUNT_KEY', None) or os.getenv('AZURE_ACCOUNT_KEY')
-    azure_container = 'media'
+    account_name = settings.AZURE_ACCOUNT_NAME
+    account_key = settings.AZURE_ACCOUNT_KEY
+    azure_container = settings.AZURE_MEDIA_CONTAINER
     expiration_secs = None
-    overwrite_files = True
-
+    overwrite_files = settings.AZURE_OVERWRITE_FILES
+    
     def __init__(self, *args, **kwargs):
         if not self.account_name or not self.account_key:
             raise ValueError(
@@ -29,12 +29,12 @@ class AzureStaticStorage(AzureStorage):
     Custom storage backend for static files (CSS, JS, admin assets).
     Uses Azure Blob Storage with the 'static' container.
     """
-    account_name = getattr(settings, 'AZURE_ACCOUNT_NAME', None) or os.getenv('AZURE_ACCOUNT_NAME')
-    account_key = getattr(settings, 'AZURE_ACCOUNT_KEY', None) or os.getenv('AZURE_ACCOUNT_KEY')
-    azure_container = 'static'
+    account_name = settings.AZURE_ACCOUNT_NAME
+    account_key = settings.AZURE_ACCOUNT_KEY
+    azure_container = settings.AZURE_STATIC_CONTAINER
     expiration_secs = None
-    overwrite_files = True  # Overwrite to avoid version conflicts
-
+    overwrite_files = settings.AZURE_OVERWRITE_FILES
+    
     def __init__(self, *args, **kwargs):
         if not self.account_name or not self.account_key:
             raise ValueError(

@@ -6,6 +6,7 @@ import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 
 load_dotenv()
+
 # ============================================================
 # SENTRY CONFIGURATION
 # ============================================================
@@ -17,6 +18,7 @@ sentry_sdk.init(
 )
 
 TESTING = True
+
 # ============================================================
 # BASE CONFIGURATION
 # ============================================================
@@ -40,6 +42,7 @@ SECURE_SSL_REDIRECT = False
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
+
 # ============================================================
 # CLIENT URL CONFIGURATION
 # ============================================================
@@ -50,19 +53,20 @@ if DEBUG:
     BASE_CLIENT_URL = LOCAL_CLIENT_URL
 else:
     BASE_CLIENT_URL = PRODUCTION_CLIENT_URL
+
 # ============================================================
 # ALLOWED HOSTS
 # ============================================================
 ALLOWED_HOSTS = [
-     '127.0.0.1',
+    '127.0.0.1',
     'localhost',
     # Azure internal health check IPs
     '169.254.129.3',
     '169.254.129.5',
     '169.254.129.1',
     '169.254.129.2',
-    '169.254.129.4',  # <--- CRITICAL FIX: Add the exact IP from the error
-    '169.254.*',     # Wildcard for Azure internal IPs
+    '169.254.129.4',
+    '169.254.*',
     # Azure domains
     '.azurewebsites.net',
     '.azurefd.net',
@@ -70,6 +74,7 @@ ALLOWED_HOSTS = [
     'promedhealthplus.com',
     '.promedhealthplus.com',
 ]
+
 # ============================================================
 # CSRF TRUSTED ORIGINS
 # ============================================================
@@ -79,6 +84,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://promedhealthplus.com",
     "https://*.promedhealthplus.com",
 ]
+
 # ============================================================
 # INSTALLED APPS
 # ============================================================
@@ -123,7 +129,7 @@ INSTALLED_APPS = THIRD_PARTY_APPS + DJANGO_APPS + USER_APPS
 CORS_ALLOW_ALL_ORIGINS = True
 
 # ============================================================
-# MIDDLEWARE (NO WhiteNoise)
+# MIDDLEWARE
 # ============================================================
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -314,62 +320,46 @@ EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = 'vastyle2010@gmail.com'
 
 # ============================================================
-# AZURE STORAGE GLOBAL CONFIGURATION (All settings for django-storages)
+# AZURE STORAGE CONFIGURATION
 # ============================================================
 AZURE_ACCOUNT_NAME = os.getenv('AZURE_ACCOUNT_NAME')
 AZURE_ACCOUNT_KEY = os.getenv('AZURE_ACCOUNT_KEY')
 
-# CRITICAL: This base URL is used by AzureStorage backend for file links
-AZURE_CUSTOM_DOMAIN = f'{AZURE_ACCOUNT_NAME}.blob.core.windows.net' 
-AZURE_URL_PROTOCOL = 'https' # Ensures links are HTTPS
+# Azure Front Door endpoint (CDN)
+AZURE_FRONTDOOR_ENDPOINT = 'promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net'
 
-# Set the container names for the storage backend to use
+# Use Front Door for serving files (CDN), or fallback to direct blob storage
+AZURE_CUSTOM_DOMAIN = AZURE_FRONTDOOR_ENDPOINT
+
+# Container names
 AZURE_STATIC_CONTAINER = 'static'
 AZURE_MEDIA_CONTAINER = 'media'
 
-# This setting forces the collectstatic command to overwrite existing files
-# which is usually desired for CI/CD deployments.
+# Overwrite files on upload
 AZURE_OVERWRITE_FILES = True
 
-
 # ============================================================
-# STATIC FILES CONFIGURATION 
+# STATIC FILES CONFIGURATION
 # ============================================================
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-# STATIC_URL must point to the base URL where files are served.
-# Django-storages will append the full path, but the base URL must be correct.
 STATIC_URL = f'https://{AZURE_CUSTOM_DOMAIN}/{AZURE_STATIC_CONTAINER}/'
-# Points to the custom backend class
-STATICFILES_STORAGE = 'promed_backend_api.storage_backends.AzureStaticStorage'
-DEFAULT_FILE_STORAGE = 'promed_backend_api.storage_backends.AzureMediaStorage'
+
 # ============================================================
-# MEDIA FILES CONFIGURATION 
+# MEDIA FILES CONFIGURATION
 # ============================================================
-# MEDIA_URL must point to the base URL where user-uploaded files are served.
 MEDIA_URL = f'https://{AZURE_CUSTOM_DOMAIN}/{AZURE_MEDIA_CONTAINER}/'
+
 # ============================================================
-# STORAGES CONFIGURATION (Django 4.2+ using official backend)
+# STORAGES CONFIGURATION (Django 4.2+)
 # ============================================================
 STORAGES = {
-    # 'default' is for media files (user uploads)
+    # Media files (user uploads)
     "default": {
-        "BACKEND": "storages.backends.azure_storage.AzureStorage",
-        "OPTIONS": {
-            "account_name": AZURE_ACCOUNT_NAME,
-            "account_key": AZURE_ACCOUNT_KEY,
-            "azure_container": AZURE_MEDIA_CONTAINER,
-            "overwrite_files": AZURE_OVERWRITE_FILES,
-        },
+        "BACKEND": "promed_backend_api.storage_backends.AzureMediaStorage",
     },
-    # 'staticfiles' is for static files (CSS, JS, admin assets)
+    # Static files (CSS, JS, admin assets)
     "staticfiles": {
-        "BACKEND": "storages.backends.azure_storage.AzureStorage",
-        "OPTIONS": {
-            "account_name": AZURE_ACCOUNT_NAME,
-            "account_key": AZURE_ACCOUNT_KEY,
-            "azure_container": AZURE_STATIC_CONTAINER,
-            "overwrite_files": AZURE_OVERWRITE_FILES,
-        },
+        "BACKEND": "promed_backend_api.storage_backends.AzureStaticStorage",
     },
 }
 
