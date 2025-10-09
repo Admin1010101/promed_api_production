@@ -6,7 +6,6 @@ import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 
 load_dotenv()
-
 # ============================================================
 # SENTRY CONFIGURATION
 # ============================================================
@@ -18,7 +17,6 @@ sentry_sdk.init(
 )
 
 TESTING = True
-
 # ============================================================
 # BASE CONFIGURATION
 # ============================================================
@@ -42,7 +40,6 @@ SECURE_SSL_REDIRECT = False
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
-
 # ============================================================
 # CLIENT URL CONFIGURATION
 # ============================================================
@@ -53,7 +50,6 @@ if DEBUG:
     BASE_CLIENT_URL = LOCAL_CLIENT_URL
 else:
     BASE_CLIENT_URL = PRODUCTION_CLIENT_URL
-
 # ============================================================
 # ALLOWED HOSTS
 # ============================================================
@@ -73,7 +69,6 @@ ALLOWED_HOSTS = [
     'promedhealthplus.com',
     '.promedhealthplus.com',
 ]
-
 # ============================================================
 # CSRF TRUSTED ORIGINS
 # ============================================================
@@ -83,7 +78,6 @@ CSRF_TRUSTED_ORIGINS = [
     "https://promedhealthplus.com",
     "https://*.promedhealthplus.com",
 ]
-
 # ============================================================
 # INSTALLED APPS
 # ============================================================
@@ -344,6 +338,9 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # STATIC_URL must point to the base URL where files are served.
 # Django-storages will append the full path, but the base URL must be correct.
 STATIC_URL = f'https://{AZURE_CUSTOM_DOMAIN}/{AZURE_STATIC_CONTAINER}/'
+# Points to the custom backend class
+STATICFILES_STORAGE = 'promed_backend_api.storage_backends.AzureStaticStorage'
+DEFAULT_FILE_STORAGE = 'promed_backend_api.storage_backends.AzureMediaStorage'
 # ============================================================
 # MEDIA FILES CONFIGURATION 
 # ============================================================
