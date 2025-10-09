@@ -24,9 +24,9 @@ while ! nc -z -w5 "$DB_HOST" "$DB_PORT"; do
 done
 echo "✓ Database is reachable."
 
-# Collect static files to Azure Storage (Now that DB is ready)
+# Collect static files to Azure Storage (Flag --clear removed to fix ValueError)
 echo "Collecting static files to Azure..."
-python manage.py collectstatic --noinput --clear || {
+python manage.py collectstatic --noinput || { # <-- CORRECTED LINE
     echo "🚨 ERROR: Static file collection failed. Exiting deployment."
     exit 1 # Exit on static file failure to prevent broken admin
 }
