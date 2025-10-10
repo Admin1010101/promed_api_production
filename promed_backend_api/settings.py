@@ -183,22 +183,23 @@ WSGI_APPLICATION = 'promed_backend_api.wsgi.application'
 # ============================================================
 # DATABASE CONFIGURATION
 # ============================================================
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('MYSQL_DB_NAME'),
-        'USER': os.getenv('MYSQL_DB_USER'),
-        'PASSWORD': os.getenv('MYSQL_DB_PASSWORD'),
-        'HOST': os.getenv('MYSQL_DB_HOST'),
-        'PORT': os.getenv('MYSQL_DB_PORT', '3306'),
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            'charset': 'utf8mb4',
-            'ssl': {
-                'ca': os.getenv('MYSQL_DB_SSL_CA_PATH')
-            } if os.getenv('MYSQL_DB_SSL_CA_PATH') else {}
-        }
-    }
+# Configure storages to use Azure backend
+STORAGES = {
+    # 'default' is for media files (user uploads)
+    "default": {
+        # CRITICAL FIX: Use your custom storage backend
+        "BACKEND": "promed_backend_api.storage_backends.AzureMediaStorage",
+        "OPTIONS": {}, # Empty options are sufficient for custom backend
+    },
+    # 'staticfiles' is for static files (CSS, JS, admin assets)
+    "staticfiles": {
+        # CRITICAL FIX: Use your custom storage backend
+        "BACKEND": "promed_backend_api.storage_backends.AzureStaticStorage",
+        "OPTIONS": {
+            # Only include non-inherited options like Cache-Control here
+            "cache_control": "max-age=31536000, public, immutable",
+        },
+    },
 }
 
 # ============================================================
@@ -360,8 +361,8 @@ if os.path.isdir(PROJECT_STATIC_DIR):
 
 if DEBUG:
     # --- DEVELOPMENT SETTINGS (Local File System) ---
-    STATIC_URL = '/static/'
-    MEDIA_URL = '/media/'
+    STATIC_URL = f'/{AZURE_STATIC_CONTAINER}/'
+    MEDIA_URL = f'/{AZURE_MEDIA_CONTAINER}/'
     
     # Use Django's default storage backends
     STORAGES = {

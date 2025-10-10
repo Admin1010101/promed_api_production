@@ -2,10 +2,14 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import HttpResponse
 
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+
+def simple_health_check(request):
+    return HttpResponse("OK", status=200)
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -36,6 +40,7 @@ urlpatterns = [
     path('api/v1/', include('sales_rep.urls')),
     path('api/v1/patient/', include('patients.urls')),
     path('api/v1/onboarding/', include('onboarding_ops.urls')),
+    path('health', simple_health_check, name='health_check'),
     
 ]
 
