@@ -1,22 +1,26 @@
-# signals.py
-
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from django.conf import settings
-
-from .models import User
-
 # provider_auth/signals.py
+
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
-from .models import User
 from datetime import datetime
 
+# CRITICAL FIX: Import the Profile model
+from .models import User, Profile 
+
+# --- Profile Creation Signal ---
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    """Ensures a Profile object is created immediately after a User is created."""
+    if created:
+        # Check to prevent re-creation and ensure model is loaded
+        if not hasattr(instance, 'profile'):
+            Profile.objects.create(user=instance)
+
+
+# --- Welcome Email Signal (Your Existing Code) ---
 @receiver(post_save, sender=User)
 def send_welcome_email_on_approval(sender, instance, created, **kwargs):
     if not created and instance.is_verified and instance.is_approved and not instance.welcome_email_sent:
@@ -37,5 +41,8 @@ def send_welcome_email_on_approval(sender, instance, created, **kwargs):
 
         # Update user so the email isn’t sent again
         instance.welcome_email_sent = True
+        # NOTE: You must disable the signal before calling save to prevent an infinite loop
+        # (though using update_fields helps, this is safer)
+        post_save.disconnect(send_welcome_email_on_approval, sender=User)
         instance.save(update_fields=['welcome_email_sent'])
-
+        post_save.connect(send_welcome_email_on_approval, sender=User)

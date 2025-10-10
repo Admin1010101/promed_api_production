@@ -1,15 +1,16 @@
 # provider_auth/models.py
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+# NOTE: Import Group and Permission models for the custom M2M fields
+from django.contrib.auth.models import AbstractUser, Group, Permission 
 from django.db.models.signals import post_save
 from django.conf import settings
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _ # Required for Django field definitions
 from sales_rep.models import SalesRep
 from phonenumber_field.modelfields import PhoneNumberField
 import random
 import uuid
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
+# REMOVED: django.core.mail, django.template.loader (No longer needed here)
 
 COUNTRY_CODE_CHOICES = (
     ('+1', 'United States'),
@@ -63,6 +64,28 @@ class User(AbstractUser):
     date_updated = models.DateTimeField(auto_now=True)
     is_verified = models.BooleanField(default=False)
 
+    # =========================================================
+    # CRITICAL FIX: Explicitly define groups and user_permissions
+    #               to resolve the SystemCheckError (fields.E304)
+    # =========================================================
+    groups = models.ManyToManyField(
+        Group,
+        verbose_name=_('groups'),
+        blank=True,
+        help_text=_('The groups this user belongs to. A user will get all permissions granted to each of their groups.'),
+        related_name="provider_auth_users", # <-- UNIQUE RELATED NAME
+        related_query_name="provider_auth_user",
+    )
+    user_permissions = models.ManyToManyField(
+        Permission,
+        verbose_name=_('user permissions'),
+        blank=True,
+        help_text=_('Specific permissions for this user.'),
+        related_name="provider_auth_permissions", # <-- UNIQUE RELATED NAME
+        related_query_name="provider_auth_permission",
+    )
+    # =========================================================
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
 
@@ -77,6 +100,7 @@ class User(AbstractUser):
         super().save(*args, **kwargs)
 
 class Profile(models.Model):
+    # ... (Profile model content remains the same)
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     sales_rep = models.ForeignKey(SalesRep, on_delete=models.SET_NULL, null=True, blank=True, related_name="providers")
     image = models.FileField(
@@ -104,6 +128,7 @@ class Profile(models.Model):
 
 
 class Verification_Code(models.Model):
+    # ... (Verification_Code model content remains the same)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     code = models.CharField(max_length=6)
     method = models.CharField(max_length=10, choices=verification_methods)
@@ -112,7 +137,9 @@ class Verification_Code(models.Model):
 
     def is_expired(self):
         return timezone.now() > self.created_at + timezone.timedelta(minutes=10)
+        
 class EmailVerificationToken(models.Model):
+    # ... (EmailVerificationToken model content remains the same)
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     token = models.UUIDField(default=uuid.uuid4, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -121,45 +148,10 @@ class EmailVerificationToken(models.Model):
         return f"Token for {self.user.email}"
 
 class PasswordResetToken(models.Model):
+    # ... (PasswordResetToken model content remains the same)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     token = models.UUIDField(default=uuid.uuid4, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def is_expired(self):
         return timezone.now() > self.created_at + timezone.timedelta(minutes=30)
-
-def create_user_profile(sender, instance, created, **kwargs):
-    if created:
-        Profile.objects.create(user=instance)
-
-def post_save_profile(sender, instance, **kwargs):
-    pass
-
-# New signal handler to send the verification email
-def send_email_verification_on_create(sender, instance, created, **kwargs):
-    # This condition will then pass:
-    # if created and not instance.is_verified:
-    #     token, _ = EmailVerificationToken.objects.get_or_create(user=instance)
-    #     verification_link = f"http://localhost:8000/api/v1/promedhealthplus_portal_client/#/verify-email/{token.token}"
-
-    #     email_html_message = render_to_string(
-    #         'provider_auth/email_verification.html',
-    #         {
-    #             'user': instance,
-    #             'verification_link': verification_link
-    #         }
-    #     )
-    #     send_mail(
-    #         subject='Verify Your Email Address',
-    #         message=f"Click the link to verify your email: {verification_link}",
-    #         html_message=email_html_message,
-    #         from_email=settings.DEFAULT_FROM_EMAIL,
-    #         recipient_list=[instance.email],
-    #         fail_silently=False
-    #     )
-    
-    pass
-
-# ----------------- Connect Signals -----------------
-post_save.connect(create_user_profile, sender=User)
-# post_save.connect(send_email_verification_on_create, sender=User)
