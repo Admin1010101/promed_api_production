@@ -60,6 +60,7 @@ ALLOWED_HOSTS = [
     '.azurefd.net',
     'promedhealthplus.com',
     '.promedhealthplus.com',
+    '*', 
 ]
 if os.getenv('WEBSITE_HOSTNAME'):
     ALLOWED_HOSTS.append(os.getenv('WEBSITE_HOSTNAME'))
