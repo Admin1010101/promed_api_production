@@ -21,7 +21,7 @@ sentry_sdk.init(
     send_default_pii=True
 )
 
-TESTING = False
+TESTING = True
 
 # ============================================================
 # BASE CONFIGURATION
