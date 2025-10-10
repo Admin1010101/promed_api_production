@@ -376,9 +376,9 @@ if DEBUG:
 else:
     # --- PRODUCTION SETTINGS (Azure Blob Storage + CDN) ---
     
-    # STATIC/MEDIA URL must point to the base URL of your CDN/storage
-    STATIC_URL = f'https://{AZURE_CUSTOM_DOMAIN}/{AZURE_STATIC_CONTAINER}/'
-    MEDIA_URL = f'https://{AZURE_CUSTOM_DOMAIN}/{AZURE_MEDIA_CONTAINER}/'
+    # CRITICAL FIX APPLIED HERE: Set only the container path.
+    STATIC_URL = f'/{AZURE_STATIC_CONTAINER}/'
+    MEDIA_URL = f'/{AZURE_MEDIA_CONTAINER}/'
 
     # Configure storages to use Azure backend
     STORAGES = {
@@ -386,10 +386,10 @@ else:
         "default": {
             "BACKEND": "storages.backends.azure_storage.AzureStorage",
             "OPTIONS": {
-                # --- FIX: ADDED MANDATORY CREDENTIALS ---
+                # --- MANDATORY CREDENTIALS ---
                 "account_name": AZURE_ACCOUNT_NAME,
                 "account_key": AZURE_ACCOUNT_KEY,
-                # ----------------------------------------
+                # -----------------------------
                 "azure_container": AZURE_MEDIA_CONTAINER,
                 "overwrite_files": AZURE_OVERWRITE_FILES,
             },
@@ -398,10 +398,10 @@ else:
         "staticfiles": {
             "BACKEND": "storages.backends.azure_storage.AzureStorage",
             "OPTIONS": {
-                # --- FIX: ADDED MANDATORY CREDENTIALS ---
+                # --- MANDATORY CREDENTIALS ---
                 "account_name": AZURE_ACCOUNT_NAME,
                 "account_key": AZURE_ACCOUNT_KEY,
-                # ----------------------------------------
+                # -----------------------------
                 "azure_container": AZURE_STATIC_CONTAINER,
                 "overwrite_files": AZURE_OVERWRITE_FILES,
                 # Optional: Add Cache-Control for CDN caching (highly recommended)
