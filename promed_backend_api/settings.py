@@ -4,6 +4,10 @@ from dotenv import load_dotenv
 import os
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
+# Import WhiteNoise for middleware
+# WhiteNoise does not need to be explicitly imported for its storage class if using Django 4.2+
+# but it is good practice to ensure it's in requirements.txt
+# If using Django < 4.2, you would need: from whitenoise.storage import CompressedManifestStaticFilesStorage
 
 load_dotenv()
 
@@ -11,9 +15,10 @@ load_dotenv()
 # SENTRY CONFIGURATION
 # ============================================================
 sentry_sdk.init(
-    dsn="https://e8b8032c2344202bda64fc938e4dc5db@o4509803038113792.ingest.us.sentry.io/4509803039031296",
+    dsn=os.getenv("SENTRY_DSN", "https://e8b8032c2344202bda64fc938e4dc5db@o4509803038113792.ingest.us.sentry.io/4509803039031296"),
     integrations=[DjangoIntegration()],
-    traces_sample_rate=1.0,
+    # Setting traces_sample_rate to 0.0 in production is recommended for cost control unless needed
+    traces_sample_rate=1.0, 
     send_default_pii=True
 )
 
@@ -26,7 +31,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
-# Set DEBUG based on environment variable
+# Set DEBUG based on environment variable (True/False check is correct)
 DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
 
 # ============================================================
@@ -34,13 +39,15 @@ DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
 # ============================================================
 RUNNING_ON_AZURE = os.getenv('WEBSITE_SITE_NAME') is not None
 
+# These headers are essential for proxy environments like Azure App Service/Front Door
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SECURE_SSL_REDIRECT = False 
+SECURE_SSL_REDIRECT = not DEBUG # Only redirect if not in DEBUG mode (Best practice)
 
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+# Production security headers. Only set if not in DEBUG.
+SESSION_COOKIE_SECURE = not DEBUG 
+CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_HTTPONLY = True
 
 # ============================================================
@@ -60,20 +67,16 @@ else:
 ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
-    # Azure internal health check IPs (expanded for robustness)
-    '169.254.129.3',
-    '169.254.129.5',
-    '169.254.129.1',
-    '169.254.129.2',
-    '169.254.129.4',
-    '169.254.*',
-    # Azure domains
+    '169.254.129.*', # Consolidated Azure health check IPs
     '.azurewebsites.net',
     '.azurefd.net',
-    # Production domains
     'promedhealthplus.com',
     '.promedhealthplus.com',
 ]
+
+# Get current host on Azure App Service if running there
+if os.getenv('WEBSITE_HOSTNAME'):
+    ALLOWED_HOSTS.append(os.getenv('WEBSITE_HOSTNAME'))
 
 # ============================================================
 # CSRF TRUSTED ORIGINS
@@ -83,6 +86,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://*.azurefd.net",
     "https://promedhealthplus.com",
     "https://*.promedhealthplus.com",
+    "http://localhost:3000" # Added for local development/testing
 ]
 
 # ============================================================
@@ -129,11 +133,15 @@ INSTALLED_APPS = THIRD_PARTY_APPS + DJANGO_APPS + USER_APPS
 CORS_ALLOW_ALL_ORIGINS = True
 
 # ============================================================
-# MIDDLEWARE
+# MIDDLEWARE (CRITICAL: Insert WhiteNoise early)
 # ============================================================
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    # ------------------ STATIC FILES FIX ----------------------
+    # WhiteNoise should come after SecurityMiddleware for compression/caching
+    'whitenoise.middleware.WhiteNoiseMiddleware', 
+    # ----------------------------------------------------------
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -320,63 +328,73 @@ EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = 'vastyle2010@gmail.com'
 
 # ============================================================
-# AZURE STORAGE GLOBAL CONFIGURATION (All settings for django-storages)
+# AZURE STORAGE GLOBAL CONFIGURATION
 # ============================================================
 AZURE_ACCOUNT_NAME = os.getenv('AZURE_ACCOUNT_NAME')
 AZURE_ACCOUNT_KEY = os.getenv('AZURE_ACCOUNT_KEY')
 
 # Azure Front Door endpoint (CDN)
 AZURE_FRONTDOOR_ENDPOINT = 'promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net'
-
-# CRITICAL: This base URL is used by AzureStorage backend for file links.
-# Set it to your CDN/Front Door endpoint.
 AZURE_CUSTOM_DOMAIN = AZURE_FRONTDOOR_ENDPOINT 
 
-# Set the container names for the storage backend to use
 AZURE_STATIC_CONTAINER = 'static'
 AZURE_MEDIA_CONTAINER = 'media'
-
-# This setting forces the collectstatic command to overwrite existing files
 AZURE_OVERWRITE_FILES = True
 
 
 # ============================================================
-# STATIC FILES CONFIGURATION 
+# STATIC AND MEDIA FILES CONFIGURATION (CONDITIONAL FIX)
 # ============================================================
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# Folder where `collectstatic` will put all static files locally (needed for WhiteNoise/Azure build)
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles') 
 
-# STATIC_URL must point to the base URL of your CDN/storage.
-STATIC_URL = f'https://{AZURE_CUSTOM_DOMAIN}/{AZURE_STATIC_CONTAINER}/'
-
-
-# ============================================================
-# MEDIA FILES CONFIGURATION 
-# ============================================================
-MEDIA_URL = f'https://{AZURE_CUSTOM_DOMAIN}/{AZURE_MEDIA_CONTAINER}/'
+# Define where Django should look for additional top-level static files (optional, but good practice)
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')] 
 
 
-# ============================================================
-# STORAGES CONFIGURATION (Django 4.2+ using official backend)
-# CRITICAL FIX: Use the native AzureStorage backend directly.
-# ============================================================
-STORAGES = {
-    # 'default' is for media files (user uploads)
-    "default": {
-        "BACKEND": "storages.backends.azure_storage.AzureStorage",
-        "OPTIONS": {
-            "azure_container": AZURE_MEDIA_CONTAINER,
-            "overwrite_files": AZURE_OVERWRITE_FILES,
+if DEBUG:
+    # --- DEVELOPMENT SETTINGS (Local File System) ---
+    STATIC_URL = '/static/'
+    MEDIA_URL = '/media/'
+    
+    # Use Django's default storage backends
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
         },
-    },
-    # 'staticfiles' is for static files (CSS, JS, admin assets)
-    "staticfiles": {
-        "BACKEND": "storages.backends.azure_storage.AzureStorage",
-        "OPTIONS": {
-            "azure_container": AZURE_STATIC_CONTAINER,
-            "overwrite_files": AZURE_OVERWRITE_FILES,
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
         },
-    },
-}
+    }
+    
+else:
+    # --- PRODUCTION SETTINGS (Azure Blob Storage + CDN) ---
+    
+    # STATIC/MEDIA URL must point to the base URL of your CDN/storage
+    STATIC_URL = f'https://{AZURE_CUSTOM_DOMAIN}/{AZURE_STATIC_CONTAINER}/'
+    MEDIA_URL = f'https://{AZURE_CUSTOM_DOMAIN}/{AZURE_MEDIA_CONTAINER}/'
+
+    # Configure storages to use Azure backend
+    STORAGES = {
+        # 'default' is for media files (user uploads)
+        "default": {
+            "BACKEND": "storages.backends.azure_storage.AzureStorage",
+            "OPTIONS": {
+                "azure_container": AZURE_MEDIA_CONTAINER,
+                "overwrite_files": AZURE_OVERWRITE_FILES,
+            },
+        },
+        # 'staticfiles' is for static files (CSS, JS, admin assets)
+        "staticfiles": {
+            "BACKEND": "storages.backends.azure_storage.AzureStorage",
+            "OPTIONS": {
+                "azure_container": AZURE_STATIC_CONTAINER,
+                "overwrite_files": AZURE_OVERWRITE_FILES,
+                # Optional: Add Cache-Control for CDN caching (highly recommended)
+                "cache_control": "max-age=31536000, public, immutable",
+            },
+        },
+    }
 
 # ============================================================
 # SESSION CONFIGURATION
@@ -385,5 +403,4 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
 # ============================================================
 # ADDITIONAL SETTINGS
-# ============================================================
-LOCAL_HOST = 'http://localhost:3000'
+# =================================
