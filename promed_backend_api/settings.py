@@ -66,7 +66,8 @@ else:
 ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
-    '169.254.129.*', # Consolidated Azure health check IPs
+    '169.254.129.*',
+    '169.254.129.4',# Consolidated Azure health check IPs
     '.azurewebsites.net',
     '.azurefd.net',
     'promedhealthplus.com',
