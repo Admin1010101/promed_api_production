@@ -380,6 +380,10 @@ else:
         "default": {
             "BACKEND": "storages.backends.azure_storage.AzureStorage",
             "OPTIONS": {
+                # --- FIX: ADDED MANDATORY CREDENTIALS ---
+                "account_name": AZURE_ACCOUNT_NAME,
+                "account_key": AZURE_ACCOUNT_KEY,
+                # ----------------------------------------
                 "azure_container": AZURE_MEDIA_CONTAINER,
                 "overwrite_files": AZURE_OVERWRITE_FILES,
             },
@@ -388,6 +392,10 @@ else:
         "staticfiles": {
             "BACKEND": "storages.backends.azure_storage.AzureStorage",
             "OPTIONS": {
+                # --- FIX: ADDED MANDATORY CREDENTIALS ---
+                "account_name": AZURE_ACCOUNT_NAME,
+                "account_key": AZURE_ACCOUNT_KEY,
+                # ----------------------------------------
                 "azure_container": AZURE_STATIC_CONTAINER,
                 "overwrite_files": AZURE_OVERWRITE_FILES,
                 # Optional: Add Cache-Control for CDN caching (highly recommended)
