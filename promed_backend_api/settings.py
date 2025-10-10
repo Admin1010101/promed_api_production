@@ -205,7 +205,10 @@ AZURE_ACCOUNT_KEY = os.getenv('AZURE_ACCOUNT_KEY')
 
 # Azure Front Door endpoint (CDN)
 AZURE_FRONTDOOR_ENDPOINT = 'promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net'
-AZURE_CUSTOM_DOMAIN = AZURE_FRONTDOOR_ENDPOINT 
+
+# CRITICAL FIX: TEMPORARILY REVERT TO DIRECT BLOB STORAGE DOMAIN.
+# This bypasses the CDN issue that causes the InvalidQueryParameterValue error.
+AZURE_CUSTOM_DOMAIN = f'{AZURE_ACCOUNT_NAME}.blob.core.windows.net' 
 
 AZURE_STATIC_CONTAINER = 'static'
 AZURE_MEDIA_CONTAINER = 'media'
