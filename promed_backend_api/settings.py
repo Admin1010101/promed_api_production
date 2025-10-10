@@ -17,7 +17,9 @@ sentry_sdk.init(
     send_default_pii=True
 )
 
-TESTING = False # Changed to False for production consistency
+TESTING = False
+
+APPEND_SLASH = True# Changed to False for production consistency
 
 # ============================================================
 # BASE CONFIGURATION
