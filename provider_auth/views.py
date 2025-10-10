@@ -25,7 +25,8 @@ from .models import User, Profile, EmailVerificationToken
 from . import models as api_models
 from . import serializers as api_serializers
 
-from promed_backend_api.settings import LOCAL_HOST, DEFAULT_FROM_EMAIL
+# CRITICAL FIX: Changed LOCAL_HOST to BASE_CLIENT_URL
+from promed_backend_api.settings import BASE_CLIENT_URL, DEFAULT_FROM_EMAIL
 
 load_dotenv()
 
@@ -117,8 +118,8 @@ class RegisterUser(generics.CreateAPIView):
     def perform_create(self, serializer):
         user = serializer.save()
         token, created = EmailVerificationToken.objects.get_or_create(user=user)
-        # verification_link = f"https://wchandler2020.github.io/promedhealthplus_portal_client/#/verify-email/{token.token}"
-        verification_link = f"{LOCAL_HOST}/#/verify-email/{token.token}"
+        # Replaced LOCAL_HOST with BASE_CLIENT_URL
+        verification_link = f"{BASE_CLIENT_URL}/#/verify-email/{token.token}"
 
         email_html_message = render_to_string(
             'provider_auth/email_verification.html',
@@ -386,8 +387,8 @@ class RequestPasswordResetView(generics.GenericAPIView):
         # Send email password reset if user exists
         if 'user' in locals():
             token = api_models.PasswordResetToken.objects.create(user=user)
-            # reset_link = f"{LOCAL_HOST}/reset-password/{token.token}/"
-            reset_link = f"{LOCAL_HOST}/#/reset-password/{token.token}/"
+            # Replaced LOCAL_HOST with BASE_CLIENT_URL
+            reset_link = f"{BASE_CLIENT_URL}/#/reset-password/{token.token}/"
 
             html_message = render_to_string('provider_auth/passwordresetemail.html',
                                             {'reset_link': reset_link,
