@@ -7,7 +7,6 @@ from sentry_sdk.integrations.django import DjangoIntegration
 # Import WhiteNoise for middleware
 # WhiteNoise does not need to be explicitly imported for its storage class if using Django 4.2+
 # but it is good practice to ensure it's in requirements.txt
-# If using Django < 4.2, you would need: from whitenoise.storage import CompressedManifestStaticFilesStorage
 
 load_dotenv()
 
@@ -54,7 +53,7 @@ SESSION_COOKIE_HTTPONLY = True
 # CLIENT URL CONFIGURATION
 # ============================================================
 PRODUCTION_CLIENT_URL = os.getenv('CLIENT_BASE_URL', 'https://promedhealthplus.com')
-LOCAL_CLIENT_URL = 'http://localhost:3000'
+LOCAL_CLIENT_URL = 'http://localhost:3000' # Correct variable name
 
 if DEBUG:
     BASE_CLIENT_URL = LOCAL_CLIENT_URL
