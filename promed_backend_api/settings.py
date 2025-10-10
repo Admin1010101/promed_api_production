@@ -350,7 +350,11 @@ AZURE_OVERWRITE_FILES = True
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles') 
 
 # Define where Django should look for additional top-level static files (optional, but good practice)
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')] 
+STATICFILES_DIRS = []
+PROJECT_STATIC_DIR = os.path.join(BASE_DIR, 'static')
+if os.path.isdir(PROJECT_STATIC_DIR):
+    STATICFILES_DIRS.append(PROJECT_STATIC_DIR)
+# Original line was: STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')] 
 
 
 if DEBUG:
