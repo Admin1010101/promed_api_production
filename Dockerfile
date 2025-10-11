@@ -1,56 +1,58 @@
-# Use official Python 3.11 slim image as base
+# Stage 1: Build the image with dependencies
+# Use a Python base image suitable for production
 FROM python:3.11-slim
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PORT=8000 \
-    DJANGO_SETTINGS_MODULE=promed_backend_api.settings \
-    NOTVISIBLE=in-users-profile
+# Set environment variables for better Python and container performance
+ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE 1
 
-# Set working directory
+# Set the working directory for the application
 WORKDIR /app
 
-# Install system dependencies and OpenSSH server
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    default-libmysqlclient-dev \
-    libcairo2-dev \
-    pkg-config \
-    netcat-openbsd \
-    curl \
-    openssh-server \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+# Install system dependencies required for typical Python libraries (like 'psycopg2' or 'mysqlclient')
+# Update and install necessary packages, then clean up the cache
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        netcat-openbsd \
+        build-essential \
+        libpq-dev \
+        libmysqlclient-dev \
+        libssl-dev \
+        openssh-server \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Configure SSH for Azure App Service (requires port 2222 and password "Docker!")
-RUN mkdir -p /var/run/sshd && \
-    echo "root:Docker!" | chpasswd && \
-    sed -i 's/#Port 22/Port 2222/' /etc/ssh/sshd_config && \
-    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
-    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
-    sed -i 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' /etc/pam.d/sshd
+# Install Python dependencies
+# Copy requirements file first to leverage Docker layer caching
+COPY requirements.txt /app/
+RUN pip install --upgrade pip
+RUN pip install -r requirements.txt
 
-# Expose ports: 8000 for Django, 2222 for SSH
-EXPOSE 8000 2222
+# Create a non-root user and SSH directory
+# Creating the user 'appuser' for better security
+RUN useradd -m appuser
+RUN mkdir -p /home/appuser/.ssh && chown -R appuser:appuser /home/appuser
 
-# Copy requirements and install Python packages
-COPY requirements.txt .
-RUN pip install --upgrade pip --root-user-action=ignore && \
-    pip install --no-cache-dir -r requirements.txt --root-user-action=ignore
+# Configure SSH for Azure App Service
+# The default user is expected to be 'appuser' for security
+RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+# Add this line to ensure SSH works correctly over port 2222
+RUN sed -i 's/AllowUsers root/AllowUsers root appuser/' /etc/ssh/sshd_config
+EXPOSE 2222
 
-# Copy project files
-COPY . .
+# Copy the rest of the application code
+COPY . /app/
 
-# Copy SSL certs for MySQL
-COPY ./certs /app/certs
+# Ensure the app is owned by the non-root user
+RUN chown -R appuser:appuser /app
 
-# Create static and media folders
-RUN mkdir -p /app/staticfiles /app/media
-
-# Copy and set executable permissions for scripts
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+# Make the consolidated startup script executable and copy it
+# This script handles SSH, DB check, Migrations, Static files, and Gunicorn launch
 COPY startup.sh /usr/local/bin/startup.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/startup.sh
+RUN chmod +x /usr/local/bin/startup.sh
 
-# Use startup script that launches SSH daemon and the Django application
+# Use the non-root user for running the application
+USER appuser
+
+# Final command to execute the single startup script
 CMD ["/usr/local/bin/startup.sh"]

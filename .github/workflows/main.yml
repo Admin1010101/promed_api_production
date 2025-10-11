@@ -12,7 +12,8 @@ env:
   AZURE_WEBAPP_NAME: app-promed-backend-prod-dev
   AZURE_CR_NAME: promedhealthdashboard
   IMAGE_NAME: backend
-  IMAGE_TAG: latest
+  # CHANGE: Use a unique tag based on the commit SHA
+  IMAGE_TAG: ${{ github.sha }} 
 
 jobs:
   build-and-deploy:
@@ -24,9 +25,7 @@ jobs:
         with:
           fetch-depth: 0
       
-      # --- IMPORTANT: The faulty 'Create Entrypoint Script' step is REMOVED. ---
-      # The deployment will now use the correct entrypoint.sh file from your repository.
-      
+      # Log in to ACR (No change needed)
       - name: Log in to Azure Container Registry
         uses: azure/docker-login@v2
         with:
@@ -34,9 +33,12 @@ jobs:
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
       
+      # Build and Push (Reference the new IMAGE_TAG)
       - name: Build and Push Docker Image
         run: |
-          IMAGE_FULL_NAME="${{ env.AZURE_CR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+          # Use short SHA for tagging to avoid hitting max tag length limits
+          TAG_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          IMAGE_FULL_NAME="${{ env.AZURE_CR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:$TAG_SHA"
           echo "Building image: $IMAGE_FULL_NAME"
           
           docker build \
@@ -46,22 +48,27 @@ jobs:
           
           echo "Pushing Docker image to ACR..."
           docker push "$IMAGE_FULL_NAME"
-      
+          
+          # Pass the full image name to subsequent deployment steps
+          echo "IMAGE_TO_DEPLOY=$IMAGE_FULL_NAME" >> $GITHUB_ENV
+
+      # Azure Login (No change needed)
       - name: Azure Login for Deployment
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
       
+      # Deploy to Azure Web App (Use the dynamic tag)
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          images: ${{ env.AZURE_CR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          # CHANGE: Use the new dynamic IMAGE_TO_DEPLOY environment variable
+          images: ${{ env.IMAGE_TO_DEPLOY }} 
       
-      - name: Restart Azure App Service
-        run: |
-          echo "Restarting App Service: ${{ env.AZURE_WEBAPP_NAME }}"
-          az webapp restart --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group PromedHealth-Dev
+      # Restart App Service (Removed - Deployment step should trigger restart)
+      # The azure/webapps-deploy@v2 action handles the App Service restart upon successful deployment.
+      # You can generally remove the explicit 'az webapp restart' to avoid unnecessary downtime.
       
       - name: Logout of Azure
         run: az logout
