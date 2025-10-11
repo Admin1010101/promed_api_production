@@ -1,4 +1,4 @@
-# Use official Python 3.11 image as base
+# Use official Python 3.11 slim image
 FROM python:3.11-slim
 
 # Set environment variables
@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements file and install Python dependencies
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --upgrade pip --root-user-action=ignore && \
     pip install --no-cache-dir -r requirements.txt --root-user-action=ignore
@@ -28,21 +28,21 @@ RUN pip install --upgrade pip --root-user-action=ignore && \
 # Copy project files
 COPY . .
 
-# Copy SSL certificates for MySQL
+# Copy SSL certificates for MySQL (if needed)
 COPY ./certs /app/certs
 
-# Create directories for static and media files
+# Create static and media directories
 RUN mkdir -p /app/staticfiles /app/media
 
-# Copy and set executable permissions for the entrypoint script
+# Copy and set permissions for entrypoint
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Expose port
 EXPOSE 8000
 
-# Set the entrypoint
+# Set entrypoint
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
-# Default command
+# Default command — runs the Django app with Gunicorn
 CMD ["gunicorn", "promed_backend_api.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-"]
