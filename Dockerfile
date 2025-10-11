@@ -1,14 +1,16 @@
 # Stage 1: Build the image with dependencies
-# Use a Python base image suitable for production
 FROM python:3.11-slim
 
-# Fix ENV warnings and set environment variables for performance
+# Set environment variables for better Python performance
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
 # Set the working directory for the application
 WORKDIR /app
 
+# Install system dependencies
+# Includes build tools (build-essential, pkg-config) and libraries 
+# for database drivers (mysqlclient, psycopg2, cairo) and SSH.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         netcat-openbsd \
@@ -22,14 +24,15 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# CRITICAL SSH FIX: Create the necessary runtime directory for sshd
+RUN mkdir -p /run/sshd 
+
 # Install Python dependencies
-# Copy requirements file first to leverage Docker layer caching
 COPY requirements.txt /app/
 RUN pip install --upgrade pip
-# This step should now succeed
 RUN pip install -r requirements.txt
 
-# Create a non-root user and SSH directory
+# Create a non-root user and set permissions
 RUN useradd -m appuser
 RUN mkdir -p /home/appuser/.ssh && chown -R appuser:appuser /home/appuser
 
