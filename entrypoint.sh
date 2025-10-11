@@ -5,10 +5,6 @@ echo "=========================================="
 echo "🚀 Starting ProMed Health Plus Backend"
 echo "=========================================="
 
-# Start SSH server
-echo "🔑 Starting SSH service..."
-service ssh start
-
 # Database connection wait loop
 DB_HOST="${MYSQL_DB_HOST:-mysql-promedhealthplue-dev.mysql.database.azure.com}"
 DB_PORT="${MYSQL_DB_PORT:-3306}"
@@ -45,11 +41,6 @@ python manage.py migrate --noinput || {
 }
 echo "✅ Migrations complete."
 
-# Start Gunicorn
+# Start Gunicorn (arguments passed from startup.sh)
 echo "🔥 Launching Gunicorn app server..."
-exec gunicorn promed_backend_api.wsgi:application \
-    --bind 0.0.0.0:8000 \
-    --workers 3 \
-    --timeout 120 \
-    --access-logfile - \
-    --error-logfile -
+exec "$@"
