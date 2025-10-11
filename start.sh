@@ -1,18 +1,20 @@
 #!/bin/bash
+
+# Exit on any error
 set -e
 
-# Start SSH
-echo "Starting SSH..."
-service ssh start
+# Start SSH daemon in background for Azure App Service
+echo "Initializing SSH daemon..."
+/usr/sbin/sshd -D &
 
-# Run migrations
-echo "Running migrations..."
-python manage.py migrate --noinput
+# Give SSH a moment to initialize
+sleep 2
 
-# Collect static files
-echo "Running collectstatic..."
-python manage.py collectstatic --noinput
-
-# Start Gunicorn
-echo "Starting Gunicorn..."
-exec gunicorn promed_backend_api.wsgi:application --bind 0.0.0.0:8000 --workers 3
+# Execute the entrypoint and start the application
+echo "Launching Django application..."
+exec /usr/local/bin/entrypoint.sh gunicorn promed_backend_api.wsgi:application \
+  --bind 0.0.0.0:8000 \
+  --workers 3 \
+  --timeout 120 \
+  --access-logfile - \
+  --error-logfile -
