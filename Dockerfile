@@ -9,8 +9,6 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # Set the working directory for the application
 WORKDIR /app
 
-# Install system dependencies
-# ADDED 'pkg-config' to fix the latest build error.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         netcat-openbsd \
@@ -20,6 +18,7 @@ RUN apt-get update \
         libssl-dev \
         openssh-server \
         pkg-config \
+        libcairo2-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
