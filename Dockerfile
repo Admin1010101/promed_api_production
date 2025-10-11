@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-server \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Configure SSH for Azure App Service
+# Configure SSH for Azure App Service (requires port 2222 and password "Docker!")
 RUN mkdir -p /var/run/sshd && \
     echo "root:Docker!" | chpasswd && \
     sed -i 's/#Port 22/Port 2222/' /etc/ssh/sshd_config && \
@@ -52,5 +52,5 @@ COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY startup.sh /usr/local/bin/startup.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/startup.sh
 
-# Use startup script that launches SSH and the application
+# Use startup script that launches SSH daemon and the Django application
 CMD ["/usr/local/bin/startup.sh"]
