@@ -1,3 +1,8 @@
+# onboarding_ops/views.py
+import os
+import logging
+from io import BytesIO
+
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -10,9 +15,7 @@ from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 from django.shortcuts import get_object_or_404
 import requests
-import os
-import logging
-from io import BytesIO
+from azure.storage.blob import BlobServiceClient
 
 from patients.models import Patient
 from provider_auth.models import User
@@ -24,7 +27,6 @@ from .serializers import (
     DocumentUploadSerializer
 )
 from utils.azure_storage import generate_sas_url
-from azure.storage.blob import BlobServiceClient
 from utils.azure_storage import upload_to_azure_stream
 
 logger = logging.getLogger(__name__)
@@ -32,17 +34,25 @@ logger = logging.getLogger(__name__)
 class IsOwner(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         return obj.user == request.user
+
 class ProviderFormListCreate(generics.ListCreateAPIView):
     serializer_class = ProviderFormSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        # Always safe, as IsAuthenticated should block AnonymousUser
         return ProviderForm.objects.filter(user=self.request.user)
+
 class ProviderFormDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ProviderFormSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwner]
 
     def get_queryset(self):
+        # *** CRITICAL FIX: Bypass for schema generation (drf-yasg/spectacular) ***
+        # This prevents the crash when AnonymousUser is passed to the filter
+        if getattr(self, 'swagger_fake_view', False):
+            return ProviderForm.objects.none()
+
         return ProviderForm.objects.filter(user=self.request.user)
 
 @csrf_exempt
@@ -170,6 +180,7 @@ class CheckBlobExistsView(APIView):
                 return Response({'exists': False}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 class ProviderDocumentListCreate(generics.ListCreateAPIView):
     serializer_class = ProviderDocumentSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -179,6 +190,7 @@ class ProviderDocumentListCreate(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
 class ProviderDocumentDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ProviderDocumentSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwner]
@@ -187,6 +199,11 @@ class ProviderDocumentDetail(generics.RetrieveUpdateDestroyAPIView):
         """
         Ensures a user can only access their own documents.
         """
+        # *** CRITICAL FIX: Bypass for schema generation (drf-yasg/spectacular) ***
+        # This prevents the crash when AnonymousUser is passed to the filter
+        if getattr(self, 'swagger_fake_view', False):
+            return ProviderDocument.objects.none()
+        
         return ProviderDocument.objects.filter(user=self.request.user)
 
 class ServePDFFromAzure(APIView):
@@ -245,4 +262,3 @@ class GenerateSASURLView(APIView):
         except Exception as e:
             logger.error(f"Failed to generate SAS URL for blob {latest_form.completed_form_path}: {e}")
             return Response({"error": "Failed to generate secure file link."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
