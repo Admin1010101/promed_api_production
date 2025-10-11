@@ -24,6 +24,8 @@ from dotenv import load_dotenv
 from .models import User, Profile, EmailVerificationToken
 from . import models as api_models
 from . import serializers as api_serializers
+# Assuming you add EmptySerializer to api_serializers
+from .serializers import MyTokenObtainPairSerializer, UserSerializer, EmptySerializer # <-- Added EmptySerializer
 
 # CRITICAL FIX: Changed LOCAL_HOST to BASE_CLIENT_URL
 from promed_backend_api.settings import BASE_CLIENT_URL, DEFAULT_FROM_EMAIL
@@ -35,10 +37,9 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.core.mail import send_mail
 from .models import Verification_Code
-from .serializers import MyTokenObtainPairSerializer, UserSerializer
-import os, random, uuid
-from twilio.rest import Client
-from django.conf import settings
+# import os, random, uuid
+# from twilio.rest import Client
+# from django.conf import settings # Already imported above
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
@@ -111,10 +112,12 @@ class MyTokenObtainPairView(TokenObtainPairView):
             'user': user_data,
             'detail': 'Verification code sent.'
         }, status=status.HTTP_200_OK)
+
 class RegisterUser(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = [AllowAny]
     serializer_class = api_serializers.RegisterSerializer
+    
     def perform_create(self, serializer):
         user = serializer.save()
         token, created = EmailVerificationToken.objects.get_or_create(user=user)
@@ -139,9 +142,13 @@ class RegisterUser(generics.CreateAPIView):
 
 class VerifyEmailView(generics.GenericAPIView):
     permission_classes = [AllowAny]
+    # *** CRITICAL FIX: ADDED DUMMY SERIALIZER CLASS ***
+    # This prevents the AssertionError during schema generation.
+    serializer_class = EmptySerializer 
 
     def get(self, request, token):
         if getattr(self, 'swagger_fake_view', False):
+            # This is already a good fix for the *previous* AnonymousUser error, keep it.
             return Response(status=status.HTTP_200_OK)
 
         try:

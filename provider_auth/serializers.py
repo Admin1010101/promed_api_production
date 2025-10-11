@@ -154,3 +154,8 @@ class ResetPasswordSerializer(serializers.Serializer):
 
 class RequestPasswordResetSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
+    
+# Dummy serializer to prevent crashing during swagger/schema generation
+class EmptySerializer(serializers.Serializer):
+    """Used for views that don't take body data (like token verification)."""
+    pass 
