@@ -10,7 +10,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install dependencies + SSH
 RUN apt-get update && apt-get install -y \
     build-essential \
     default-libmysqlclient-dev \
@@ -18,7 +18,19 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     netcat-openbsd \
     curl \
+    openssh-server \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Set up SSH
+RUN mkdir /var/run/sshd && \
+    echo "root:YourSecureRootPassword" | chpasswd && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+    sed -i 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' /etc/pam.d/sshd
+
+# Avoid login warnings
+ENV NOTVISIBLE "in users profile"
+RUN echo "export VISIBLE=now" >> /etc/profile
 
 # Install Python dependencies
 COPY requirements.txt .
@@ -28,21 +40,18 @@ RUN pip install --upgrade pip --root-user-action=ignore && \
 # Copy project files
 COPY . .
 
-# Copy SSL certificates for MySQL (if needed)
+# Copy SSL certificates if needed
 COPY ./certs /app/certs
 
-# Create static and media directories
+# Create required dirs
 RUN mkdir -p /app/staticfiles /app/media
 
 # Copy and set permissions for entrypoint
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Expose port
-EXPOSE 8000
+# Expose app and SSH ports
+EXPOSE 8000 2222
 
-# Set entrypoint
+# Entrypoint script (starts everything)
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-
-# Default command — runs the Django app with Gunicorn
-CMD ["gunicorn", "promed_backend_api.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-"]
