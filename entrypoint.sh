@@ -41,6 +41,6 @@ python manage.py migrate --noinput || {
 }
 echo "✅ Migrations complete."
 
-# Start Gunicorn (arguments passed from startup.sh)
+# Execute whatever command was passed (gunicorn from startup.sh)
 echo "🔥 Launching Gunicorn app server..."
 exec "$@"
