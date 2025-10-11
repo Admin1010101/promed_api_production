@@ -54,15 +54,26 @@ else:
 # ============================================================
 # ALLOWED HOSTS
 # ============================================================
+AZURE_APP_NAME = 'app-promed-backend-prod-dev'
+
 ALLOWED_HOSTS = [
-    '127.0.0.1',
+    # 1. Primary App Service domain
+    f'{AZURE_APP_NAME}.azurewebsites.net',
+    
+    # 2. SCM (Kudu) domain for health checks
+    f'{AZURE_APP_NAME}.scm.azurewebsites.net',
+    
+    # 3. Wildcard for the internal container-specific domain 
+    # (e.g., app-promed-...-c5dsbef8d0e6gjb9.westus2-01.azurewebsites.net)
+    f'*.westus2-01.azurewebsites.net', # Use your specific Azure region here if it's not westus2-01
+    
+    # Optional: If you use a custom domain later, add it here.
+    # 'www.yourdomain.com', 
+    
+    # Essential for local development/Kudu connections:
     'localhost',
-    '169.254.129.*',
-    '.azurewebsites.net',
-    '.azurefd.net',
-    'promedhealthplus.com',
-    '.promedhealthplus.com',
-    '*', 
+    '127.0.0.1',
+    '[::1]',
 ]
 if os.getenv('WEBSITE_HOSTNAME'):
     ALLOWED_HOSTS.append(os.getenv('WEBSITE_HOSTNAME'))
