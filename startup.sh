@@ -7,7 +7,6 @@ echo "=========================================="
 
 # 🔑 1. Start SSH daemon in background for Azure App Service
 echo "🔑 Starting SSH service with /usr/sbin/sshd -D &..."
-# The -D flag is crucial for keeping SSH running in the background.
 /usr/sbin/sshd -D &
 
 # Give SSH a moment to initialize
@@ -37,7 +36,7 @@ echo "✅ Database is reachable."
 # Collect static files
 echo "📦 Collecting static files..."
 python manage.py collectstatic --noinput || {
-    echo "❌ Static file collection failed. Continuing..."
+    echo "⚠️ Static file collection failed. Continuing..."
 }
 echo "✅ Static files collected."
 

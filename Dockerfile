@@ -1,7 +1,7 @@
 # Stage 1: Build the image with dependencies
 FROM python:3.11-slim
 
-# Set environment variables for better Python performance
+# Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
@@ -9,8 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 WORKDIR /app
 
 # Install system dependencies
-# Includes build tools (build-essential, pkg-config) and libraries 
-# for database drivers (mysqlclient, psycopg2, cairo) and SSH.
+# Includes build tools, database drivers (mysqlclient/pq), and SSH.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         netcat-openbsd \
@@ -37,22 +36,25 @@ RUN useradd -m appuser
 RUN mkdir -p /home/appuser/.ssh && chown -R appuser:appuser /home/appuser
 
 # Configure SSH for Azure App Service
+# Expose 2222 for SSH, which Azure will use
 RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 RUN echo "AllowUsers root appuser" >> /etc/ssh/sshd_config
 EXPOSE 2222
 
-# Copy the rest of the application code
+# Copy the application code
 COPY . /app/
+
+# CRITICAL STARTUP FIX: Copy the script and ensure it is executable.
+# Copying it to the WORKDIR first, then moving/setting permissions can sometimes be more robust.
+COPY startup.sh /app/startup.sh
+RUN chmod +x /app/startup.sh 
 
 # Ensure the app is owned by the non-root user
 RUN chown -R appuser:appuser /app
-
-# Make the consolidated startup script executable and copy it
-COPY startup.sh /usr/local/bin/startup.sh
-RUN chmod +x /usr/local/bin/startup.sh
 
 # Use the non-root user for running the application
 USER appuser
 
 # Final command to execute the single startup script
-CMD ["/usr/local/bin/startup.sh"]
+# Use the full path where we copied it.
+CMD ["/app/startup.sh"]
