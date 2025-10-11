@@ -62,7 +62,6 @@ ALLOWED_HOSTS = [
     '.azurefd.net',
     'promedhealthplus.com',
     '.promedhealthplus.com',
-     'app-promed-backend-prod-dev-c5dsbef8d0e6gjb9.westus2-01.azurewebsites.net'
     '*', 
 ]
 if os.getenv('WEBSITE_HOSTNAME'):
