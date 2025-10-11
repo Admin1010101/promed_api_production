@@ -10,7 +10,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 WORKDIR /app
 
 # Install system dependencies
-# Corrected 'default-libmysqlclient-dev' resolves the exit code 100 build error.
+# ADDED 'pkg-config' to fix the latest build error.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         netcat-openbsd \
@@ -19,6 +19,7 @@ RUN apt-get update \
         default-libmysqlclient-dev \
         libssl-dev \
         openssh-server \
+        pkg-config \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -26,6 +27,7 @@ RUN apt-get update \
 # Copy requirements file first to leverage Docker layer caching
 COPY requirements.txt /app/
 RUN pip install --upgrade pip
+# This step should now succeed
 RUN pip install -r requirements.txt
 
 # Create a non-root user and SSH directory
@@ -34,7 +36,6 @@ RUN mkdir -p /home/appuser/.ssh && chown -R appuser:appuser /home/appuser
 
 # Configure SSH for Azure App Service
 RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
-# The following line is often required to allow SSH connections
 RUN echo "AllowUsers root appuser" >> /etc/ssh/sshd_config
 EXPOSE 2222
 
