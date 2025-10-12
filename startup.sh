@@ -38,9 +38,9 @@ echo "✅ Database is available. Continuing startup."
 # =======================================================
 # 3. DJANGO SETUP: MIGRATIONS AND STATIC FILES
 # 
-# ❗ Crucial Fix: Add the /app directory (Django root) to the Python Path 
-#    for the manage.py commands.
+# ❗ Setting the PYTHONPATH to ensure 'promed_backend_api' is findable.
 # =======================================================
+# Standard way to add the current application directory to the path:
 export PYTHONPATH=$PYTHONPATH:/app
 
 echo "📂 Applying database migrations..."
@@ -52,18 +52,17 @@ python manage.py collectstatic --noinput
 
 # =======================================================
 # 4. START GUNICORN (The main container process)
-# The 'exec' command replaces the current shell, making Gunicorn the primary process.
 #
-# ❗ CRITICAL FIX: Explicitly setting PYTHONPATH for the Gunicorn execution
-#    to ensure the worker can find 'promed_backend_api'.
+# ❗ FIXED: Removed the incorrect PYTHONPATH syntax. The export above 
+#    should be inherited by the exec command.
 # =======================================================
 
 PORT=${WEBSITES_PORT:-8000} 
 
 echo "🚀 Starting Gunicorn (Django) on 0.0.0.0:$PORT..."
 
-# The 'exec' command now includes the explicit PYTHONPATH setting
-exec PYTHONPATH=$PYTHONPATH:/app gunicorn promed_backend_api.wsgi:application \
+# Reverting to the simpler, correct command structure:
+exec gunicorn promed_backend_api.wsgi:application \
     --bind "0.0.0.0:$PORT" \
     --workers 4 \
     --log-level info \
