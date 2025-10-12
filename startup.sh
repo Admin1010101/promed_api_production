@@ -53,13 +53,16 @@ python manage.py collectstatic --noinput
 # =======================================================
 # 4. START GUNICORN (The main container process)
 # The 'exec' command replaces the current shell, making Gunicorn the primary process.
+# 
+# ❗ FINAL FIX: Changed 'promed.wsgi:application' to 'promed_backend_api.wsgi:application'
+#    to match your Django project's actual package name.
 # =======================================================
 
 PORT=${WEBSITES_PORT:-8000} 
 
 echo "🚀 Starting Gunicorn (Django) on 0.0.0.0:$PORT..."
 
-exec gunicorn promed.wsgi:application \
+exec gunicorn **promed_backend_api.wsgi:application** \
     --bind "0.0.0.0:$PORT" \
     --workers 4 \
     --log-level info \
