@@ -57,23 +57,12 @@ else:
 AZURE_APP_NAME = 'app-promed-backend-prod-dev'
 
 ALLOWED_HOSTS = [
-    # 1. Primary App Service domain
     f'{AZURE_APP_NAME}.azurewebsites.net',
-    
-    # 2. SCM (Kudu) domain for health checks
     f'{AZURE_APP_NAME}.scm.azurewebsites.net',
-    
-    # 3. Wildcard for the internal container-specific domain 
-    # (e.g., app-promed-...-c5dsbef8d0e6gjb9.westus2-01.azurewebsites.net)
-    f'*.westus2-01.azurewebsites.net', # Use your specific Azure region here if it's not westus2-01
-    
-    # Optional: If you use a custom domain later, add it here.
-    # 'www.yourdomain.com', 
+    f'*.westus2-01.azurewebsites.net',
+    '169.254.129.4', 
     'promedhealthplus.com',
     'app-promed-frontend-prod-dev-chfcguavbacqfybc.westus2-01.azurewebsites.net',
-    
-    # Essential for local development/Kudu connections:
-    'localhost',
     '127.0.0.1',
     '[::1]',
 ]
@@ -217,15 +206,8 @@ DEFAULT_FROM_EMAIL = 'vastyle2010@gmail.com'
 # ============================================================
 AZURE_ACCOUNT_NAME = os.getenv('AZURE_ACCOUNT_NAME')
 AZURE_ACCOUNT_KEY = os.getenv('AZURE_ACCOUNT_KEY')
-
-# Azure Front Door endpoint (CDN)
 AZURE_FRONTDOOR_ENDPOINT = 'promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net'
-
-# CRITICAL FIX: TEMPORARILY REVERT TO DIRECT BLOB STORAGE DOMAIN.
-# This bypasses the CDN issue that causes the InvalidQueryParameterValue error.
-# AZURE_CUSTOM_DOMAIN = f'{AZURE_ACCOUNT_NAME}.blob.core.windows.net' 
 AZURE_CUSTOM_DOMAIN = f'{AZURE_ACCOUNT_NAME}.blob.core.windows.net' 
-
 AZURE_STATIC_CONTAINER = 'static'
 AZURE_MEDIA_CONTAINER = 'media'
 AZURE_OVERWRITE_FILES = True
@@ -242,11 +224,8 @@ if os.path.isdir(PROJECT_STATIC_DIR):
 
 
 if DEBUG:
-    # --- DEVELOPMENT SETTINGS (Local File System) ---
-    STATIC_URL = '/static/' # Use simple path for local dev
+    STATIC_URL = '/static/' 
     MEDIA_URL = '/media/'
-    
-    # Use Django's default storage backends
     STORAGES = {
         "default": {
             "BACKEND": "django.core.files.storage.FileSystemStorage",
@@ -257,22 +236,17 @@ if DEBUG:
     }
     
 else:
-    # --- PRODUCTION SETTINGS (Azure Blob Storage + CDN) ---
-    
-    # CRITICAL FIX (Kept): Set only the container path.
     STATIC_URL = f'/{AZURE_STATIC_CONTAINER}/'
     MEDIA_URL = f'/{AZURE_MEDIA_CONTAINER}/'
-
-    # FIX: Use custom storage backends to avoid URL generation conflicts
+    
     STORAGES = {
         "default": {
             "BACKEND": "promed_backend_api.storage_backends.AzureMediaStorage",
-            "OPTIONS": {}, # Options are defined in the custom class
+            "OPTIONS": {},
         },
         "staticfiles": {
             "BACKEND": "promed_backend_api.storage_backends.AzureStaticStorage",
             "OPTIONS": {
-                # Only include non-inherited options here
                 "cache_control": "max-age=31536000, public, immutable",
             },
         },
