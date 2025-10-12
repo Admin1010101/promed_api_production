@@ -50,6 +50,10 @@ python manage.py collectstatic --noinput
 # 4. START GUNICORN (The main container process)
 # The 'exec' command replaces the current shell, making Gunicorn the primary process.
 # =======================================================
+
+# ❗ FIX: Add /app to the PYTHONPATH so Gunicorn can find the 'promed' package
+export PYTHONPATH=$PYTHONPATH:/app
+
 PORT=${WEBSITES_PORT:-8000} 
 
 echo "🚀 Starting Gunicorn (Django) on 0.0.0.0:$PORT..."
