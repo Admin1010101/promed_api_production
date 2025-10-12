@@ -17,7 +17,7 @@ sentry_sdk.init(
     send_default_pii=True
 )
 
-TESTING = False
+TESTING = True
 
 APPEND_SLASH = True# Changed to False for production consistency
 
