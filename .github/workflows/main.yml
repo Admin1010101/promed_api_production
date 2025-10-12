@@ -97,11 +97,20 @@ jobs:
           echo "Waiting 30 seconds for deployment to complete..."
           sleep 30
           
-          echo "Checking application logs..."
-          az webapp log tail \
+          echo "Checking application status..."
+          az webapp show \
             --name ${{ env.AZURE_WEBAPP_NAME }} \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --limit 30
+            --query "{name:name, state:state, defaultHostName:defaultHostName}" \
+            --output table
+          
+          echo "Fetching recent application logs..."
+          az webapp log download \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --log-file deployment-logs.zip
+          
+          echo "Deployment verification complete. Check logs in Azure Portal for detailed output."
       
       - name: Logout of Azure
         run: az logout
