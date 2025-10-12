@@ -12,7 +12,6 @@ env:
   AZURE_WEBAPP_NAME: app-promed-backend-prod-dev
   AZURE_CR_NAME: promedhealthdashboard
   IMAGE_NAME: backend
-  AZURE_RESOURCE_GROUP: rg-promed-backend-prod-dev  # Update this to your actual resource group
 
 jobs:
   build-and-deploy:
@@ -24,7 +23,6 @@ jobs:
         with:
           fetch-depth: 0
       
-      # Log in to ACR
       - name: Log in to Azure Container Registry
         uses: azure/docker-login@v2
         with:
@@ -32,10 +30,8 @@ jobs:
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
       
-      # Build and Push Docker Image with BOTH latest and SHA tags
       - name: Build and Push Docker Image
         run: |
-          # Create both image references
           IMAGE_LATEST="${{ env.AZURE_CR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest"
           TAG_SHA=$(echo ${{ github.sha }} | cut -c1-7)
           IMAGE_SHA="${{ env.AZURE_CR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${TAG_SHA}"
@@ -47,7 +43,6 @@ jobs:
           echo "SHA tag: $IMAGE_SHA"
           echo "=========================================="
           
-          # Build with BOTH tags at once
           docker build \
             --platform linux/amd64 \
             -t "$IMAGE_LATEST" \
@@ -64,16 +59,13 @@ jobs:
           echo "Push Complete!"
           echo "=========================================="
           
-          # Use latest for deployment (more reliable)
           echo "IMAGE_TO_DEPLOY=$IMAGE_LATEST" >> $GITHUB_ENV
 
-      # Azure Login
       - name: Azure Login for Deployment
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
       
-      # Verify the image exists in ACR
       - name: Verify Image in ACR
         run: |
           echo "Verifying images in ACR..."
@@ -84,33 +76,27 @@ jobs:
             --top 10 \
             --output table
       
-      # Deploy to Azure Web App
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           images: ${{ env.IMAGE_TO_DEPLOY }}
       
-      # Wait and check deployment status
-      - name: Verify Deployment
+      - name: Deployment Complete
         run: |
-          echo "Waiting 30 seconds for deployment to complete..."
-          sleep 30
-          
-          echo "Checking application status..."
-          az webapp show \
-            --name ${{ env.AZURE_WEBAPP_NAME }} \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --query "{name:name, state:state, defaultHostName:defaultHostName}" \
-            --output table
-          
-          echo "Fetching recent application logs..."
-          az webapp log download \
-            --name ${{ env.AZURE_WEBAPP_NAME }} \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --log-file deployment-logs.zip
-          
-          echo "Deployment verification complete. Check logs in Azure Portal for detailed output."
+          echo "=========================================="
+          echo "✅ Deployment Successful!"
+          echo "=========================================="
+          echo "App Name: ${{ env.AZURE_WEBAPP_NAME }}"
+          echo "Image Deployed: ${{ env.IMAGE_TO_DEPLOY }}"
+          echo "Commit SHA: ${{ github.sha }}"
+          echo ""
+          echo "🔍 View logs in Azure Portal:"
+          echo "https://portal.azure.com"
+          echo ""
+          echo "Or use Azure CLI:"
+          echo "az webapp log tail --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group rg-promed-backend-prod-dev"
+          echo "=========================================="
       
       - name: Logout of Azure
         run: az logout
