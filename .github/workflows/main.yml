@@ -12,8 +12,7 @@ env:
   AZURE_WEBAPP_NAME: app-promed-backend-prod-dev
   AZURE_CR_NAME: promedhealthdashboard
   IMAGE_NAME: backend
-  # CHANGE: Use a unique tag based on the commit SHA
-  IMAGE_TAG: ${{ github.sha }} 
+  AZURE_RESOURCE_GROUP: rg-promed-backend-prod-dev  # Update this to your actual resource group
 
 jobs:
   build-and-deploy:
@@ -25,7 +24,7 @@ jobs:
         with:
           fetch-depth: 0
       
-      # Log in to ACR (No change needed)
+      # Log in to ACR
       - name: Log in to Azure Container Registry
         uses: azure/docker-login@v2
         with:
@@ -33,42 +32,77 @@ jobs:
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
       
-      # Build and Push (Reference the new IMAGE_TAG)
+      # Build and Push Docker Image with BOTH latest and SHA tags
       - name: Build and Push Docker Image
         run: |
-          # Use short SHA for tagging to avoid hitting max tag length limits
+          # Create both image references
+          IMAGE_LATEST="${{ env.AZURE_CR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest"
           TAG_SHA=$(echo ${{ github.sha }} | cut -c1-7)
-          IMAGE_FULL_NAME="${{ env.AZURE_CR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:$TAG_SHA"
-          echo "Building image: $IMAGE_FULL_NAME"
+          IMAGE_SHA="${{ env.AZURE_CR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${TAG_SHA}"
           
+          echo "=========================================="
+          echo "Building Docker Image"
+          echo "=========================================="
+          echo "Latest tag: $IMAGE_LATEST"
+          echo "SHA tag: $IMAGE_SHA"
+          echo "=========================================="
+          
+          # Build with BOTH tags at once
           docker build \
             --platform linux/amd64 \
-            -t "$IMAGE_FULL_NAME" \
+            -t "$IMAGE_LATEST" \
+            -t "$IMAGE_SHA" \
             .
           
-          echo "Pushing Docker image to ACR..."
-          docker push "$IMAGE_FULL_NAME"
+          echo "Pushing latest tag to ACR..."
+          docker push "$IMAGE_LATEST"
           
-          # Pass the full image name to subsequent deployment steps
-          echo "IMAGE_TO_DEPLOY=$IMAGE_FULL_NAME" >> $GITHUB_ENV
+          echo "Pushing SHA tag to ACR..."
+          docker push "$IMAGE_SHA"
+          
+          echo "=========================================="
+          echo "Push Complete!"
+          echo "=========================================="
+          
+          # Use latest for deployment (more reliable)
+          echo "IMAGE_TO_DEPLOY=$IMAGE_LATEST" >> $GITHUB_ENV
 
-      # Azure Login (No change needed)
+      # Azure Login
       - name: Azure Login for Deployment
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
       
-      # Deploy to Azure Web App (Use the dynamic tag)
+      # Verify the image exists in ACR
+      - name: Verify Image in ACR
+        run: |
+          echo "Verifying images in ACR..."
+          az acr repository show-tags \
+            --name ${{ env.AZURE_CR_NAME }} \
+            --repository ${{ env.IMAGE_NAME }} \
+            --orderby time_desc \
+            --top 10 \
+            --output table
+      
+      # Deploy to Azure Web App
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          # CHANGE: Use the new dynamic IMAGE_TO_DEPLOY environment variable
-          images: ${{ env.IMAGE_TO_DEPLOY }} 
+          images: ${{ env.IMAGE_TO_DEPLOY }}
       
-      # Restart App Service (Removed - Deployment step should trigger restart)
-      # The azure/webapps-deploy@v2 action handles the App Service restart upon successful deployment.
-      # You can generally remove the explicit 'az webapp restart' to avoid unnecessary downtime.
+      # Wait and check deployment status
+      - name: Verify Deployment
+        run: |
+          echo "Waiting 30 seconds for deployment to complete..."
+          sleep 30
+          
+          echo "Checking application logs..."
+          az webapp log tail \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --limit 30
       
       - name: Logout of Azure
         run: az logout
+        if: always()
