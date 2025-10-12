@@ -8,7 +8,7 @@ set -e
 # This is required for the Azure Portal's SSH console (Kudu).
 # =======================================================
 echo "🔒 Starting SSH Daemon on Port 2222..."
-/usr/sbin/sshd 
+/usr/sbin/sshd
 
 # =======================================================
 # 2. WAIT FOR DATABASE CONNECTION
@@ -37,7 +37,11 @@ echo "✅ Database is available. Continuing startup."
 
 # =======================================================
 # 3. DJANGO SETUP: MIGRATIONS AND STATIC FILES
+# 
+# ❗ Crucial Fix: Add the /app directory (Django root) to the Python Path 
+#    before running any 'python manage.py' commands.
 # =======================================================
+export PYTHONPATH=$PYTHONPATH:/app
 
 echo "📂 Applying database migrations..."
 python manage.py migrate --noinput
@@ -50,9 +54,6 @@ python manage.py collectstatic --noinput
 # 4. START GUNICORN (The main container process)
 # The 'exec' command replaces the current shell, making Gunicorn the primary process.
 # =======================================================
-
-# ❗ FIX: Add /app to the PYTHONPATH so Gunicorn can find the 'promed' package
-export PYTHONPATH=$PYTHONPATH:/app
 
 PORT=${WEBSITES_PORT:-8000} 
 
