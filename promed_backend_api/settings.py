@@ -69,6 +69,8 @@ ALLOWED_HOSTS = [
     
     # Optional: If you use a custom domain later, add it here.
     # 'www.yourdomain.com', 
+    'promedhealthplus.com',
+    'app-promed-frontend-prod-dev-chfcguavbacqfybc.westus2-01.azurewebsites.net',
     
     # Essential for local development/Kudu connections:
     'localhost',
