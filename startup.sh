@@ -1,17 +1,18 @@
 #!/bin/bash
 
-# Stop execution immediately if any command fails
+# Stop execution immediately if any command fails (set -e)
 set -e
 
 # =======================================================
 # 1. SSH DAEMON STARTUP (MUST RUN AS ROOT)
-# Required for Azure Portal SSH (Kudu)
+# This is required for the Azure Portal's SSH console (Kudu).
 # =======================================================
 echo "🔒 Starting SSH Daemon on Port 2222..."
 /usr/sbin/sshd
 
 # =======================================================
 # 2. WAIT FOR DATABASE CONNECTION
+# Uses environment variables set in Azure App Service.
 # =======================================================
 DB_HOST=${MYSQL_DB_HOST:-database-host}
 DB_PORT=${MYSQL_DB_PORT:-3306}
@@ -27,15 +28,19 @@ while ! nc -z -w 5 "$DB_HOST" "$DB_PORT" && [ "$ELAPSED" -lt "$TIMEOUT" ]; do
 done
 
 if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
-    echo "❌ Database connection failed after $TIMEOUT seconds. Exiting."
+    echo "❌ Database connection failed after 30 seconds. Exiting."
     exit 1
 fi
 
 echo "✅ Database is available. Continuing startup."
 
+
 # =======================================================
 # 3. DJANGO SETUP: MIGRATIONS AND STATIC FILES
+# 
+# ❗ Setting the PYTHONPATH to ensure 'promed_backend_api' is findable.
 # =======================================================
+# Standard way to add the current application directory to the path:
 export PYTHONPATH=$PYTHONPATH:/app
 
 echo "📂 Applying database migrations..."
@@ -44,36 +49,19 @@ python manage.py migrate --noinput
 echo "📁 Collecting static files..."
 python manage.py collectstatic --noinput
 
-# =======================================================
-# 4. DJANGO SUPERUSER CREATION (Custom User Model)
-# Uses environment variables to securely define credentials
-# =======================================================
-echo "👤 Creating Django superuser if it doesn't exist..."
-
-python manage.py shell <<EOF
-import os
-from django.contrib.auth import get_user_model
-
-User = get_user_model()
-
-username = os.environ.get('DJANGO_SU_USERNAME', 'wchandler2025')
-email = os.environ.get('DJANGO_SU_EMAIL', 'vastyle2010@gmail.com')
-password = os.environ.get('DJANGO_SU_PASSWORD', 'devine11')
-
-if not User.objects.filter(username=username).exists():
-    User.objects.create_superuser(username=username, email=email, password=password)
-    print("✅ Superuser created: \${username}")
-else:
-    print("ℹ️ Superuser '\${username}' already exists.")
-EOF
 
 # =======================================================
-# 5. START GUNICORN (The main container process)
+# 4. START GUNICORN (The main container process)
+#
+# ❗ FIXED: Removed the incorrect PYTHONPATH syntax. The export above 
+#    should be inherited by the exec command.
 # =======================================================
-PORT=${WEBSITES_PORT:-8000}
+
+PORT=${WEBSITES_PORT:-8000} 
 
 echo "🚀 Starting Gunicorn (Django) on 0.0.0.0:$PORT..."
 
+# Reverting to the simpler, correct command structure:
 exec gunicorn promed_backend_api.wsgi:application \
     --bind "0.0.0.0:$PORT" \
     --workers 4 \
