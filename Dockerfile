@@ -26,8 +26,7 @@ RUN apt-get update && \
         libfreetype6-dev \
         netcat-openbsd \
         openssh-server \
-        curl \
-        ca-certificates && \
+        curl && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # SSH for Kudu
@@ -45,14 +44,10 @@ COPY requirements.txt /app/
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# 🔒 Create certs directory and download Azure MySQL SSL certificate
-RUN mkdir -p /app/certs && \
-    curl -o /app/certs/DigiCertGlobalRootCA.crt.pem https://dl.cacerts.digicert.com/DigiCertGlobalRootCA.crt.pem
-
-# Copy the rest of the code
+# ❗ Copy the rest of the code (including potentially broken startup.sh)
 COPY . /app/
 
-# Overwrite startup.sh and fix line endings + permissions LAST
+# ❗ Overwrite startup.sh and fix line endings + permissions LAST
 COPY startup.sh /app/startup.sh
 RUN sed -i 's/\r$//' /app/startup.sh && \
     chmod +x /app/startup.sh
