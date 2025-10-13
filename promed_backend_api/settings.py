@@ -171,17 +171,15 @@ WSGI_APPLICATION = 'promed_backend_api.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('MYSQL_DB_NAME'),
-        'USER': os.getenv('MYSQL_DB_USER'),
+        'NAME': os.getenv('MYSQL_DB_NAME', 'promed_health'),
+        'USER': os.getenv('MYSQL_DB_USER', 'sqladmin@promedhealth-mysql-dev'),
         'PASSWORD': os.getenv('MYSQL_DB_PASSWORD'),
-        'HOST': os.getenv('MYSQL_DB_HOST'),
+        'HOST': os.getenv('MYSQL_DB_HOST', 'promedhealth-mysql-dev.mysql.database.azure.com'),
         'PORT': os.getenv('MYSQL_DB_PORT', '3306'),
         'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            'charset': 'utf8mb4',
             'ssl': {
-                'ca': os.getenv('MYSQL_DB_SSL_CA_PATH')
-            } if os.getenv('MYSQL_DB_SSL_CA_PATH') else {}
+                'ca': '/app/certs/DigiCertGlobalRootCA.crt.pem'
+            }
         }
     }
 }
