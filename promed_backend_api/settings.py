@@ -63,12 +63,12 @@ ALLOWED_HOSTS = [
     '169.254.129.4', 
     'promedhealthplus.com',
     'app-promed-frontend-prod-dev-chfcguavbacqfybc.westus2-01.azurewebsites.net',
+    'promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net',
     '127.0.0.1',
     '[::1]',
 ]
 if os.getenv('WEBSITE_HOSTNAME'):
     ALLOWED_HOSTS.append(os.getenv('WEBSITE_HOSTNAME'))
-
 # ============================================================
 # CSRF TRUSTED ORIGINS
 # ============================================================
@@ -117,7 +117,6 @@ DJANGO_APPS = [
 ]
 
 INSTALLED_APPS = THIRD_PARTY_APPS + DJANGO_APPS + USER_APPS
-
 # ============================================================
 # CORS CONFIGURATION
 # ============================================================
