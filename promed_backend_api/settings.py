@@ -168,6 +168,8 @@ WSGI_APPLICATION = 'promed_backend_api.wsgi.application'
 # ============================================================
 # DATABASE CONFIGURATION
 # ============================================================
+# settings.py
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -178,7 +180,7 @@ DATABASES = {
         'PORT': os.getenv('MYSQL_DB_PORT', '3306'),
         'OPTIONS': {
             'ssl': {
-                'ca': '/app/certs/DigiCertGlobalRootCA.crt.pem'
+                'ca': '/app/certs/combined-ca-certificates.pem'  # Use the name of your combined file
             }
         }
     }
