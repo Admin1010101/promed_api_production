@@ -168,24 +168,6 @@ WSGI_APPLICATION = 'promed_backend_api.wsgi.application'
 # ============================================================
 # DATABASE CONFIGURATION
 # ============================================================
-# settings.py
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('MYSQL_DB_NAME', 'promed_health'),
-        'USER': os.getenv('MYSQL_DB_USER', 'sqladmin@promedhealth-mysql-dev'),
-        'PASSWORD': os.getenv('MYSQL_DB_PASSWORD'),
-        'HOST': os.getenv('MYSQL_DB_HOST', 'promedhealth-mysql-dev.mysql.database.azure.com'),
-        'PORT': os.getenv('MYSQL_DB_PORT', '3306'),
-        'OPTIONS': {
-            'ssl': {
-                'ca': '/app/certs/combined-ca-certificates.pem'  # Use the name of your combined file
-            }
-        }
-    }
-}
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
