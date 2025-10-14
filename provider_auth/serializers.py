@@ -7,6 +7,18 @@ from django.core.exceptions import ValidationError
 
 #Auth Serializers
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    # Explicitly tell the serializer to use 'email' field
+    username_field = 'email'
+    # Add email field explicitly
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(required=True, write_only=True)
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Remove the default 'username' field and ensure 'email' is used
+        if 'username' in self.fields:
+            self.fields.pop('username')
+    
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
@@ -19,16 +31,54 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
     def validate(self, attrs):
-        data = super().validate(attrs)
-        user = authenticate(
-            request=self.context.get('request'),
-            email=attrs['email'],
-            password=attrs['password']
-        )
-        if user and not user.is_verified:
-            raise serializers.ValidationError({"detail": "Email not verified. Please check your inbox for a verification link."})
-        return data
-
+        # Get email and password from attrs
+        email = attrs.get('email')
+        password = attrs.get('password')
+        
+        if not email or not password:
+            raise serializers.ValidationError({
+                "detail": "Email and password are required."
+            })
+        
+        # Manually authenticate the user
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError({
+                "detail": "No active account found with the given credentials."
+            })
+        
+        # Check password
+        if not user.check_password(password):
+            raise serializers.ValidationError({
+                "detail": "No active account found with the given credentials."
+            })
+        
+        # Check if user is verified
+        if not user.is_verified:
+            raise serializers.ValidationError({
+                "detail": "Email not verified. Please check your inbox for a verification link."
+            })
+        
+        # Check if user is approved
+        if not user.is_approved:
+            raise serializers.ValidationError({
+                "detail": "Your account is pending administrator approval. We will contact you once it is active."
+            })
+        
+        # Generate tokens
+        refresh = self.get_token(user)
+        
+        # Store user for later use in the view
+        self.user = user
+        
+        return {
+            'refresh': refresh,
+            'access': refresh.access_token,
+        }
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)

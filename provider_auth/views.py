@@ -1,10 +1,16 @@
-# provider_auth/views.py
+# Standard Library
 import os
 import uuid
 import random
+import logging
 from io import BytesIO
 from datetime import datetime
 
+# Third-Party Libraries
+from dotenv import load_dotenv
+from twilio.rest import Client
+
+# Django
 from django.conf import settings
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.mail import send_mail
@@ -12,98 +18,99 @@ from django.contrib.auth.password_validation import validate_password
 from django.template.loader import render_to_string
 from django.utils import timezone
 
+# Django REST Framework
 from rest_framework import generics, status, permissions
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from twilio.rest import Client
-from dotenv import load_dotenv
-
-from .models import User, Profile, EmailVerificationToken
+# Local Application Imports
+from .models import User, Profile, EmailVerificationToken, Verification_Code
 from . import models as api_models
 from . import serializers as api_serializers
-# Assuming you add EmptySerializer to api_serializers
-from .serializers import MyTokenObtainPairSerializer, UserSerializer, EmptySerializer # <-- Added EmptySerializer
+from .serializers import MyTokenObtainPairSerializer, UserSerializer, EmptySerializer
 
-# CRITICAL FIX: Changed LOCAL_HOST to BASE_CLIENT_URL
+
 from promed_backend_api.settings import BASE_CLIENT_URL, DEFAULT_FROM_EMAIL
 
 load_dotenv()
 
-from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework.response import Response
-from rest_framework import status
-from django.core.mail import send_mail
-from .models import Verification_Code
-# import os, random, uuid
-# from twilio.rest import Client
-# from django.conf import settings # Already imported above
+
+
+
+logger = logging.getLogger(__name__)
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
-
+    
     def post(self, request, *args, **kwargs):
+        logger.info(f"Received login request with data: {request.data}")
+        
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
+        
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception as e:
+            logger.error(f"Serializer validation failed: {str(e)}")
+            logger.error(f"Serializer errors: {serializer.errors if hasattr(serializer, 'errors') else 'No errors attr'}")
+            
+            # Return a more detailed error response
+            error_detail = serializer.errors if hasattr(serializer, 'errors') else {'detail': str(e)}
+            return Response(
+                error_detail,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         user = serializer.user
-
-        # Check if user is verified
-        if not user.is_verified:
-            return Response(
-                {'detail': 'Your account is not verified. Please check your email to complete the verification.'},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
-
-        # Check if user is approved
-        if not user.is_approved:
-            return Response(
-                {'detail': 'Your account is pending administrator approval. We will contact you once it is active.'},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
-
+        
         # Generate tokens
         refresh = serializer.validated_data['refresh']
         access = serializer.validated_data['access']
-
+        
         # MFA code setup
         method = request.data.get('method', 'email')
         code = str(random.randint(100000, 999999))
         session_id = str(uuid.uuid4())
-
+        
         api_models.Verification_Code.objects.create(
             user=user,
             code=code,
             method=method,
             session_id=session_id
         )
-
+        
         if method == 'sms' and user.phone_number:
-            account_sid = os.getenv('ACCOUNT_SID')
-            auth_token = os.getenv('AUTH_TOKEN')
-            verify_service_sid = os.getenv('VERIFY_SERVICE_SID')
-
-            client = Client(account_sid, auth_token)
-
-            client.verify.v2.services(verify_service_sid).verifications.create(
-                to=str(user.phone_number),
-                channel='sms'
-            )
-
+            try:
+                account_sid = os.getenv('ACCOUNT_SID')
+                auth_token = os.getenv('AUTH_TOKEN')
+                verify_service_sid = os.getenv('VERIFY_SERVICE_SID')
+                
+                client = Client(account_sid, auth_token)
+                
+                client.verify.v2.services(verify_service_sid).verifications.create(
+                    to=str(user.phone_number),
+                    channel='sms'
+                )
+            except Exception as e:
+                logger.error(f"SMS sending failed: {str(e)}")
+                # Continue anyway, user can request resend
+        
         if method == 'email':
-            send_mail(
-                subject='Login Verification Code',
-                message=f'Your login verification code is {code}. This code will expire shortly.',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email]
-            )
-
+            try:
+                send_mail(
+                    subject='Login Verification Code',
+                    message=f'Your login verification code is {code}. This code will expire shortly.',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email]
+                )
+            except Exception as e:
+                logger.error(f"Email sending failed: {str(e)}")
+        
         request.session['mfa'] = False
-
+        
         user_data = UserSerializer(user).data
-
+        
         return Response({
             'access': str(access),
             'refresh': str(refresh),
