@@ -126,7 +126,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 # ============================================================
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
-    'promed_backend_api.middleware.RequestLoggingMiddleware',  # Add this line
+    'promed_backend_api.middleware.RequestLoggingMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware', 
     'django.contrib.sessions.middleware.SessionMiddleware',
