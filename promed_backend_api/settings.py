@@ -107,7 +107,8 @@ THIRD_PARTY_APPS = [
     'anymail',
     'drf_yasg',
     'storages',
-    'phonenumber_field'
+    'phonenumber_field',
+    'widget_tweaks',  
 ]
 
 DJANGO_APPS = [
