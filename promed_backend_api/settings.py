@@ -60,6 +60,7 @@ ALLOWED_HOSTS = [
     f'{AZURE_APP_NAME}.azurewebsites.net',
     f'{AZURE_APP_NAME}.scm.azurewebsites.net',
     f'*.westus2-01.azurewebsites.net',
+    '169.254.129.5',
     '169.254.129.4', 
     '169.254.129.3',
     'promedhealthplus.com',
