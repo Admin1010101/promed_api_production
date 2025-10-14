@@ -30,14 +30,9 @@ from .models import User, Profile, EmailVerificationToken, Verification_Code
 from . import models as api_models
 from . import serializers as api_serializers
 from .serializers import MyTokenObtainPairSerializer, UserSerializer, EmptySerializer
-
-
 from promed_backend_api.settings import BASE_CLIENT_URL, DEFAULT_FROM_EMAIL
 
 load_dotenv()
-
-
-
 
 logger = logging.getLogger(__name__)
 

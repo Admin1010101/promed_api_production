@@ -19,14 +19,14 @@ sentry_sdk.init(
 
 TESTING = True
 
-APPEND_SLASH = True# Changed to False for production consistency
+APPEND_SLASH = False
 
 # ============================================================
 # BASE CONFIGURATION
 # ============================================================
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
-DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
+DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'False'
 
 # ============================================================
 # AZURE PROXY/SECURITY CONFIGURATION
@@ -60,6 +60,7 @@ ALLOWED_HOSTS = [
     '169.254.129.3',
     '169.254.129.2',
     'promedhealthplus.com',
+    '*.promedhealthplus.com',   
     'app-promed-frontend-prod-dev-chfcguavbacqfybc.westus2-01.azurewebsites.net',
     'promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net',
     '127.0.0.1',
