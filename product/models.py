@@ -10,6 +10,7 @@ class Product(models.Model):
         default='images/default_item.png'
     )
     is_available = models.BooleanField(default=True)
+    product_url = models.CharField(max_length=300, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
