@@ -40,19 +40,31 @@ class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
     
     def post(self, request, *args, **kwargs):
-        logger.info(f"Received login request with data: {request.data}")
+        # **DEBUG LOGGING**
+        logger.info(f"=== LOGIN ATTEMPT DEBUG ===")
+        logger.info(f"Request data: {request.data}")
+        logger.info(f"Request headers: {dict(request.headers)}")
+        
+        # Check if user exists with this email
+        email = request.data.get('email')
+        if email:
+            try:
+                user_check = User.objects.get(email__iexact=email)
+                logger.info(f"User found: {user_check.email}, is_verified: {user_check.is_verified}, is_approved: {user_check.is_approved}")
+            except User.DoesNotExist:
+                logger.error(f"No user found with email: {email}")
+                # Check if there's a similar email (case difference)
+                similar_users = User.objects.filter(email__icontains=email)
+                if similar_users.exists():
+                    logger.error(f"Similar emails found: {[u.email for u in similar_users]}")
         
         serializer = self.get_serializer(data=request.data)
         
-        # --- FIX: Simplify validation to let DRF handle the exception ---
-        # If validation fails, DRF's exception handler will automatically return a 400
-        # with the correct serializer.errors.
+        # Validate and handle errors
         serializer.is_valid(raise_exception=True)
-        # -----------------------------------------------------------------
         
         user = serializer.user
-        
-        # The rest of your logic remains the same
+        logger.info(f"Login successful for user: {user.email}")
         
         # Generate tokens
         refresh = serializer.validated_data['refresh']
@@ -70,10 +82,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
             session_id=session_id
         )
         
-        # ... (Twilio and Email logic for MFA continues here) ...
-        
         if method == 'sms' and user.phone_number:
-            # ... (Twilio code) ...
             try:
                 account_sid = os.getenv('ACCOUNT_SID')
                 auth_token = os.getenv('AUTH_TOKEN')
@@ -85,11 +94,11 @@ class MyTokenObtainPairView(TokenObtainPairView):
                     to=str(user.phone_number),
                     channel='sms'
                 )
+                logger.info(f"SMS verification sent to {user.phone_number}")
             except Exception as e:
                 logger.error(f"SMS sending failed: {str(e)}")
         
         if method == 'email':
-            # ... (Email code) ...
             try:
                 send_mail(
                     subject='Login Verification Code',
@@ -97,6 +106,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[user.email]
                 )
+                logger.info(f"Email verification sent to {user.email}")
             except Exception as e:
                 logger.error(f"Email sending failed: {str(e)}")
 
@@ -120,8 +130,8 @@ class RegisterUser(generics.CreateAPIView):
     
     def perform_create(self, serializer):
         user = serializer.save()
+        logger.info(f"New user registered: {user.email}")
         token, created = EmailVerificationToken.objects.get_or_create(user=user)
-        # Replaced LOCAL_HOST with BASE_CLIENT_URL
         verification_link = f"{BASE_CLIENT_URL}/#/verify-email/{token.token}"
 
         email_html_message = render_to_string(
@@ -142,17 +152,13 @@ class RegisterUser(generics.CreateAPIView):
 
 class VerifyEmailView(generics.GenericAPIView):
     permission_classes = [AllowAny]
-    # *** CRITICAL FIX: ADDED DUMMY SERIALIZER CLASS ***
-    # This prevents the AssertionError during schema generation.
     serializer_class = EmptySerializer 
 
     def get(self, request, token):
         if getattr(self, 'swagger_fake_view', False):
-            # This is already a good fix for the *previous* AnonymousUser error, keep it.
             return Response(status=status.HTTP_200_OK)
 
         try:
-            # Convert string token to UUID if needed
             if isinstance(token, str):
                 token = uuid.UUID(token)
             
@@ -168,6 +174,8 @@ class VerifyEmailView(generics.GenericAPIView):
             user.is_verified = True
             user.save()
             verification_token.delete()
+            
+            logger.info(f"Email verified for user: {user.email}")
 
             # Send the new 'awaiting approval' email to the user
             approval_email_html = render_to_string(
@@ -214,8 +222,7 @@ class VerifyEmailView(generics.GenericAPIView):
             )
 
         except (api_models.EmailVerificationToken.DoesNotExist, ValueError) as e:
-            print(f"Token verification error: {e}")
-            print(f"Token received: {token}")
+            logger.error(f"Token verification error: {e}, Token: {token}")
             return Response(
                 {"error": "Invalid or expired token."}, 
                 status=status.HTTP_400_BAD_REQUEST
@@ -226,7 +233,6 @@ class VerifyCodeView(generics.CreateAPIView):
     permission_classes = [AllowAny]
 
     def create(self, request, *args, **kwargs):
-        # Require JWT authentication
         user = request.user
         session_id = request.data.get('session_id')
         code = request.data.get('code')
@@ -237,24 +243,28 @@ class VerifyCodeView(generics.CreateAPIView):
 
         if not user or not session_id or not code:
             return Response({'error': 'Missing data'}, status=status.HTTP_400_BAD_REQUEST)
-        # Check code
+        
         valid_code = api_models.Verification_Code.objects.filter(
             session_id=session_id,
         ).order_by('-created_at').first()
+        
         if not valid_code:
             return Response({'verified': False, 'error': 'Invalid code'}, status=status.HTTP_400_BAD_REQUEST)
-        # Mark user as verified
+        
         phone_number = str(user.phone_number)
         client = Client(account_sid, auth_token)
         verification_check = client.verify.v2.services(verify_service_sid).verification_checks.create(
-        to=phone_number,
-        code=code)
+            to=phone_number,
+            code=code
+        )
+        
         if not verification_check.valid:
             return Response({'verified': False, 'error': 'Invalid code'}, status=status.HTTP_400_BAD_REQUEST)
-        request.session['mfa'] = True  # Mark session as verified
+        
+        request.session['mfa'] = True
         return Response({'verified': True}, status=status.HTTP_200_OK)
 
-class ProviderProfileView(generics.RetrieveAPIView, generics.UpdateAPIView): # Add generics.UpdateAPIView
+class ProviderProfileView(generics.RetrieveAPIView, generics.UpdateAPIView):
     serializer_class = api_serializers.ProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -276,19 +286,18 @@ class ContactRepView(generics.CreateAPIView):
     serializer_class = api_serializers.ContactRepSerializer
 
     def create(self, request, *args, **kwargs):
-        if getattr(self, 'swagger_fake_view', False):  # Prevent drf_yasg crash
+        if getattr(self, 'swagger_fake_view', False):
             return Response(status=status.HTTP_200_OK)
 
         user = request.user
-
         profile = getattr(user, 'profile', None)
+        
         if not profile or not profile.sales_rep:
             return Response(
                 {'error': 'No sales representative assigned to this provider.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Extract data
         sales_rep = profile.sales_rep
         rep_email = sales_rep.email
         rep_name = sales_rep.name
@@ -305,8 +314,6 @@ class ContactRepView(generics.CreateAPIView):
             )
 
         subject = f"New Message from Provider: {sender_name}"
-
-        # Render HTML email template
         html_message = render_to_string('provider_auth/provider_inquiry.html', {
             'rep_name': rep_name,
             'sender_name': sender_name,
@@ -327,16 +334,15 @@ class ContactRepView(generics.CreateAPIView):
         try:
             send_mail(
                 subject=subject,
-                message=message_body,  # plain-text fallback
+                message=message_body,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=recipient_list,
                 html_message=html_message,
                 fail_silently=False,
             )
             return Response({'success': 'Message sent successfully.'}, status=status.HTTP_200_OK)
-
         except Exception as e:
-            print(f"Error sending provider inquiry email: {e}")
+            logger.error(f"Error sending provider inquiry email: {e}")
             return Response(
                 {'error': 'Failed to send message via email.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -358,10 +364,8 @@ class ResetPasswordView(generics.GenericAPIView):
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
         password = serializer.validated_data['password']
 
-        # Validate password strength
         user = reset_token.user
         try:
             validate_password(password, user=user)
@@ -373,7 +377,6 @@ class ResetPasswordView(generics.GenericAPIView):
         reset_token.delete()
 
         return Response({'success': 'Password has been reset successfully.'}, status=200)
-
 
 class RequestPasswordResetView(generics.GenericAPIView):
     serializer_class = api_serializers.RequestPasswordResetSerializer
@@ -391,17 +394,16 @@ class RequestPasswordResetView(generics.GenericAPIView):
 
         response_message = {'message': 'If the email is registered, a reset link has been sent.'}
 
-        # Send email password reset if user exists
         if 'user' in locals():
             token = api_models.PasswordResetToken.objects.create(user=user)
-            # Replaced LOCAL_HOST with BASE_CLIENT_URL
             reset_link = f"{BASE_CLIENT_URL}/#/reset-password/{token.token}/"
 
-            html_message = render_to_string('provider_auth/passwordresetemail.html',
-                                            {'reset_link': reset_link,
-                                             'user': user,
-                                             'year': datetime.now().year})
-            # Send email with reset link
+            html_message = render_to_string('provider_auth/passwordresetemail.html', {
+                'reset_link': reset_link,
+                'user': user,
+                'year': datetime.now().year
+            })
+            
             send_mail(
                 subject='Password Reset Request',
                 message=f'Click the link to reset your password: {reset_link}',
@@ -420,11 +422,9 @@ class PublicContactView(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
         data = serializer.validated_data
 
         subject = f"New Public Inquiry from: {data['name']}"
-
         html_message = render_to_string('provider_auth/public_inquiry.html', {
             'name': data['name'],
             'facility': data['facility'],
@@ -447,7 +447,7 @@ class PublicContactView(generics.CreateAPIView):
         try:
             send_mail(
                 subject=subject,
-                message=f"Name: {data['name']}\Facility: {data['facility']}\nEmail: {data['email']}\nPhone: {data['phone']}\nCity: {data['city']}, {data['state']} {data['zip']}\n\nQuestion:\n{data['question']}",
+                message=f"Name: {data['name']}\nFacility: {data['facility']}\nEmail: {data['email']}\nPhone: {data['phone']}\nCity: {data['city']}, {data['state']} {data['zip']}\n\nQuestion:\n{data['question']}",
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=recipient_list,
                 html_message=html_message,
@@ -455,7 +455,7 @@ class PublicContactView(generics.CreateAPIView):
             )
             return Response({'success': 'Message sent successfully.'}, status=status.HTTP_200_OK)
         except Exception as e:
-            print(f"Error sending public inquiry email: {e}")
+            logger.error(f"Error sending public inquiry email: {e}")
             return Response(
                 {'error': 'Failed to send message.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

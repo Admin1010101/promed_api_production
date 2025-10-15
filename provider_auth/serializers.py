@@ -40,12 +40,13 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
                 "detail": "Email and password are required."
             })
         
-        # Manually authenticate the user
+        # **FIX: Use case-insensitive email lookup**
         from django.contrib.auth import get_user_model
         User = get_user_model()
         
         try:
-            user = User.objects.get(email=email)
+            # Case-insensitive email lookup
+            user = User.objects.get(email__iexact=email)
         except User.DoesNotExist:
             raise serializers.ValidationError({
                 "detail": "No active account found with the given credentials."
@@ -79,6 +80,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
             'refresh': refresh,
             'access': refresh.access_token,
         }
+
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)
@@ -130,8 +132,8 @@ class RegisterSerializer(serializers.ModelSerializer):
 
         try:
             user = User.objects.create_user(
-                username=validated_data['email'],
-                email=validated_data['email'],
+                username=validated_data['email'].lower(),  # Normalize email
+                email=validated_data['email'].lower(),  # Normalize email
                 full_name=validated_data['full_name'],
                 phone_number=validated_data['phone_number'],
                 npi_number=npi_number,
@@ -149,7 +151,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     username = serializers.CharField(read_only=True)
-    role = serializers.CharField(read_only=True)  # ADD THIS LINE
+    role = serializers.CharField(read_only=True)
     class Meta:
         model = User
         fields = (
@@ -208,4 +210,4 @@ class RequestPasswordResetSerializer(serializers.Serializer):
 # Dummy serializer to prevent crashing during swagger/schema generation
 class EmptySerializer(serializers.Serializer):
     """Used for views that don't take body data (like token verification)."""
-    pass 
+    pass
