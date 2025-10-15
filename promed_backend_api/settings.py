@@ -250,10 +250,18 @@ STORAGES = {
     },
 }
 
-# --- CRITICAL FIX: Use the Front Door Endpoint for STATIC_URL ---
-STATIC_URL = f'https://{AZURE_FRONTDOOR_ENDPOINT}/static/'
-# ------------------------------------------------------------------
-MEDIA_URL = f'https://{AZURE_CUSTOM_DOMAIN}/media/'
+AZURE_FRONTDOOR_ENDPOINT = 'promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net'
+
+USE_FRONTDOOR_FOR_STATIC = os.getenv('USE_FRONTDOOR_FOR_STATIC', 'False') == 'True'
+
+if USE_FRONTDOOR_FOR_STATIC:
+    STATIC_URL = f'https://{AZURE_FRONTDOOR_ENDPOINT}/static/'
+else:
+    # Option B: Direct blob storage access (recommended until Front Door is configured)
+    STATIC_URL = f'https://{AZURE_CUSTOM_DOMAIN}/{AZURE_STATIC_CONTAINER}/'
+
+# Media always uses direct blob storage
+MEDIA_URL = f'https://{AZURE_CUSTOM_DOMAIN}/{AZURE_MEDIA_CONTAINER}/'
 
 # ============================================================
 # SESSION CONFIGURATION
