@@ -10,9 +10,6 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# ============================================================
-# SENTRY CONFIGURATION
-# ============================================================
 sentry_sdk.init(
     dsn=os.getenv(
         "SENTRY_DSN",
@@ -22,9 +19,7 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
     send_default_pii=True,
 )
-# ============================================================
-# BASE CONFIGURATION
-# ============================================================
+
 TESTING = True
 APPEND_SLASH = False  # Changed to False for production consistency
 
@@ -32,9 +27,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
-# ============================================================
-# AZURE PROXY/SECURITY CONFIGURATION
-# ============================================================
+
 RUNNING_ON_AZURE = os.getenv('WEBSITE_SITE_NAME') is not None
 
 USE_X_FORWARDED_HOST = True
@@ -46,16 +39,9 @@ SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_HTTPONLY = True
 
-# ============================================================
-# CLIENT URL CONFIGURATION
-# ============================================================
-
 BASE_CLIENT_URL = 'https://promedhealthplus.com'
 LOCAL_CLIENT_URL = 'http://localhost:3000'
 
-# ============================================================
-# ALLOWED HOSTS
-# ============================================================
 AZURE_APP_NAME = 'app-promed-backend-prod-dev'
 
 ALLOWED_HOSTS = [
@@ -77,10 +63,6 @@ ALLOWED_HOSTS = [
 if os.getenv('WEBSITE_HOSTNAME'):
     ALLOWED_HOSTS.append(os.getenv('WEBSITE_HOSTNAME'))
 
-# ============================================================
-# CSRF TRUSTED ORIGINS
-# ============================================================
-
 CSRF_TRUSTED_ORIGINS = [
     "https://*.azurewebsites.net",
     "https://*.azurefd.net",
@@ -88,10 +70,6 @@ CSRF_TRUSTED_ORIGINS = [
     "https://*.promedhealthplus.com",
     "http://localhost:3000",
 ]
-
-# ============================================================
-# INSTALLED APPS
-# ============================================================
 
 USER_APPS = [
     'provider_auth.apps.ProviderAuthConfig',
@@ -129,15 +107,7 @@ DJANGO_APPS = [
 
 INSTALLED_APPS = THIRD_PARTY_APPS + DJANGO_APPS + USER_APPS
 
-# ============================================================
-# CORS CONFIGURATION
-# ============================================================
-
 CORS_ALLOW_ALL_ORIGINS = True
-
-# ============================================================
-# MIDDLEWARE
-# ============================================================
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -152,15 +122,7 @@ MIDDLEWARE = [
     'django.middleware.locale.LocaleMiddleware',
 ]
 
-# ============================================================
-# URL CONFIGURATION
-# ============================================================
-
 ROOT_URLCONF = 'promed_backend_api.urls'
-
-# ============================================================
-# TEMPLATES CONFIGURATION
-# ============================================================
 
 TEMPLATES = [
     {
@@ -177,15 +139,7 @@ TEMPLATES = [
     },
 ]
 
-# ============================================================
-# WSGI CONFIGURATION
-# ============================================================
-
 WSGI_APPLICATION = 'promed_backend_api.wsgi.application'
-
-# ============================================================
-# DATABASE CONFIGURATION
-# ============================================================
 
 DATABASES = {
     'default': {
@@ -205,10 +159,6 @@ DATABASES = {
     }
 }
 
-# ============================================================
-# EMAIL CONFIGURATION
-# ============================================================
-
 EMAIL_BACKEND = 'anymail.backends.sendgrid.EmailBackend'
 SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
 
@@ -219,10 +169,6 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = 'william.dev@promedhealthplus.com'
 
-# ============================================================
-# AZURE STORAGE GLOBAL CONFIGURATION
-# ============================================================
-
 AZURE_ACCOUNT_NAME = os.getenv('AZURE_ACCOUNT_NAME')
 AZURE_ACCOUNT_KEY = os.getenv('AZURE_ACCOUNT_KEY')
 AZURE_FRONTDOOR_ENDPOINT = 'promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net'
@@ -231,10 +177,6 @@ AZURE_CUSTOM_DOMAIN = f'{AZURE_ACCOUNT_NAME}.blob.core.windows.net'
 AZURE_STATIC_CONTAINER = 'static'
 AZURE_MEDIA_CONTAINER = 'media'
 AZURE_OVERWRITE_FILES = True
-
-# ============================================================
-# STATIC AND MEDIA FILES CONFIGURATION
-# ============================================================
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
@@ -254,21 +196,11 @@ USE_FRONTDOOR_FOR_STATIC = os.getenv('USE_FRONTDOOR_FOR_STATIC', 'False') == 'Tr
 if USE_FRONTDOOR_FOR_STATIC:
     STATIC_URL = f'https://{AZURE_FRONTDOOR_ENDPOINT}/static/'
 else:
-    # Option B: Direct blob storage access (recommended until Front Door is configured)
     STATIC_URL = f'https://{AZURE_CUSTOM_DOMAIN}/{AZURE_STATIC_CONTAINER}/'
 
-# Media always uses direct blob storage
 MEDIA_URL = f'https://{AZURE_CUSTOM_DOMAIN}/{AZURE_MEDIA_CONTAINER}/'
 
-# ============================================================
-# SESSION CONFIGURATION
-# ============================================================
-
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-
-# ============================================================
-# LOGGING CONFIGURATION
-# ============================================================
 
 logger.info(f"Static files will be served from: {STATIC_URL}")
 logger.info(f"Example admin CSS should be at: {STATIC_URL}admin/css/base.css")
