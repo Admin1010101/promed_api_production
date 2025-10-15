@@ -273,5 +273,12 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 logger.info(f"Static files will be served from: {STATIC_URL}")
 logger.info(f"Example admin CSS should be at: {STATIC_URL}admin/css/base.css")
 
+logger.info("=" * 80)
+logger.info(f"AZURE_ACCOUNT_NAME: {AZURE_ACCOUNT_NAME}")
+logger.info(f"STATIC_URL (public): {STATIC_URL}")
+logger.info(f"MEDIA_URL (private with SAS): {MEDIA_URL}")
+logger.info(f"Example admin CSS: {STATIC_URL}admin/css/base.css")
+logger.info("=" * 80)
+
 
 
