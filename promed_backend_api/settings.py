@@ -124,6 +124,11 @@ MIDDLEWARE = [
     'django.middleware.locale.LocaleMiddleware',
 ]
 
+AUTHENTICATION_BACKENDS = [
+    'provider_auth.backends.EmailBackend',  # Your custom email authentication
+    'django.contrib.auth.backends.ModelBackend',  # Keep default as fallback
+]
+
 ROOT_URLCONF = 'promed_backend_api.urls'
 
 TEMPLATES = [

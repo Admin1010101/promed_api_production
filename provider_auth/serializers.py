@@ -7,16 +7,15 @@ from django.core.exceptions import ValidationError
 
 #Auth Serializers
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
-    username_field = 'email'
+    # Don't set username_field here, we'll handle it manually
     
-    email = serializers.EmailField(required=True)
-    password = serializers.CharField(required=True, write_only=True)
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # CRITICAL: Remove default 'username' field which TokenObtainPairSerializer adds
+        # Remove the username field entirely
         if 'username' in self.fields:
-            self.fields.pop('username')
+            del self.fields['username']
+        # Add email field explicitly
+        self.fields['email'] = serializers.EmailField(required=True)
 
     @classmethod
     def get_token(cls, user):
@@ -31,15 +30,36 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
     def validate(self, attrs):
+        # Get credentials from attrs
+        email = attrs.get('email')
+        password = attrs.get('password')
+        
+        if not email or not password:
+            raise serializers.ValidationError({
+                "detail": "Email and password are required."
+            })
+        
+        # Try to get the user by email
         try:
-            data = super().validate(attrs)
-        except serializers.ValidationError as e:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
             raise serializers.ValidationError({
                 "detail": "No active account found with the given credentials."
             })
-            
-        user = self.user
-
+        
+        # Check password
+        if not user.check_password(password):
+            raise serializers.ValidationError({
+                "detail": "No active account found with the given credentials."
+            })
+        
+        # Check if user can authenticate (is_active check)
+        if not user.is_active:
+            raise serializers.ValidationError({
+                "detail": "User account is disabled."
+            })
+        
+        # Check if email is verified
         if not user.is_verified:
             raise serializers.ValidationError({
                 "detail": "Email not verified. Please check your inbox for a verification link."
@@ -51,8 +71,19 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
                 "detail": "Your account is pending administrator approval. We will contact you once it is active."
             })
         
-        # If all custom checks pass, return the validated data (which contains tokens)
-        return data
+        # Generate tokens
+        refresh = self.get_token(user)
+        
+        # Store user for access in the view
+        self.user = user
+        
+        # Return token data
+        return {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }
+
+
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)
@@ -122,7 +153,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     username = serializers.CharField(read_only=True)
-    role = serializers.CharField(read_only=True)  # ADD THIS LINE
+    role = serializers.CharField(read_only=True)
     class Meta:
         model = User
         fields = (
@@ -181,4 +212,4 @@ class RequestPasswordResetSerializer(serializers.Serializer):
 # Dummy serializer to prevent crashing during swagger/schema generation
 class EmptySerializer(serializers.Serializer):
     """Used for views that don't take body data (like token verification)."""
-    pass 
+    pass

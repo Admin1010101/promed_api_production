@@ -36,28 +36,46 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-class MyTokenObtainPairView(TokenObtainPairView):
+lass MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
     
     def post(self, request, *args, **kwargs):
-        logger.info(f"Received login request with data: {request.data}")
+        logger.info("=" * 50)
+        logger.info("LOGIN ATTEMPT STARTED")
+        logger.info(f"Request data keys: {list(request.data.keys())}")
+        logger.info(f"Email provided: {request.data.get('email', 'NOT PROVIDED')}")
+        logger.info(f"Method: {request.data.get('method', 'NOT PROVIDED')}")
+        
+        # Check if user exists
+        email = request.data.get('email')
+        if email:
+            try:
+                user = User.objects.get(email=email)
+                logger.info(f"User found: {user.email}")
+                logger.info(f"User is_active: {user.is_active}")
+                logger.info(f"User is_verified: {user.is_verified}")
+                logger.info(f"User is_approved: {user.is_approved}")
+            except User.DoesNotExist:
+                logger.error(f"No user found with email: {email}")
         
         serializer = self.get_serializer(data=request.data)
         
         try:
             serializer.is_valid(raise_exception=True)
+            logger.info("Serializer validation PASSED")
         except Exception as e:
-            logger.error(f"Serializer validation failed: {str(e)}")
-            logger.error(f"Serializer errors: {serializer.errors if hasattr(serializer, 'errors') else 'No errors attr'}")
+            logger.error(f"Serializer validation FAILED: {str(e)}")
+            logger.error(f"Serializer errors: {getattr(serializer, 'errors', 'No errors attr')}")
             
             # Return a more detailed error response
-            error_detail = serializer.errors if hasattr(serializer, 'errors') else {'detail': str(e)}
+            error_detail = getattr(serializer, 'errors', {'detail': str(e)})
             return Response(
                 error_detail,
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         user = serializer.user
+        logger.info(f"Authentication successful for: {user.email}")
         
         # Generate tokens
         refresh = serializer.validated_data['refresh']
@@ -67,6 +85,9 @@ class MyTokenObtainPairView(TokenObtainPairView):
         method = request.data.get('method', 'email')
         code = str(random.randint(100000, 999999))
         session_id = str(uuid.uuid4())
+        
+        logger.info(f"Creating verification code with method: {method}")
+        logger.info(f"Session ID: {session_id}")
         
         api_models.Verification_Code.objects.create(
             user=user,
@@ -81,15 +102,18 @@ class MyTokenObtainPairView(TokenObtainPairView):
                 auth_token = os.getenv('AUTH_TOKEN_TEMP')
                 verify_service_sid = os.getenv('VERIFY_SERVICE_SID_TEMP')
                 
-                client = Client(account_sid, auth_token)
-                
-                client.verify.v2.services(verify_service_sid).verifications.create(
-                    to=str(user.phone_number),
-                    channel='sms'
-                )
+                if not all([account_sid, auth_token, verify_service_sid]):
+                    logger.warning("Twilio credentials missing")
+                else:
+                    client = Client(account_sid, auth_token)
+                    
+                    client.verify.v2.services(verify_service_sid).verifications.create(
+                        to=str(user.phone_number),
+                        channel='sms'
+                    )
+                    logger.info(f"SMS verification sent to {user.phone_number}")
             except Exception as e:
                 logger.error(f"SMS sending failed: {str(e)}")
-                # Continue anyway, user can request resend
         
         if method == 'email':
             try:
@@ -99,12 +123,14 @@ class MyTokenObtainPairView(TokenObtainPairView):
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[user.email]
                 )
+                logger.info(f"Email verification sent to {user.email}")
             except Exception as e:
                 logger.error(f"Email sending failed: {str(e)}")
         
-        request.session['mfa'] = False
-        
         user_data = UserSerializer(user).data
+        
+        logger.info("LOGIN SUCCESSFUL - Returning response")
+        logger.info("=" * 50)
         
         return Response({
             'access': str(access),
