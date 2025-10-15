@@ -3,14 +3,16 @@ from datetime import timedelta
 from dotenv import load_dotenv
 import os
 import sentry_sdk
+import logging
 from sentry_sdk.integrations.django import DjangoIntegration
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
+
 # ============================================================
 # SENTRY CONFIGURATION
 # ============================================================
-
 sentry_sdk.init(
     dsn=os.getenv(
         "SENTRY_DSN",
@@ -20,11 +22,9 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
     send_default_pii=True,
 )
-
 # ============================================================
 # BASE CONFIGURATION
 # ============================================================
-
 TESTING = True
 APPEND_SLASH = False  # Changed to False for production consistency
 
@@ -32,11 +32,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
-
 # ============================================================
 # AZURE PROXY/SECURITY CONFIGURATION
 # ============================================================
-
 RUNNING_ON_AZURE = os.getenv('WEBSITE_SITE_NAME') is not None
 
 USE_X_FORWARDED_HOST = True
@@ -58,7 +56,6 @@ LOCAL_CLIENT_URL = 'http://localhost:3000'
 # ============================================================
 # ALLOWED HOSTS
 # ============================================================
-
 AZURE_APP_NAME = 'app-promed-backend-prod-dev'
 
 ALLOWED_HOSTS = [
@@ -273,33 +270,8 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 # LOGGING CONFIGURATION
 # ============================================================
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'root': {
-        'handlers': ['console'],
-        'level': 'INFO',
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'promed_backend_api': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'provider_auth': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-    },
-}
+logger.info(f"Static files will be served from: {STATIC_URL}")
+logger.info(f"Example admin CSS should be at: {STATIC_URL}admin/css/base.css")
+
+
+

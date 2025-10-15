@@ -2,8 +2,6 @@
 from storages.backends.azure_storage import AzureStorage
 from django.conf import settings
 import os
-
-
 class AzureMediaStorage(AzureStorage):
     """
     Custom storage backend for media files (user uploads).
