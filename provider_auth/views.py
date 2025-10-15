@@ -36,7 +36,7 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-lass MyTokenObtainPairView(TokenObtainPairView):
+class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
     
     def post(self, request, *args, **kwargs):
@@ -149,7 +149,6 @@ class RegisterUser(generics.CreateAPIView):
     def perform_create(self, serializer):
         user = serializer.save()
         token, created = EmailVerificationToken.objects.get_or_create(user=user)
-        # Replaced LOCAL_HOST with BASE_CLIENT_URL
         verification_link = f"{BASE_CLIENT_URL}/#/verify-email/{token.token}"
 
         email_html_message = render_to_string(
@@ -170,17 +169,13 @@ class RegisterUser(generics.CreateAPIView):
 
 class VerifyEmailView(generics.GenericAPIView):
     permission_classes = [AllowAny]
-    # *** CRITICAL FIX: ADDED DUMMY SERIALIZER CLASS ***
-    # This prevents the AssertionError during schema generation.
     serializer_class = EmptySerializer 
 
     def get(self, request, token):
         if getattr(self, 'swagger_fake_view', False):
-            # This is already a good fix for the *previous* AnonymousUser error, keep it.
             return Response(status=status.HTTP_200_OK)
 
         try:
-            # Convert string token to UUID if needed
             if isinstance(token, str):
                 token = uuid.UUID(token)
             
@@ -197,7 +192,6 @@ class VerifyEmailView(generics.GenericAPIView):
             user.save()
             verification_token.delete()
 
-            # Send the new 'awaiting approval' email to the user
             approval_email_html = render_to_string(
                 'provider_auth/awaiting_approval_email.html',
                 {'user': user}
@@ -212,7 +206,6 @@ class VerifyEmailView(generics.GenericAPIView):
                 fail_silently=False
             )
 
-            # Notify admin about the newly verified user
             admin_subject = f"New Provider Awaiting Approval: {user.full_name}"
             admin_message = render_to_string('provider_auth/new_provider_admin_notification.html', {
                 'user': user,
@@ -254,7 +247,6 @@ class VerifyCodeView(generics.CreateAPIView):
     permission_classes = [AllowAny]
 
     def create(self, request, *args, **kwargs):
-        # Require JWT authentication
         user = request.user
         session_id = request.data.get('session_id')
         code = request.data.get('code')
@@ -265,13 +257,13 @@ class VerifyCodeView(generics.CreateAPIView):
 
         if not user or not session_id or not code:
             return Response({'error': 'Missing data'}, status=status.HTTP_400_BAD_REQUEST)
-        # Check code
+        
         valid_code = api_models.Verification_Code.objects.filter(
             session_id=session_id,
         ).order_by('-created_at').first()
         if not valid_code:
             return Response({'verified': False, 'error': 'Invalid code'}, status=status.HTTP_400_BAD_REQUEST)
-        # Mark user as verified
+        
         phone_number = str(user.phone_number)
         client = Client(account_sid, auth_token)
         verification_check = client.verify.v2.services(verify_service_sid).verification_checks.create(
@@ -279,10 +271,10 @@ class VerifyCodeView(generics.CreateAPIView):
         code=code)
         if not verification_check.valid:
             return Response({'verified': False, 'error': 'Invalid code'}, status=status.HTTP_400_BAD_REQUEST)
-        request.session['mfa'] = True  # Mark session as verified
+        request.session['mfa'] = True
         return Response({'verified': True}, status=status.HTTP_200_OK)
 
-class ProviderProfileView(generics.RetrieveAPIView, generics.UpdateAPIView): # Add generics.UpdateAPIView
+class ProviderProfileView(generics.RetrieveAPIView, generics.UpdateAPIView):
     serializer_class = api_serializers.ProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -304,7 +296,7 @@ class ContactRepView(generics.CreateAPIView):
     serializer_class = api_serializers.ContactRepSerializer
 
     def create(self, request, *args, **kwargs):
-        if getattr(self, 'swagger_fake_view', False):  # Prevent drf_yasg crash
+        if getattr(self, 'swagger_fake_view', False):
             return Response(status=status.HTTP_200_OK)
 
         user = request.user
@@ -316,7 +308,6 @@ class ContactRepView(generics.CreateAPIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Extract data
         sales_rep = profile.sales_rep
         rep_email = sales_rep.email
         rep_name = sales_rep.name
@@ -334,7 +325,6 @@ class ContactRepView(generics.CreateAPIView):
 
         subject = f"New Message from Provider: {sender_name}"
 
-        # Render HTML email template
         html_message = render_to_string('provider_auth/provider_inquiry.html', {
             'rep_name': rep_name,
             'sender_name': sender_name,
@@ -355,7 +345,7 @@ class ContactRepView(generics.CreateAPIView):
         try:
             send_mail(
                 subject=subject,
-                message=message_body,  # plain-text fallback
+                message=message_body,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=recipient_list,
                 html_message=html_message,
@@ -389,7 +379,6 @@ class ResetPasswordView(generics.GenericAPIView):
 
         password = serializer.validated_data['password']
 
-        # Validate password strength
         user = reset_token.user
         try:
             validate_password(password, user=user)
@@ -419,17 +408,14 @@ class RequestPasswordResetView(generics.GenericAPIView):
 
         response_message = {'message': 'If the email is registered, a reset link has been sent.'}
 
-        # Send email password reset if user exists
         if 'user' in locals():
             token = api_models.PasswordResetToken.objects.create(user=user)
-            # Replaced LOCAL_HOST with BASE_CLIENT_URL
             reset_link = f"{BASE_CLIENT_URL}/#/reset-password/{token.token}/"
 
             html_message = render_to_string('provider_auth/passwordresetemail.html',
                                             {'reset_link': reset_link,
                                              'user': user,
                                              'year': datetime.now().year})
-            # Send email with reset link
             send_mail(
                 subject='Password Reset Request',
                 message=f'Click the link to reset your password: {reset_link}',
@@ -475,7 +461,7 @@ class PublicContactView(generics.CreateAPIView):
         try:
             send_mail(
                 subject=subject,
-                message=f"Name: {data['name']}\Facility: {data['facility']}\nEmail: {data['email']}\nPhone: {data['phone']}\nCity: {data['city']}, {data['state']} {data['zip']}\n\nQuestion:\n{data['question']}",
+                message=f"Name: {data['name']}\nFacility: {data['facility']}\nEmail: {data['email']}\nPhone: {data['phone']}\nCity: {data['city']}, {data['state']} {data['zip']}\n\nQuestion:\n{data['question']}",
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=recipient_list,
                 html_message=html_message,
