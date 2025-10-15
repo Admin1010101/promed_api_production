@@ -7,21 +7,23 @@ from django.core.exceptions import ValidationError
 
 #Auth Serializers
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
-    # Explicitly tell the serializer to use 'email' field
+    # CRITICAL: Define username_field to ensure Simple JWT uses 'email'
     username_field = 'email'
-    # Add email field explicitly
+    
+    # Explicity define 'email' and 'password' fields (optional but good for clarity)
     email = serializers.EmailField(required=True)
     password = serializers.CharField(required=True, write_only=True)
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Remove the default 'username' field and ensure 'email' is used
+        # CRITICAL: Remove default 'username' field which TokenObtainPairSerializer adds
         if 'username' in self.fields:
             self.fields.pop('username')
-    
+
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
+        # Add custom claims
         token['full_name'] = user.full_name
         token['email'] = user.email
         token['username'] = user.username
@@ -31,32 +33,19 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
     def validate(self, attrs):
-        # Get email and password from attrs
-        email = attrs.get('email')
-        password = attrs.get('password')
-        
-        if not email or not password:
-            raise serializers.ValidationError({
-                "detail": "Email and password are required."
-            })
-        
-        # Manually authenticate the user
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-        
+        # 1. Run the base Simple JWT validation first.
+        # This handles: email/password check, user.is_active=True check, and token generation.
+        # If authentication fails, this will raise the default Simple JWT error.
         try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
+            data = super().validate(attrs)
+        except serializers.ValidationError as e:
+            # Re-raise the error, or customize the message if needed
             raise serializers.ValidationError({
                 "detail": "No active account found with the given credentials."
             })
-        
-        # Check password
-        if not user.check_password(password):
-            raise serializers.ValidationError({
-                "detail": "No active account found with the given credentials."
-            })
-        
+        # The authenticated user is now available on self.user
+        user = self.user
+        # 2. Perform custom authorization checks
         # Check if user is verified
         if not user.is_verified:
             raise serializers.ValidationError({
@@ -69,16 +58,8 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
                 "detail": "Your account is pending administrator approval. We will contact you once it is active."
             })
         
-        # Generate tokens
-        refresh = self.get_token(user)
-        
-        # Store user for later use in the view
-        self.user = user
-        
-        return {
-            'refresh': refresh,
-            'access': refresh.access_token,
-        }
+        # If all custom checks pass, return the validated data (which contains tokens)
+        return data
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)
