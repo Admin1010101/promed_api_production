@@ -217,13 +217,13 @@ JAZZMIN_SETTINGS = {
     "site_title": "Library Admin",
 
     # Title on the login screen (19 chars max) (defaults to current_admin_site.site_header if absent or None)
-    "site_header": "Library",
+    "site_header": "",
 
     # Title on the brand (19 chars max) (defaults to current_admin_site.site_header if absent or None)
-    "site_brand": "Library",
+    "site_brand": "Promed Health Plus",
 
     # Logo to use for your site, must be present in static files, used for brand on top left
-    "site_logo": "books/img/logo.png",
+    "site_logo": "static/imagees/logo.png",
 
     # Logo to use for your site, must be present in static files, used for login form logo (defaults to site_logo)
     "login_logo": None,
@@ -238,10 +238,10 @@ JAZZMIN_SETTINGS = {
     "site_icon": None,
 
     # Welcome text on the login screen
-    "welcome_sign": "Welcome to the library",
+    "welcome_sign": "Improving Patient Outcomes with Proven Wound Care Solutions",
 
     # Copyright on the footer
-    "copyright": "Acme Library Ltd",
+    "copyright": "Promed Health Plus",
 
     # List of model admins to search from the search bar, search bar omitted if excluded
     # If you want to use a single search field you dont need to use a list, you can use a simple string 
@@ -255,20 +255,20 @@ JAZZMIN_SETTINGS = {
     ############
 
     # Links to put along the top menu
-    "topmenu_links": [
+    # "topmenu_links": [
 
-        # Url that gets reversed (Permissions can be added)
-        {"name": "Home",  "url": "admin:index", "permissions": ["auth.view_user"]},
+    #     # Url that gets reversed (Permissions can be added)
+    #     {"name": "Home",  "url": "admin:index", "permissions": ["auth.view_user"]},
 
-        # external url that opens in a new window (Permissions can be added)
-        {"name": "Support", "url": "https://github.com/farridav/django-jazzmin/issues", "new_window": True},
+    #     # external url that opens in a new window (Permissions can be added)
+    #     {"name": "Support", "url": "https://github.com/farridav/django-jazzmin/issues", "new_window": True},
 
-        # model admin to link to (Permissions checked against model)
-        {"model": "auth.User"},
+    #     # model admin to link to (Permissions checked against model)
+    #     {"model": "auth.User"},
 
-        # App with dropdown menu to all its models pages (Permissions checked against models)
-        {"app": "books"},
-    ],
+    #     # App with dropdown menu to all its models pages (Permissions checked against models)
+    #     {"app": "books"},
+    # ],
 
     #############
     # User Menu #
