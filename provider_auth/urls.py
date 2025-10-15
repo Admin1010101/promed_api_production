@@ -12,7 +12,7 @@ urlpatterns = [
     path('provider/profile', api_views.ProviderProfileView.as_view(), name='provider-profile'),
     path('provider/contact-rep', api_views.ContactRepView.as_view(), name='contact-rep'),
     path('contact-us', api_views.PublicContactView.as_view(), name='public-contact-us'),
-    path('provider/verify-email/<uuid:token>', api_views.VerifyEmailView.as_view(), name='verify-email'),
+    path('provider/verify-email/<uuid:token>/', api_views.VerifyEmailView.as_view(), name='verify-email'),
     path('provider/reset-password/<uuid:token>', api_views.ResetPasswordView.as_view(), name='reset-password'),
     path('provider/request-password-reset', api_views.RequestPasswordResetView.as_view(), name='request-password-reset'), 
 ]
