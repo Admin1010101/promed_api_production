@@ -21,7 +21,7 @@ sentry_sdk.init(
 )
 
 TESTING = True
-APPEND_SLASH = False  # Changed to False for production consistency
+APPEND_SLASH = True  # Changed to False for production consistency
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
