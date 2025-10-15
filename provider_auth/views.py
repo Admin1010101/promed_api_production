@@ -44,20 +44,15 @@ class MyTokenObtainPairView(TokenObtainPairView):
         
         serializer = self.get_serializer(data=request.data)
         
-        try:
-            serializer.is_valid(raise_exception=True)
-        except Exception as e:
-            logger.error(f"Serializer validation failed: {str(e)}")
-            logger.error(f"Serializer errors: {serializer.errors if hasattr(serializer, 'errors') else 'No errors attr'}")
-            
-            # Return a more detailed error response
-            error_detail = serializer.errors if hasattr(serializer, 'errors') else {'detail': str(e)}
-            return Response(
-                error_detail,
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # --- FIX: Simplify validation to let DRF handle the exception ---
+        # If validation fails, DRF's exception handler will automatically return a 400
+        # with the correct serializer.errors.
+        serializer.is_valid(raise_exception=True)
+        # -----------------------------------------------------------------
         
         user = serializer.user
+        
+        # The rest of your logic remains the same
         
         # Generate tokens
         refresh = serializer.validated_data['refresh']
@@ -75,7 +70,10 @@ class MyTokenObtainPairView(TokenObtainPairView):
             session_id=session_id
         )
         
+        # ... (Twilio and Email logic for MFA continues here) ...
+        
         if method == 'sms' and user.phone_number:
+            # ... (Twilio code) ...
             try:
                 account_sid = os.getenv('ACCOUNT_SID')
                 auth_token = os.getenv('AUTH_TOKEN')
@@ -89,9 +87,9 @@ class MyTokenObtainPairView(TokenObtainPairView):
                 )
             except Exception as e:
                 logger.error(f"SMS sending failed: {str(e)}")
-                # Continue anyway, user can request resend
         
         if method == 'email':
+            # ... (Email code) ...
             try:
                 send_mail(
                     subject='Login Verification Code',
@@ -101,7 +99,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
                 )
             except Exception as e:
                 logger.error(f"Email sending failed: {str(e)}")
-        
+
         request.session['mfa'] = False
         
         user_data = UserSerializer(user).data
