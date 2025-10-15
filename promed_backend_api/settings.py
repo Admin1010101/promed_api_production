@@ -223,7 +223,7 @@ JAZZMIN_SETTINGS = {
     "site_brand": "Promed Health Plus",
 
     # Logo to use for your site, must be present in static files, used for brand on top left
-    "site_logo": "/imagees/logo.png",
+    "site_logo": "/images/logo.png",
 
     # Logo to use for your site, must be present in static files, used for login form logo (defaults to site_logo)
     "login_logo": None,
@@ -249,20 +249,17 @@ JAZZMIN_SETTINGS = {
 
     "usermenu_links": [
         {"name": "Support", "url": "https://github.com/farridav/django-jazzmin/issues", "new_window": True},
+        
         {"model": "auth.user"}
     ],
 
     "show_sidebar": True,
-
     # Whether to aut expand the menu
     "navigation_expanded": True,
-
     # Hide these apps when generating side menu e.g (auth)
     "hide_apps": [],
-
     # Hide these models when generating side menu (e.g auth.user)
     "hide_models": [],
-
     # List of apps (and/or models) to base side menu ordering off of (does not need to contain all apps/models)
     "order_with_respect_to": ["auth", "books", "books.author", "books.book"],
 
@@ -299,21 +296,19 @@ JAZZMIN_UI_TWEAKS = {
     # Set the default theme for light mode
     "theme": "flatly", 
 
-    # Set a separate theme to use when the user's device is in dark mode
-    # If this is omitted, only the 'theme' above will be used.
     "dark_mode_theme": "darkly", 
-
     # Other tweaks (optional)
     "navbar_small_text": False,
     "footer_small_text": True,
     "body_small_text": False,
     "brand_small_text": False,
-    "brand_colour": "navbar-success", # The color of the brand/logo area
-    "accent": "accent-teal",         # The color used for links/buttons
-    "navbar": "navbar-dark",         # The style of the top navigation bar
+    "brand_colour": "navbar-success",
+    "accent": "accent-teal",        
     "navbar_fixed": True,
     "footer_fixed": False,
 }
+
+'https://promedheatlhdatastorage.blob.core.windows.net/static/images/logo.png'
 
 
 
