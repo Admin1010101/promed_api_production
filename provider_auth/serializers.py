@@ -7,10 +7,8 @@ from django.core.exceptions import ValidationError
 
 #Auth Serializers
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
-    # CRITICAL: Define username_field to ensure Simple JWT uses 'email'
     username_field = 'email'
     
-    # Explicity define 'email' and 'password' fields (optional but good for clarity)
     email = serializers.EmailField(required=True)
     password = serializers.CharField(required=True, write_only=True)
 
@@ -33,20 +31,15 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
     def validate(self, attrs):
-        # 1. Run the base Simple JWT validation first.
-        # This handles: email/password check, user.is_active=True check, and token generation.
-        # If authentication fails, this will raise the default Simple JWT error.
         try:
             data = super().validate(attrs)
         except serializers.ValidationError as e:
-            # Re-raise the error, or customize the message if needed
             raise serializers.ValidationError({
                 "detail": "No active account found with the given credentials."
             })
-        # The authenticated user is now available on self.user
+            
         user = self.user
-        # 2. Perform custom authorization checks
-        # Check if user is verified
+
         if not user.is_verified:
             raise serializers.ValidationError({
                 "detail": "Email not verified. Please check your inbox for a verification link."
@@ -63,7 +56,6 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)
-    # New fields to match the updated User model
     country_code = serializers.CharField(required=True)
     city = serializers.CharField(required=False)
     state = serializers.CharField(required=False)
