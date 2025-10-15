@@ -52,7 +52,7 @@ SESSION_COOKIE_HTTPONLY = True
 # CLIENT URL CONFIGURATION
 # ============================================================
 
-BASE_CLIENT_URL = 'https://app-promed-frontend-prod-dev-chfcguavbacqfybc.westus2-01.azurewebsites.net'
+BASE_CLIENT_URL = 'https://promedhealthplus.com'
 LOCAL_CLIENT_URL = 'http://localhost:3000'
 
 # ============================================================
