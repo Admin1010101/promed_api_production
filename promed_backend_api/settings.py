@@ -26,8 +26,7 @@ APPEND_SLASH = False
 # ============================================================
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
-# FIX: This was inverted - it was always setting DEBUG to True!
-DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() in ('true', '1', 'yes')
+DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
 
 # ============================================================
 # AZURE PROXY/SECURITY CONFIGURATION
@@ -51,7 +50,6 @@ LOCAL_CLIENT_URL = 'http://localhost:3000'
 # ALLOWED HOSTS
 # ============================================================
 AZURE_APP_NAME = 'app-promed-backend-prod-dev'
-AZURE_FRONTDOOR_HOSTNAME = 'promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net'
 
 ALLOWED_HOSTS = [
     f'{AZURE_APP_NAME}.azurewebsites.net',
@@ -64,20 +62,18 @@ ALLOWED_HOSTS = [
     'promedhealthplus.com',
     '*.promedhealthplus.com',   
     'app-promed-frontend-prod-dev-chfcguavbacqfybc.westus2-01.azurewebsites.net',
-    AZURE_FRONTDOOR_HOSTNAME,  # Added explicitly
+    'promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net',
     '127.0.0.1',
     '[::1]',
 ]
 if os.getenv('WEBSITE_HOSTNAME'):
     ALLOWED_HOSTS.append(os.getenv('WEBSITE_HOSTNAME'))
-
 # ============================================================
 # CSRF TRUSTED ORIGINS
 # ============================================================
 CSRF_TRUSTED_ORIGINS = [
     "https://*.azurewebsites.net",
     "https://*.azurefd.net",
-    f"https://{AZURE_FRONTDOOR_HOSTNAME}",
     "https://promedhealthplus.com",
     "https://*.promedhealthplus.com",
     "http://localhost:3000"
@@ -121,12 +117,10 @@ DJANGO_APPS = [
 ]
 
 INSTALLED_APPS = THIRD_PARTY_APPS + DJANGO_APPS + USER_APPS
-
 # ============================================================
 # CORS CONFIGURATION
 # ============================================================
 CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_CREDENTIALS = True
 
 # ============================================================
 # MIDDLEWARE
@@ -142,7 +136,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django.middleware.locale.LocaleMiddleware',
+    'django.middleware.locale.LocaleMiddleware',  
 ]
 
 # ============================================================
@@ -195,23 +189,8 @@ DATABASES = {
 }
 
 # ============================================================
-# REST FRAMEWORK CONFIGURATION
-# ============================================================
-REST_FRAMEWORK = {
-    'DEFAULT_RENDERER_CLASSES': [
-        'rest_framework.renderers.JSONRenderer',
-    ],
-    'DEFAULT_PARSER_CLASSES': [
-        'rest_framework.parsers.JSONParser',
-        'rest_framework.parsers.FormParser',
-        'rest_framework.parsers.MultiPartParser',
-    ],
-    'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
-}
-
-# ============================================================
-# PASSWORD VALIDATION, INTERNATIONALIZATION, AUTH, JWT, JAZZMIN, EMAIL (omitted for brevity)
-# ... [Remaining settings blocks: AUTH_PASSWORD_VALIDATORS, LANGUAGE_CODE, AUTH_USER_MODEL, SIMPLE_JWT, JAZZMIN_SETTINGS, JAZZMIN_UI_TWEAKS, EMAIL CONFIGURATION]
+# PASSWORD VALIDATION, INTERNATIONALIZATION, REST FRAMEWORK, AUTH, JWT, JAZZMIN, EMAIL (omitted for brevity)
+# ... [Remaining settings blocks: AUTH_PASSWORD_VALIDATORS, LANGUAGE_CODE, REST_FRAMEWORK, AUTH_USER_MODEL, SIMPLE_JWT, JAZZMIN_SETTINGS, JAZZMIN_UI_TWEAKS, EMAIL CONFIGURATION]
 # ============================================================
 
 EMAIL_BACKEND = 'anymail.backends.sendgrid.EmailBackend'
@@ -228,7 +207,7 @@ DEFAULT_FROM_EMAIL = 'william.dev@promedhealthplus.com'
 # ============================================================
 AZURE_ACCOUNT_NAME = os.getenv('AZURE_ACCOUNT_NAME')
 AZURE_ACCOUNT_KEY = os.getenv('AZURE_ACCOUNT_KEY')
-AZURE_FRONTDOOR_ENDPOINT = AZURE_FRONTDOOR_HOSTNAME
+AZURE_FRONTDOOR_ENDPOINT = 'promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net'
 AZURE_CUSTOM_DOMAIN = f'{AZURE_ACCOUNT_NAME}.blob.core.windows.net' 
 AZURE_STATIC_CONTAINER = 'static'
 AZURE_MEDIA_CONTAINER = 'media'
@@ -279,22 +258,13 @@ else:
 # ============================================================
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
-# ============================================================
-# LOGGING CONFIGURATION
-# ============================================================
+# Add this to your settings.py
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {message}',
-            'style': '{',
-        },
-    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
         },
     },
     'root': {
