@@ -2,135 +2,468 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Invoice</title>
-    <style>
-      body {
-        font-family: "Lato", Arial, sans-serif;
-        background-color: #ffffff;
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Invoice - ProMed Health Plus</title>
+    <style type="text/css">
+      * {
         margin: 0;
         padding: 0;
-        color: #374151;
+        box-sizing: border-box;
       }
 
-      .container {
-        max-width: 800px;
-        margin: 20px auto;
-        padding: 24px;
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f8f9fa;
+        padding: 40px 20px;
+        color: #1a202c;
+        line-height: 1.6;
+      }
+
+      .invoice-wrapper {
+        max-width: 850px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      /* Header Section */
+      .invoice-header {
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        color: #ffffff;
+        padding: 40px;
+        position: relative;
+      }
+
+      .header-top {
+        display: table;
+        width: 100%;
+        margin-bottom: 30px;
+      }
+
+      .company-info {
+        display: table-cell;
+        vertical-align: top;
+        width: 50%;
+      }
+
+      .company-name {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 15px;
+        letter-spacing: -0.5px;
+      }
+
+      .company-details {
+        font-size: 14px;
+        line-height: 1.8;
+        opacity: 0.95;
+      }
+
+      .invoice-badge {
+        display: table-cell;
+        vertical-align: top;
+        width: 50%;
+        text-align: right;
+      }
+
+      .invoice-label {
+        display: inline-block;
+        background-color: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        padding: 12px 24px;
+        border-radius: 50px;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+      }
+
+      .invoice-details-header {
+        background-color: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .invoice-meta {
+        display: table;
+        width: 100%;
+      }
+
+      .invoice-meta-item {
+        display: table-cell;
+        padding: 8px 0;
+        font-size: 14px;
+      }
+
+      .invoice-meta-label {
+        font-weight: 600;
+        opacity: 0.9;
+      }
+
+      .invoice-meta-value {
+        font-weight: 400;
+        opacity: 0.95;
+      }
+
+      /* Content Section */
+      .invoice-content {
+        padding: 40px;
+      }
+
+      .info-grid {
+        display: table;
+        width: 100%;
+        margin-bottom: 40px;
         border: 1px solid #e5e7eb;
         border-radius: 8px;
+        overflow: hidden;
       }
 
-      .header {
-        background-color: #10b981;
-        color: #ffffff;
-        padding: 16px 24px;
-        border-radius: 8px 8px 0 0;
-        text-align: left;
+      .info-column {
+        display: table-cell;
+        width: 50%;
+        vertical-align: top;
+        padding: 25px;
       }
 
-      .header p {
-        margin-top: 0;
-        margin-bottom: 4px;
-        font-size: 16px;
+      .info-column:first-child {
+        background-color: #f8fafc;
+        border-right: 1px solid #e5e7eb;
       }
 
-      .header h2 {
-        margin: 0;
-        font-size: 28px;
+      .info-column:last-child {
+        background-color: #ffffff;
+      }
+
+      .info-section-title {
+        font-size: 14px;
         font-weight: 700;
-        text-align: center;
+        color: #3b82f6;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 15px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #3b82f6;
       }
 
-      .content {
-        padding: 24px;
-        font-size: 16px;
-        line-height: 1;
+      .info-item {
+        margin-bottom: 12px;
+        font-size: 14px;
+        line-height: 1.6;
       }
 
-      .content p {
-        margin-top: 0;
-        margin-bottom: 5px;
-        font-size: 16px;
+      .info-label {
+        font-weight: 600;
+        color: #4b5563;
+        display: inline-block;
+        min-width: 140px;
       }
 
-      .invoice-info {
-        margin-top: 24px;
+      .info-value {
+        color: #1a202c;
       }
 
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 16px;
-      }
-
-      th,
-      td {
-        border: 1px solid #d1d5db;
-        padding: 8px;
-        text-align: left;
-      }
-
-      th {
-        background-color: #f3f4f6;
-      }
-
-      .total {
-        text-align: right;
-        margin-top: 32px;
-        font-size: 18px;
-        font-weight: bold;
-      }
-
-      .footer {
+      /* Order Details Section */
+      .order-section {
         margin-top: 40px;
+      }
+
+      .section-heading {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1a202c;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 3px solid #3b82f6;
+      }
+
+      /* Table Styles */
+      .invoice-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin-top: 20px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .invoice-table thead {
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        color: #ffffff;
+      }
+
+      .invoice-table th {
+        padding: 16px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border: none;
+      }
+
+      .invoice-table tbody tr {
+        border-bottom: 1px solid #e5e7eb;
+        transition: background-color 0.2s ease;
+      }
+
+      .invoice-table tbody tr:hover {
+        background-color: #f8fafc;
+      }
+
+      .invoice-table tbody tr:last-child {
+        border-bottom: none;
+      }
+
+      .invoice-table td {
+        padding: 16px;
+        font-size: 14px;
+        color: #4b5563;
+        border: none;
+      }
+
+      .invoice-table tbody td:first-child {
+        font-weight: 600;
+        color: #1a202c;
+      }
+
+      /* Request Date Box */
+      .request-date-box {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        border-left: 4px solid #f59e0b;
+        padding: 20px;
+        margin-top: 30px;
+        border-radius: 8px;
+        display: table;
+        width: 100%;
+      }
+
+      .request-date-icon {
+        display: table-cell;
+        width: 50px;
+        vertical-align: middle;
+        font-size: 28px;
+      }
+
+      .request-date-content {
+        display: table-cell;
+        vertical-align: middle;
+        padding-left: 15px;
+      }
+
+      .request-date-label {
+        font-weight: 700;
+        color: #92400e;
+        font-size: 15px;
+        margin-bottom: 4px;
+      }
+
+      .request-date-value {
+        color: #78350f;
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      /* Footer */
+      .invoice-footer {
+        background-color: #f8fafc;
+        padding: 30px 40px;
+        text-align: center;
+        border-top: 1px solid #e5e7eb;
+      }
+
+      .footer-info {
+        margin-bottom: 15px;
+        color: #6b7280;
+        font-size: 13px;
+        line-height: 1.8;
+      }
+
+      .footer-divider {
+        width: 60px;
+        height: 3px;
+        background: linear-gradient(90deg, #3b82f6 0%, #1e3a8a 100%);
+        margin: 20px auto;
+        border-radius: 2px;
+      }
+
+      .footer-copyright {
         font-size: 12px;
         color: #9ca3af;
-        text-align: center;
+        margin-top: 10px;
       }
 
-      .order_by{
-        margin-bottom: 5px;
+      /* Print Styles */
+      @media print {
+        body {
+          background-color: #ffffff;
+          padding: 0;
+        }
+
+        .invoice-wrapper {
+          box-shadow: none;
+          border-radius: 0;
+        }
+
+        .invoice-table tbody tr:hover {
+          background-color: transparent;
+        }
+      }
+
+      /* Mobile Responsive */
+      @media only screen and (max-width: 768px) {
+        body {
+          padding: 20px 10px;
+        }
+
+        .invoice-header {
+          padding: 25px 20px;
+        }
+
+        .header-top,
+        .company-info,
+        .invoice-badge {
+          display: block;
+          width: 100%;
+          text-align: center;
+        }
+
+        .invoice-badge {
+          margin-top: 20px;
+        }
+
+        .company-name {
+          font-size: 26px;
+        }
+
+        .invoice-content {
+          padding: 25px 20px;
+        }
+
+        .info-grid,
+        .info-column {
+          display: block;
+          width: 100%;
+        }
+
+        .info-column:first-child {
+          border-right: none;
+          border-bottom: 1px solid #e5e7eb;
+        }
+
+        .invoice-table {
+          font-size: 12px;
+        }
+
+        .invoice-table th,
+        .invoice-table td {
+          padding: 10px 8px;
+        }
+
+        .request-date-box {
+          padding: 15px;
+        }
       }
     </style>
   </head>
 
   <body>
-    <div class="container">
-      <div class="header">
-        <h2><strong>ProMed Health Plus</strong></h2>
-        <p>123 Broad Street</p>
-        <p>Philadelphia, PA 19107</p>
-        <p>(213)555 - 1212</p>
-        <p>
-          Invoice for Order - {{ order.patient.first_name }}
-          {{order.patient.last_name}} || {{ order.created_at|date:"F j, Y" }}
-        </p>
+    <div class="invoice-wrapper">
+      <!-- Header Section -->
+      <div class="invoice-header">
+        <div class="header-top">
+          <div class="company-info">
+            <div class="company-name">ProMed Health Plus</div>
+            <div class="company-details">
+              123 Broad Street<br>
+              Philadelphia, PA 19107<br>
+              📞 (213) 555-1212<br>
+              ✉️ admin@promedhealthplus.com
+            </div>
+          </div>
+          <div class="invoice-badge">
+            <div class="invoice-label">🧾 INVOICE</div>
+          </div>
+        </div>
+
+        <div class="invoice-details-header">
+          <table class="invoice-meta" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td class="invoice-meta-item" style="width: 33.33%;">
+                <div class="invoice-meta-label">Patient:</div>
+                <div class="invoice-meta-value">
+                  {{ order.patient.first_name }} {{ order.patient.last_name }}
+                </div>
+              </td>
+              <td class="invoice-meta-item" style="width: 33.33%;">
+                <div class="invoice-meta-label">Order Date:</div>
+                <div class="invoice-meta-value">
+                  {{ order.created_at|date:"F j, Y" }}
+                </div>
+              </td>
+              <td class="invoice-meta-item" style="width: 33.33%; text-align: right;">
+                <div class="invoice-meta-label">Order #:</div>
+                <div class="invoice-meta-value">
+                  {{ order.id }}
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
       </div>
-      <div class="content">
-        <p><strong>Provider Name:</strong> {{ order.provider.full_name }}</p>
-        <p>
-          <strong>Provider Email Address:</strong> {{order.provider.email }}
-        </p>
-        <p>
-          <strong>Provider Phone Number:</strong>
-          {{order.provider.phone_number}}
-        </p>
-        <p><strong>Facility Name:</strong> {{ order.facility_name }}</p>
-        <p><strong>Facility Address:</strong> {{ order.street }}</p>
-        <p>{{order.city}}, {{order.state}} {{order.zip_code}}</p>
 
-        <p>
-          <strong>Date:</strong> {{ order.created_at|date:"F j, Y, g:i a" }}
-        </p>
+      <!-- Content Section -->
+      <div class="invoice-content">
+        <!-- Provider and Facility Information Grid -->
+        <div class="info-grid">
+          <div class="info-column">
+            <div class="info-section-title">📋 Provider Information</div>
+            <div class="info-item">
+              <span class="info-label">Provider Name:</span>
+              <span class="info-value">{{ order.provider.full_name }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Email Address:</span>
+              <span class="info-value">{{ order.provider.email }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Phone Number:</span>
+              <span class="info-value">{{ order.provider.phone_number }}</span>
+            </div>
+          </div>
 
-        <div class="invoice-info">
-          <h3>Order Details</h3>
-          <table>
+          <div class="info-column">
+            <div class="info-section-title">🏥 Facility Information</div>
+            <div class="info-item">
+              <span class="info-label">Facility Name:</span>
+              <span class="info-value">{{ order.facility_name }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Address:</span>
+              <span class="info-value">{{ order.street }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">City, State ZIP:</span>
+              <span class="info-value">{{ order.city }}, {{ order.state }} {{ order.zip_code }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Order Details Section -->
+        <div class="order-section">
+          <h3 class="section-heading">📦 Order Details</h3>
+          
+          <table class="invoice-table">
             <thead>
               <tr>
-                <th>Product</th>
+                <th>Product Name</th>
                 <th>Manufacturer</th>
-                <th>Quantity</th>
+                <th style="text-align: center;">Quantity</th>
                 <th>Size</th>
               </tr>
             </thead>
@@ -139,20 +472,35 @@
               <tr>
                 <td>{{ item.product.name }}</td>
                 <td>{{ item.product.manufacturer }}</td>
-                <td>{{ item.quantity }}</td>
+                <td style="text-align: center;">{{ item.quantity }}</td>
                 <td>{{ item.variant.size }}</td>
               </tr>
               {% endfor %}
             </tbody>
           </table>
-          <p class='order_by'>
-            <strong> Provider Requested Orderby Date:</strong> {{ order.created_at|date:"F j, Y, g:i a" }}
-          </p>
+
+          <!-- Requested Order By Date -->
+          <div class="request-date-box">
+            <div class="request-date-icon">📅</div>
+            <div class="request-date-content">
+              <div class="request-date-label">Requested Order By Date:</div>
+              <div class="request-date-value">{{ order.created_at|date:"F j, Y, g:i a" }}</div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="footer">
-        <p>&copy; {{ year }} ProMed Health Plus. All rights reserved.</p>
+      <!-- Footer Section -->
+      <div class="invoice-footer">
+        <div class="footer-info">
+          <strong>Questions about this invoice?</strong><br>
+          Contact us at support@promedhealthplus.com or call (213) 555-1212
+        </div>
+        <div class="footer-divider"></div>
+        <div class="footer-copyright">
+          &copy; {{ year }} ProMed Health Plus. All rights reserved.<br>
+          This invoice was generated electronically and is valid without a signature.
+        </div>
       </div>
     </div>
   </body>

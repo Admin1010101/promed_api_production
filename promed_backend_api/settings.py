@@ -240,39 +240,53 @@ AZURE_OVERWRITE_FILES = True
 # STATIC AND MEDIA FILES CONFIGURATION
 # ============================================================
 
+# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# STATICFILES_DIRS = []
+
+# PROJECT_STATIC_DIR = os.path.join(BASE_DIR, 'static')
+# if os.path.isdir(PROJECT_STATIC_DIR):
+#     STATICFILES_DIRS.append(PROJECT_STATIC_DIR)
+
+# if DEBUG:
+#     STATIC_URL = '/static/'
+#     MEDIA_URL = '/media/'
+#     STORAGES = {
+#         "default": {
+#             "BACKEND": "django.core.files.storage.FileSystemStorage",
+#         },
+#         "staticfiles": {
+#             "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+#         },
+#     }
+# else:
+#     STATIC_URL = f'/{AZURE_STATIC_CONTAINER}/'
+#     MEDIA_URL = f'/{AZURE_MEDIA_CONTAINER}/'
+#     STORAGES = {
+#         "default": {
+#             "BACKEND": "promed_backend_api.storage_backends.AzureMediaStorage",
+#             "OPTIONS": {},
+#         },
+#         "staticfiles": {
+#             "BACKEND": "promed_backend_api.storage_backends.AzureStaticStorage",
+#             "OPTIONS": {
+#                 "cache_control": "max-age=31536000, public, immutable",
+#             },
+#         },
+#     }
+
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_DIRS = []
 
-PROJECT_STATIC_DIR = os.path.join(BASE_DIR, 'static')
-if os.path.isdir(PROJECT_STATIC_DIR):
-    STATICFILES_DIRS.append(PROJECT_STATIC_DIR)
+STORAGES = {
+    "default": {
+        "BACKEND": "promed_backend_api.storage_backends.AzureMediaStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "promed_backend_api.storage_backends.AzureStaticStorage",
+    },
+}
 
-if DEBUG:
-    STATIC_URL = '/static/'
-    MEDIA_URL = '/media/'
-    STORAGES = {
-        "default": {
-            "BACKEND": "django.core.files.storage.FileSystemStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-        },
-    }
-else:
-    STATIC_URL = f'/{AZURE_STATIC_CONTAINER}/'
-    MEDIA_URL = f'/{AZURE_MEDIA_CONTAINER}/'
-    STORAGES = {
-        "default": {
-            "BACKEND": "promed_backend_api.storage_backends.AzureMediaStorage",
-            "OPTIONS": {},
-        },
-        "staticfiles": {
-            "BACKEND": "promed_backend_api.storage_backends.AzureStaticStorage",
-            "OPTIONS": {
-                "cache_control": "max-age=31536000, public, immutable",
-            },
-        },
-    }
+STATIC_URL = f'https://{AZURE_CUSTOM_DOMAIN}/static/'
+MEDIA_URL = f'https://{AZURE_CUSTOM_DOMAIN}/media/'
 
 # ============================================================
 # SESSION CONFIGURATION

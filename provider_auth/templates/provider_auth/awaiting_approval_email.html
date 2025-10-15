@@ -3,280 +3,431 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <script
-      src="https://kit.fontawesome.com/678db39ab5.js"
-      crossorigin="anonymous"
-    ></script>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
-      rel="stylesheet"
-    />
     <title>Promed Health + | Account Pending Review</title>
     <style type="text/css">
       body,
       html {
-        font-family: "Montserrat", sans-serif;
-        background-color: #f2f4f6;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f0f2f5;
         margin: 0;
         padding: 0;
         -webkit-text-size-adjust: none;
         width: 100% !important;
       }
+
       table {
         border-collapse: collapse;
       }
+
       .wrapper {
         width: 100%;
         table-layout: fixed;
-        background-color: #f2f4f6;
+        background-color: #f0f2f5;
+        padding: 40px 0;
       }
+
       .main {
         width: 100%;
         max-width: 600px;
-        color: #44413d;
-        background-color: #fff;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        margin: 0 auto;
+        color: #2d3748;
+        background-color: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
       }
+
       .header {
-        padding: 40px 0 20px;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        padding: 40px 30px;
+        text-align: center;
       }
+
       .logo-link {
         font-weight: 700;
         text-decoration: none;
-        color: #444;
-        font-size: 24px;
-        line-height: 1;
+        color: #ffffff;
+        font-size: 28px;
+        line-height: 1.2;
+        letter-spacing: 0.5px;
+        display: inline-block;
+        margin-bottom: 15px;
       }
+
       .info-row {
         text-align: center;
-        padding-top: 10px;
+        padding: 4px 0;
       }
+
       .info-text {
-        color: #6a737d;
-        font-size: 14px;
+        color: rgba(255, 255, 255, 0.95);
+        font-size: 13px;
         line-height: 20px;
         margin: 0;
         padding: 0;
       }
+
+      .image-container {
+        text-align: center;
+        padding: 40px 30px 30px;
+        background-color: #f8f9fa;
+      }
+
+      .approval-image {
+        max-width: 320px;
+        width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+        border-radius: 12px;
+      }
+
       .content-area {
-        padding: 30px 20px;
+        padding: 40px 40px 30px;
         text-align: center;
       }
+
       .headline {
-        font-size: 28px;
+        font-size: 32px;
         font-weight: 700;
-        margin: 0 0 10px 0;
+        margin: 0 0 12px 0;
         color: #1a202c;
+        line-height: 1.2;
       }
-      .sub-headline {
+
+      .greeting {
         font-size: 18px;
-        font-weight: 500;
+        font-weight: 600;
         margin: 0 0 20px 0;
         color: #4a5568;
       }
+
       .intro-text {
         font-size: 16px;
-        line-height: 24px;
-        margin: 0 0 15px 0;
-        color: #5d6674;
+        line-height: 26px;
+        margin: 0 0 18px 0;
+        color: #4a5568;
       }
-      .action-button {
-        display: inline-block;
-        background-color: #1E90FF;
-        color: #ffffff !important;
-        padding: 15px 32px;
+
+      .highlight-box {
+        background: linear-gradient(135deg, #fff5f7 0%, #fef5f8 100%);
+        border-left: 4px solid #f5576c;
+        padding: 20px 25px;
+        margin: 25px 0;
         border-radius: 8px;
-        text-decoration: none;
+        text-align: left;
+      }
+
+      .highlight-box p {
+        margin: 0;
+        font-size: 15px;
+        color: #2d3748;
+        line-height: 24px;
+      }
+
+      .highlight-box strong {
+        color: #c53030;
+      }
+
+      .status-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+        color: #ffffff;
+        padding: 10px 20px;
+        border-radius: 50px;
         font-weight: 600;
-        font-size: 16px;
+        font-size: 14px;
+        margin: 20px 0;
         letter-spacing: 0.5px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        transition: background-color 0.3s ease;
       }
-      .action-button:hover {
-        background-color: #4169E1;
+
+      .divider {
+        border: none;
+        border-top: 1px solid #e2e8f0;
+        margin: 30px 40px;
       }
-      .socials-container {
-        padding-top: 25px;
-        padding-bottom: 25px;
+
+      .info-section {
+        background-color: #f7fafc;
+        padding: 25px 30px;
+        margin: 0 40px 30px;
+        border-radius: 8px;
+        text-align: left;
+      }
+
+      .info-section h3 {
+        color: #2d3748;
+        font-size: 18px;
+        margin: 0 0 15px 0;
+        font-weight: 600;
+      }
+
+      .info-section ul {
+        margin: 0;
+        padding-left: 20px;
+        color: #4a5568;
+        line-height: 28px;
+      }
+
+      .info-section li {
+        margin-bottom: 8px;
+      }
+
+      .social-section {
+        padding: 30px 20px;
+        text-align: center;
+        background-color: #f8f9fa;
+        border-top: 1px solid #e2e8f0;
+      }
+
+      .social-heading {
+        font-size: 16px;
+        font-weight: 600;
+        color: #2d3748;
+        margin: 0 0 20px;
+      }
+
+      .social-icons {
         text-align: center;
       }
+
       .social-icon {
-        font-size: 20px;
-        margin: 0 10px;
-        color: #1E90FF;
-        transition: color 0.3s ease;
+        display: inline-block;
+        width: 44px;
+        height: 44px;
+        line-height: 44px;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: #ffffff;
+        border-radius: 50%;
+        margin: 0 8px;
+        text-decoration: none;
+        font-size: 18px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(245, 87, 108, 0.2);
       }
-      .social-icon:hover {
-        color: #4169E1;
-      }
+
       .footer {
-        padding: 20px;
+        background-color: #2d3748;
+        padding: 30px 20px;
         text-align: center;
       }
+
       .footer-text {
-        font-size: 12px;
-        color: #93a2b1;
-        line-height: 18px;
+        font-size: 13px;
+        color: #cbd5e0;
+        line-height: 20px;
+        margin: 8px 0;
       }
-      a {
-        color: #1E90FF;
-        word-break: break-all;
+
+      .footer-links {
+        margin-top: 15px;
       }
+
+      .footer-links a {
+        color: #f093fb;
+        text-decoration: none;
+        margin: 0 10px;
+        font-size: 13px;
+      }
+
       @media only screen and (max-width: 600px) {
+        .wrapper {
+          padding: 20px 0 !important;
+        }
+
         .main {
           width: 100% !important;
           border-radius: 0 !important;
-          box-shadow: none !important;
+          margin: 0 !important;
         }
+
         .header {
-          padding-top: 20px !important;
+          padding: 30px 20px !important;
         }
-        .info-row {
-          text-align: center !important;
+
+        .logo-link {
+          font-size: 24px !important;
         }
+
         .info-text {
           font-size: 12px !important;
         }
-        .headline {
-          font-size: 22px !important;
+
+        .image-container {
+          padding: 30px 20px 20px !important;
         }
-        .sub-headline {
+
+        .approval-image {
+          max-width: 260px !important;
+        }
+
+        .headline {
+          font-size: 26px !important;
+        }
+
+        .greeting {
           font-size: 16px !important;
         }
+
         .intro-text {
-          font-size: 14px !important;
+          font-size: 15px !important;
         }
+
         .content-area {
-          padding: 20px 15px !important;
+          padding: 30px 20px 20px !important;
+        }
+
+        .highlight-box {
+          margin: 20px 20px !important;
+          padding: 15px 20px !important;
+        }
+
+        .info-section {
+          margin: 0 20px 20px !important;
+          padding: 20px !important;
+        }
+
+        .divider {
+          margin: 20px 20px !important;
+        }
+
+        .social-icon {
+          width: 40px !important;
+          height: 40px !important;
+          line-height: 40px !important;
+          font-size: 16px !important;
+          margin: 0 6px !important;
         }
       }
     </style>
   </head>
   <body>
     <center class="wrapper">
-      <table
-        class="main"
-        width="100%"
-        cellpadding="0"
-        cellspacing="0"
-        border="0"
-      >
+      <table class="main" width="100%" cellpadding="0" cellspacing="0" border="0" align="center">
+        <!-- Header Section -->
         <tr>
           <td class="header">
             <table width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
                 <td style="text-align: center">
-                  <a href="#" class="logo-link">Promed Health Plus</a>
+                  <a href="https://promedhealthplus.com" class="logo-link">⏳ Promed Health Plus</a>
                 </td>
               </tr>
               <tr>
                 <td class="info-row">
-                  <p class="info-text">
-                    <i class="fa-solid fa-location-dot"></i> 1100 Ludlow Street,
-                    Philadelphia, PA 19107
-                  </p>
+                  <p class="info-text">📍 1100 Ludlow Street, Philadelphia, PA 19107</p>
                 </td>
               </tr>
               <tr>
                 <td class="info-row">
-                  <p class="info-text">
-                    <i class="fa-solid fa-phone"></i> (267) 555 - 1212
-                  </p>
-                </td>
-              </tr>
-              <tr>
-                <td class="info-row">
-                  <p class="info-text">
-                    <i class="fa-solid fa-envelope"></i>
-                    admin@promedhealthplus.com
-                  </p>
+                  <p class="info-text">📞 (267) 555-1212 • ✉️ admin@promedhealthplus.com</p>
                 </td>
               </tr>
             </table>
           </td>
         </tr>
+
+        <!-- Image Section -->
         <tr>
-          <td style="padding-top: 20px"></td>
+          <td class="image-container">
+            <img
+              src="https://publicate.it/images/How-to-Create-HTML-Emails-in-Outlook_-Expert-Tips.webp"
+              alt="Awaiting Approval"
+              class="approval-image"
+            />
+          </td>
         </tr>
+
+        <!-- Content Section -->
+        <tr>
+          <td class="content-area">
+            <h1 class="headline">🎯 Account Pending Review</h1>
+            <p class="greeting">Hello, {{ user.full_name }}! 👋</p>
+            
+            <div class="status-badge">
+              ⏳ Under Review
+            </div>
+
+            <p class="intro-text">
+              Thank you for registering with <strong>Promed Health Plus</strong>. Great news – your email has been successfully verified! ✅
+            </p>
+            <p class="intro-text">
+              Your account is now being reviewed by our administrators. This process ensures the security and authenticity of all providers on our platform.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Highlight Box -->
         <tr>
           <td>
-            <table
-              width="100%"
-              cellpadding="0"
-              cellspacing="0"
-              border="0"
-              class="container-card"
-            >
-              <tr>
-                <td style="display: flex; justify-content: center;">
-                  <img
-                    src="https://publicate.it/images/How-to-Create-HTML-Emails-in-Outlook_-Expert-Tips.webp"
-                    alt="Awaiting Approval"
-                    width="400"
-                    style="border: 0; max-width: 100%; height: auto; display: block; border-radius: 12px;"
-                  />
-                </td>
-              </tr>
-              <tr>
-                <td class="content-area">
-                  <h1 class="headline">Account Pending Review</h1>
-                  <p class="intro-text">Hello, **{{ user.full_name }}** 👋</p>
-                  <p class="intro-text">
-                    Thank you for registering with **Promed Health Plus**. Your email has been successfully verified.
-                  </p>
-                  <p class="intro-text">
-                    Your account is now being reviewed by our administrators. This process ensures the security and authenticity of all providers on our platform.
-                  </p>
-                  <p class="intro-text">
-                    **You will not be able to log in until your account has been approved.**
-                  </p>
-                  <p class="intro-text">
-                    A member of our team will contact you shortly to complete the verification process. We appreciate your patience.
-                  </p>
-                  <p class="intro-text">
-                    If you have any questions in the meantime, please do not hesitate to reach out to our support team.
-                  </p>
-                  <p class="intro-text" style="font-weight: bold; margin-bottom: 0;">Thanks for joining us!</p>
-                </td>
-              </tr>
-            </table>
+            <div class="highlight-box">
+              <p>
+                <strong>⚠️ Important:</strong> You will not be able to log in until your account has been approved by our team. We appreciate your patience during this process.
+              </p>
+            </div>
           </td>
         </tr>
+
+        <!-- Info Section -->
         <tr>
-          <td style="padding-bottom: 20px"></td>
+          <td>
+            <div class="info-section">
+              <h3>📋 What Happens Next?</h3>
+              <ul>
+                <li>Our team will review your application within 24-48 hours</li>
+                <li>You'll receive an email notification once approved</li>
+                <li>After approval, you can access all platform features</li>
+                <li>A team member may contact you if additional info is needed</li>
+              </ul>
+            </div>
+          </td>
         </tr>
+
+        <!-- Additional Content -->
         <tr>
-          <td style="text-align: center">
-            <h4 style="font-size: 14px; font-weight: 500; color: #4a5568; margin: 0 0 15px;">Find Us On</h4>
-            <table
-              width="100%"
-              cellpadding="0"
-              cellspacing="0"
-              border="0"
-              class="socials-container"
-            >
-              <tr>
-                <td style="text-align: center">
-                  <a href="#"><i class="fa-brands fa-facebook social-icon"></i></a>
-                  <a href="#"><i class="fa-brands fa-linkedin-in social-icon"></i></a>
-                  <a href="#"><i class="fa-brands fa-x-twitter social-icon"></i></a>
-                  <a href="#"><i class="fa-brands fa-square-instagram social-icon"></i></a>
-                </td>
-              </tr>
-            </table>
+          <td class="content-area" style="padding-top: 0;">
+            <p class="intro-text">
+              If you have any questions in the meantime, please don't hesitate to reach out to our support team at <a href="mailto:support@promedhealthplus.com">support@promedhealthplus.com</a>.
+            </p>
+            <p class="intro-text" style="font-weight: 600; font-size: 17px; color: #2d3748; margin-top: 25px;">
+              Thanks for joining us! We're excited to have you on board. 🚀
+            </p>
+          </td>
+        </tr>
+
+        <!-- Social Media Section -->
+        <tr>
+          <td class="social-section">
+            <h4 class="social-heading">Connect With Us</h4>
+            <div class="social-icons">
+              <a href="https://facebook.com" class="social-icon">f</a>
+              <a href="https://linkedin.com" class="social-icon">in</a>
+              <a href="https://twitter.com" class="social-icon">𝕏</a>
+              <a href="https://instagram.com" class="social-icon">📷</a>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td class="footer">
             <p class="footer-text">
-              &copy; <span id="year"></span> Promed Health Plus. All Rights Reserved.
+              <strong>Need Help?</strong> Our support team is here for you.
+            </p>
+            <p class="footer-text">
+              Contact us at <a href="mailto:support@promedhealthplus.com" style="color: #f093fb;">support@promedhealthplus.com</a>
+            </p>
+            <div class="footer-links">
+              <a href="https://promedhealthplus.com/privacy">Privacy Policy</a> •
+              <a href="https://promedhealthplus.com/terms">Terms of Service</a> •
+              <a href="https://promedhealthplus.com/faq">FAQ</a>
+            </div>
+            <p class="footer-text" style="margin-top: 20px;">
+              &copy; {{ current_year }} Promed Health Plus. All Rights Reserved.
             </p>
           </td>
         </tr>
       </table>
     </center>
-    <script>
-      document.getElementById('year').textContent = new Date().getFullYear();
-    </script>
   </body>
 </html>

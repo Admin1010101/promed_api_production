@@ -2,109 +2,551 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Welcome to ProMed Health Plus</title>
-    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet" />
-    <style>
-      body {
-        font-family: "Lato", Arial, sans-serif;
-        background-color: #f4f4f4;
+    <style type="text/css">
+      body,
+      html {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f0f2f5;
         margin: 0;
         padding: 0;
-        color: #374151;
+        -webkit-text-size-adjust: none;
+        width: 100% !important;
       }
 
-      .container {
+      table {
+        border-collapse: collapse;
+      }
+
+      .wrapper {
+        width: 100%;
+        table-layout: fixed;
+        background-color: #f0f2f5;
+        padding: 40px 0;
+      }
+
+      .main {
+        width: 100%;
         max-width: 600px;
-        margin: 20px auto;
+        margin: 0 auto;
+        color: #2d3748;
         background-color: #ffffff;
-        padding: 24px;
-        border-radius: 8px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
       }
 
       .header {
-        background-color: #10b981;
-        color: #ffffff;
-        padding: 16px 24px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        padding: 50px 30px;
         text-align: center;
-        border-radius: 8px 8px 0 0;
       }
 
-      .header h2 {
-        margin: 0;
-        font-size: 24px;
+      .logo-link {
         font-weight: 700;
-      }
-
-      .content {
-        padding: 24px;
-        text-align: center;
-        font-size: 16px;
-        line-height: 1.5;
-      }
-
-      .content p {
-        margin-bottom: 16px;
-      }
-
-      .button {
-        display: inline-block;
-        background-color: #10b981;
-        color: #ffffff !important;
-        padding: 12px 24px;
         text-decoration: none;
-        border-radius: 6px;
-        font-weight: 700;
+        color: #ffffff;
+        font-size: 28px;
+        line-height: 1.2;
+        letter-spacing: 0.5px;
+        display: inline-block;
+        margin-bottom: 15px;
+      }
+
+      .header-subtext {
+        color: rgba(255, 255, 255, 0.95);
         font-size: 16px;
+        margin: 10px 0 0 0;
+        font-weight: 500;
+      }
+
+      .info-row {
+        text-align: center;
+        padding: 4px 0;
+      }
+
+      .info-text {
+        color: rgba(255, 255, 255, 0.95);
+        font-size: 13px;
+        line-height: 20px;
+        margin: 0;
+        padding: 0;
+      }
+
+      .image-container {
+        text-align: center;
+        padding: 40px 30px 30px;
+        background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%);
+      }
+
+      .welcome-image {
+        max-width: 300px;
+        width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+      }
+
+      .content-area {
+        padding: 40px 40px 30px;
+        text-align: center;
+      }
+
+      .headline {
+        font-size: 32px;
+        font-weight: 700;
+        margin: 0 0 12px 0;
+        color: #1a202c;
+        line-height: 1.2;
+      }
+
+      .greeting {
+        font-size: 20px;
+        font-weight: 600;
+        margin: 0 0 20px 0;
+        color: #059669;
+      }
+
+      .intro-text {
+        font-size: 16px;
+        line-height: 26px;
+        margin: 0 0 18px 0;
+        color: #4a5568;
+      }
+
+      .success-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: #ffffff;
+        padding: 10px 20px;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 14px;
+        margin: 20px 0;
+        letter-spacing: 0.5px;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      }
+
+      .button-container {
+        text-align: center;
+        padding: 30px 0;
+      }
+
+      .action-button {
+        display: inline-block;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: #ffffff !important;
+        padding: 16px 48px;
+        border-radius: 50px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 16px;
+        letter-spacing: 0.5px;
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+        transition: all 0.3s ease;
+      }
+
+      .divider {
+        border: none;
+        border-top: 1px solid #e2e8f0;
+        margin: 30px 40px;
+      }
+
+      .features-section {
+        background-color: #f7fafc;
+        padding: 30px 40px;
+        margin: 0 0 0 0;
+        text-align: left;
+      }
+
+      .features-heading {
+        color: #2d3748;
+        font-size: 20px;
+        margin: 0 0 20px 0;
+        font-weight: 700;
+        text-align: center;
+      }
+
+      .feature-grid {
+        display: table;
+        width: 100%;
+        margin-top: 20px;
+      }
+
+      .feature-row {
+        display: table-row;
+      }
+
+      .feature-item {
+        display: table-cell;
+        padding: 15px 10px;
+        vertical-align: top;
+        width: 50%;
+      }
+
+      .feature-icon {
+        display: inline-block;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: #ffffff;
+        width: 40px;
+        height: 40px;
+        line-height: 40px;
+        text-align: center;
+        border-radius: 50%;
+        font-size: 18px;
+        margin-bottom: 10px;
+      }
+
+      .feature-title {
+        font-weight: 600;
+        color: #2d3748;
+        font-size: 15px;
+        margin: 8px 0 5px 0;
+      }
+
+      .feature-desc {
+        font-size: 14px;
+        color: #718096;
+        line-height: 20px;
+        margin: 0;
+      }
+
+      .support-box {
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+        border-left: 4px solid #10b981;
+        padding: 20px 25px;
+        margin: 30px 40px;
+        border-radius: 8px;
+        text-align: center;
+      }
+
+      .support-box p {
+        margin: 0 0 10px 0;
+        font-size: 15px;
+        color: #065f46;
+        line-height: 24px;
+      }
+
+      .support-box a {
+        color: #059669;
+        font-weight: 600;
+        text-decoration: none;
+      }
+
+      .social-section {
+        padding: 30px 20px;
+        text-align: center;
+        background-color: #f8f9fa;
+        border-top: 1px solid #e2e8f0;
+      }
+
+      .social-heading {
+        font-size: 16px;
+        font-weight: 600;
+        color: #2d3748;
+        margin: 0 0 20px;
+      }
+
+      .social-icons {
+        text-align: center;
+      }
+
+      .social-icon {
+        display: inline-block;
+        width: 44px;
+        height: 44px;
+        line-height: 44px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: #ffffff;
+        border-radius: 50%;
+        margin: 0 8px;
+        text-decoration: none;
+        font-size: 18px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
       }
 
       .footer {
-        margin-top: 24px;
-        font-size: 12px;
-        color: #9ca3af;
+        background-color: #2d3748;
+        padding: 30px 20px;
         text-align: center;
       }
 
-      a {
+      .footer-text {
+        font-size: 13px;
+        color: #cbd5e0;
+        line-height: 20px;
+        margin: 8px 0;
+      }
+
+      .footer-links {
+        margin-top: 15px;
+      }
+
+      .footer-links a {
         color: #10b981;
-        word-break: break-word;
+        text-decoration: none;
+        margin: 0 10px;
+        font-size: 13px;
+      }
+
+      @media only screen and (max-width: 600px) {
+        .wrapper {
+          padding: 20px 0 !important;
+        }
+
+        .main {
+          width: 100% !important;
+          border-radius: 0 !important;
+          margin: 0 !important;
+        }
+
+        .header {
+          padding: 35px 20px !important;
+        }
+
+        .logo-link {
+          font-size: 24px !important;
+        }
+
+        .header-subtext {
+          font-size: 14px !important;
+        }
+
+        .info-text {
+          font-size: 12px !important;
+        }
+
+        .image-container {
+          padding: 30px 20px 20px !important;
+        }
+
+        .welcome-image {
+          max-width: 240px !important;
+        }
+
+        .headline {
+          font-size: 26px !important;
+        }
+
+        .greeting {
+          font-size: 18px !important;
+        }
+
+        .intro-text {
+          font-size: 15px !important;
+        }
+
+        .content-area {
+          padding: 30px 20px 20px !important;
+        }
+
+        .features-section {
+          padding: 25px 20px !important;
+        }
+
+        .feature-item {
+          display: block !important;
+          width: 100% !important;
+          padding: 10px 0 !important;
+        }
+
+        .support-box {
+          margin: 25px 20px !important;
+          padding: 15px 20px !important;
+        }
+
+        .action-button {
+          padding: 14px 36px !important;
+          font-size: 15px !important;
+        }
+
+        .divider {
+          margin: 20px 20px !important;
+        }
+
+        .social-icon {
+          width: 40px !important;
+          height: 40px !important;
+          line-height: 40px !important;
+          font-size: 16px !important;
+          margin: 0 6px !important;
+        }
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <div class="header">
-        <h2>Welcome to ProMed Health Plus!</h2>
-      </div>
-      <div class="content">
-        <p>Hello, {{ user.full_name }} 👋</p>
+    <center class="wrapper">
+      <table class="main" width="100%" cellpadding="0" cellspacing="0" border="0" align="center">
+        <!-- Header Section -->
+        <tr>
+          <td class="header">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="text-align: center">
+                  <a href="https://promedhealthplus.com" class="logo-link">🎉 Promed Health Plus</a>
+                  <p class="header-subtext">Your Healthcare Partner</p>
+                </td>
+              </tr>
+              <tr>
+                <td class="info-row" style="padding-top: 15px;">
+                  <p class="info-text">📍 1100 Ludlow Street, Philadelphia, PA 19107</p>
+                </td>
+              </tr>
+              <tr>
+                <td class="info-row">
+                  <p class="info-text">📞 (267) 555-1212 • ✉️ admin@promedhealthplus.com</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
 
-        <p>
-          We're thrilled to welcome you to <strong>ProMed Health Plus</strong>.
-          Your account has been successfully created and your email address verified.
-        </p>
+        <!-- Image Section -->
+        <tr>
+          <td class="image-container">
+            <div style="font-size: 80px; margin: 0;">🎊</div>
+          </td>
+        </tr>
 
-        <p>
-          You can now log in to your dashboard, manage your profile, and begin addding patients and creating orders.
-        </p>
+        <!-- Content Section -->
+        <tr>
+          <td class="content-area">
+            <h1 class="headline">Welcome Aboard!</h1>
+            <p class="greeting">Hello, {{ user.full_name }}! 👋</p>
+            
+            <div class="success-badge">
+              ✅ Account Activated
+            </div>
 
-        <p style="margin: 32px 0;">
-          <a href="https://promedhealthplus.com/provider-login" class="button">
-            Go to Provider Portal
-          </a>
-        </p>
+            <p class="intro-text">
+              We're <strong>thrilled</strong> to welcome you to <strong>ProMed Health Plus</strong>!
+            </p>
+            <p class="intro-text">
+              Your account has been successfully created, verified, and <strong>approved</strong>. You're all set to get started! 🚀
+            </p>
+          </td>
+        </tr>
 
-        <p>If you have any questions, feel free to reach out to your sales representative or contact support.</p>
+        <!-- CTA Button -->
+        <tr>
+          <td class="button-container">
+            <a href="https://promedhealthplus.com/provider-login" class="action-button">
+              Go to Provider Portal →
+            </a>
+          </td>
+        </tr>
 
-        <p>Thanks for joining us — we look forward to working with you!</p>
-      </div>
-      <div class="footer">
-        <p>&copy; <span id="year"></span> ProMed Health Plus. All rights reserved.</p>
-      </div>
-    </div>
+        <!-- Divider -->
+        <tr>
+          <td>
+            <hr class="divider" />
+          </td>
+        </tr>
 
-    <script>
-      document.getElementById("year").textContent = new Date().getFullYear();
-    </script>
+        <!-- Features Section -->
+        <tr>
+          <td class="features-section">
+            <h3 class="features-heading">🌟 What You Can Do Now</h3>
+            
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 20px;">
+              <tr>
+                <td style="padding: 15px 10px; vertical-align: top; width: 50%;">
+                  <div style="text-align: center;">
+                    <div class="feature-icon">👤</div>
+                    <p class="feature-title">Manage Your Profile</p>
+                    <p class="feature-desc">Update your information and preferences</p>
+                  </div>
+                </td>
+                <td style="padding: 15px 10px; vertical-align: top; width: 50%;">
+                  <div style="text-align: center;">
+                    <div class="feature-icon">👥</div>
+                    <p class="feature-title">Add Patients</p>
+                    <p class="feature-desc">Build your patient database</p>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 15px 10px; vertical-align: top;">
+                  <div style="text-align: center;">
+                    <div class="feature-icon">📋</div>
+                    <p class="feature-title">Create Orders</p>
+                    <p class="feature-desc">Place and track patient orders</p>
+                  </div>
+                </td>
+                <td style="padding: 15px 10px; vertical-align: top;">
+                  <div style="text-align: center;">
+                    <div class="feature-icon">📊</div>
+                    <p class="feature-title">View Dashboard</p>
+                    <p class="feature-desc">Monitor your activity and metrics</p>
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Support Box -->
+        <tr>
+          <td>
+            <div class="support-box">
+              <p style="font-weight: 600; font-size: 16px; margin-bottom: 12px;">
+                💬 Need Help Getting Started?
+              </p>
+              <p>
+                Have questions? Reach out to your sales representative or contact our support team at 
+                <a href="mailto:support@promedhealthplus.com">support@promedhealthplus.com</a>
+              </p>
+              <p style="margin-bottom: 0; margin-top: 12px;">
+                We're here to help you succeed! 💪
+              </p>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Closing Message -->
+        <tr>
+          <td class="content-area" style="padding-top: 10px;">
+            <p class="intro-text" style="font-weight: 600; font-size: 17px; color: #2d3748;">
+              Thanks for joining us — we look forward to working with you! 🤝
+            </p>
+          </td>
+        </tr>
+
+        <!-- Social Media Section -->
+        <tr>
+          <td class="social-section">
+            <h4 class="social-heading">Connect With Us</h4>
+            <div class="social-icons">
+              <a href="https://facebook.com" class="social-icon">f</a>
+              <a href="https://linkedin.com" class="social-icon">in</a>
+              <a href="https://twitter.com" class="social-icon">𝕏</a>
+              <a href="https://instagram.com" class="social-icon">📷</a>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td class="footer">
+            <p class="footer-text">
+              <strong>Questions?</strong> We're here to help!
+            </p>
+            <p class="footer-text">
+              Email us at <a href="mailto:support@promedhealthplus.com" style="color: #10b981;">support@promedhealthplus.com</a>
+            </p>
+            <div class="footer-links">
+              <a href="https://promedhealthplus.com/privacy">Privacy Policy</a> •
+              <a href="https://promedhealthplus.com/terms">Terms of Service</a> •
+              <a href="https://promedhealthplus.com/help">Help Center</a>
+            </div>
+            <p class="footer-text" style="margin-top: 20px;">
+              &copy; {{ current_year }} Promed Health Plus. All Rights Reserved.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </center>
   </body>
 </html>
