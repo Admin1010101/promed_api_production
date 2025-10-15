@@ -77,9 +77,9 @@ class MyTokenObtainPairView(TokenObtainPairView):
         
         if method == 'sms' and user.phone_number:
             try:
-                account_sid = os.getenv('ACCOUNT_SID')
-                auth_token = os.getenv('AUTH_TOKEN')
-                verify_service_sid = os.getenv('VERIFY_SERVICE_SID')
+                account_sid = os.getenv('ACCOUNT_SID_TEMP')
+                auth_token = os.getenv('AUTH_TOKEN_TEMP')
+                verify_service_sid = os.getenv('VERIFY_SERVICE_SID_TEMP')
                 
                 client = Client(account_sid, auth_token)
                 
@@ -233,9 +233,9 @@ class VerifyCodeView(generics.CreateAPIView):
         session_id = request.data.get('session_id')
         code = request.data.get('code')
 
-        account_sid = os.getenv('ACCOUNT_SID')
-        auth_token = os.getenv('AUTH_TOKEN')
-        verify_service_sid = os.getenv('VERIFY_SERVICE_SID')
+        account_sid = os.getenv('ACCOUNT_SID_TEMP')
+        auth_token = os.getenv('AUTH_TOKEN_TEMP')
+        verify_service_sid = os.getenv('VERIFY_SERVICE_SID_TEMP')
 
         if not user or not session_id or not code:
             return Response({'error': 'Missing data'}, status=status.HTTP_400_BAD_REQUEST)
