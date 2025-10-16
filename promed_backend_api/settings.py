@@ -149,6 +149,17 @@ TEMPLATES = [
     },
 ]
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',  # Default to authenticated
+    ],
+    # Don't require authentication for views that explicitly set AllowAny
+    'UNAUTHENTICATED_USER': None,
+}
+
 WSGI_APPLICATION = 'promed_backend_api.wsgi.application'
 
 DATABASES = {
