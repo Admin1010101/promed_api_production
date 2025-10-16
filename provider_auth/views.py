@@ -279,6 +279,7 @@ class VerifyEmailView(generics.GenericAPIView):
 class VerifyCodeView(generics.CreateAPIView):
     serializer_class = api_serializers.VerifyCodeSerializer
     permission_classes = [AllowAny]
+    authentication_classes = []  # ✅ FIX: Explicitly disable authentication
 
     def create(self, request, *args, **kwargs):
         session_id = request.data.get('session_id')
