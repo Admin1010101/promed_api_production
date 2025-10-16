@@ -361,13 +361,19 @@ class VerifyCodeView(generics.CreateAPIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
         
+        # ✅ FIX: Generate new refresh token after successful MFA verification
+        refresh = RefreshToken.for_user(user)
+        
         # Verification successful - clean up
         verification_record.delete()
         logger.info(f"MFA verification successful for user: {user.email}")
         
+        # ✅ FIX: Return both refresh and access tokens
         return Response({
             'verified': True,
-            'message': 'Verification successful'
+            'message': 'Verification successful',
+            'refresh': str(refresh),
+            'access': str(refresh.access_token)
         }, status=status.HTTP_200_OK)
 
 class ProviderProfileView(generics.RetrieveAPIView, generics.UpdateAPIView):

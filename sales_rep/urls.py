@@ -4,5 +4,5 @@ from .views import SalesRepDashboardView
 
 urlpatterns = [
     # ... other paths
-    path('sales-rep/dashboard', SalesRepDashboardView.as_view(), name='sales-rep-dashboard'),
+    path('sales-rep/dashboard/', SalesRepDashboardView.as_view(), name='sales-rep-dashboard'),
 ]
