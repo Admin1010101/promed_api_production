@@ -169,6 +169,16 @@ DATABASES = {
     }
 }
 
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': False,  # Disable blacklist for now
+    'UPDATE_LAST_LOGIN': False,
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+}
+
 EMAIL_BACKEND = 'anymail.backends.sendgrid.EmailBackend'
 SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
 
