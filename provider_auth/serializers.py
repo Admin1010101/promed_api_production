@@ -7,80 +7,103 @@ from django.core.exceptions import ValidationError
 
 #Auth Serializers
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
-    # Don't set username_field here, we'll handle it manually
+    # Set the default username field to email for JWT's internal processing
+    # Although we override `validate`, setting this prevents some internal errors.
+    username_field = 'email' 
     
+    # 1. Initialize and configure fields
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Remove the username field entirely
+        
+        # Remove the default 'password' field that TokenObtainPairSerializer includes
+        # We'll re-add it below for clarity and control.
         if 'username' in self.fields:
             del self.fields['username']
-        # Add email field explicitly
+        
+        # Define the fields required for login and MFA channel selection
         self.fields['email'] = serializers.EmailField(required=True)
+        self.fields['password'] = serializers.CharField(write_only=True, required=True)
+        self.fields['method'] = serializers.ChoiceField(
+            choices=['email', 'sms'], 
+            required=True,
+            help_text="MFA channel: 'email' or 'sms'"
+        )
 
+    # 2. Add custom claims to the JWT token payload
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
         # Add custom claims
         token['full_name'] = user.full_name
         token['email'] = user.email
-        token['username'] = user.username
+        token['username'] = user.username # Keep username for compatibility, though it's usually the email
         token['phone_number'] = str(user.phone_number) if user.phone_number else None
         token['country_code'] = user.country_code
         token['role'] = user.role
         return token
 
+    # 3. Handle validation and authentication
     def validate(self, attrs):
-        # Get credentials from attrs
         email = attrs.get('email')
         password = attrs.get('password')
+        method = attrs.get('method')
         
         if not email or not password:
             raise serializers.ValidationError({
                 "detail": "Email and password are required."
             })
         
-        # Try to get the user by email
+        # --- Authentication and User State Checks ---
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
+            # Return a generic error to avoid giving away account existence
             raise serializers.ValidationError({
                 "detail": "No active account found with the given credentials."
             })
         
-        # Check password
+        # 1. Password Check
         if not user.check_password(password):
             raise serializers.ValidationError({
                 "detail": "No active account found with the given credentials."
             })
         
-        # Check if user can authenticate (is_active check)
+        # 2. Is Active Check
         if not user.is_active:
             raise serializers.ValidationError({
                 "detail": "User account is disabled."
             })
         
-        # Check if email is verified
+        # 3. Email Verified Check
         if not user.is_verified:
             raise serializers.ValidationError({
                 "detail": "Email not verified. Please check your inbox for a verification link."
             })
         
-        # Check if user is approved
+        # 4. Admin Approved Check
         if not user.is_approved:
             raise serializers.ValidationError({
                 "detail": "Your account is pending administrator approval. We will contact you once it is active."
             })
+            
+        # 5. MFA Method Capability Check
+        if method == 'sms' and not user.phone_number:
+            raise serializers.ValidationError({
+                "method": "Cannot use SMS for MFA, as this account has no phone number."
+            })
         
-        # Generate tokens
+        # --- Token Generation ---
+        # Generate tokens before sending the MFA code (the view handles the code)
         refresh = self.get_token(user)
         
-        # Store user for access in the view
-        self.user = user
+        # Store the user object for access in the view (which is required by TokenObtainPairView)
+        self.user = user 
         
-        # Return token data
+        # Return necessary data to the view
         return {
             'refresh': str(refresh),
             'access': str(refresh.access_token),
+            'method': method, # Pass the selected method back to the view
         }
 
 
@@ -179,7 +202,7 @@ class SendCodeSerializer(serializers.Serializer):
 
 class VerifyCodeSerializer(serializers.Serializer):
     code = serializers.CharField(max_length=6)
-    method = serializers.ChoiceField(choices=['email', 'sms'])
+    session_id = serializers.UUIDField()
 
 class ContactRepSerializer(serializers.Serializer):
     name = serializers.CharField(required=False)

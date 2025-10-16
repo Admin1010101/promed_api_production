@@ -328,7 +328,5 @@ JAZZMIN_UI_TWEAKS = {
     "footer_fixed": False,
 }
 
-'https://promedheatlhdatastorage.blob.core.windows.net/static/images/logo.png'
-
 
 
