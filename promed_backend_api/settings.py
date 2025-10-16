@@ -10,6 +10,7 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+
 sentry_sdk.init(
     dsn=os.getenv(
         "SENTRY_DSN",
@@ -31,6 +32,8 @@ DEBUG = False
 
 
 RUNNING_ON_AZURE = os.getenv('WEBSITE_SITE_NAME') is not None
+
+AUTH_USER_MODEL = 'provider_auth.User'
 
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
