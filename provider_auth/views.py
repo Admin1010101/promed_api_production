@@ -67,7 +67,6 @@ class MyTokenObtainPairView(TokenObtainPairView):
             logger.error(f"Serializer validation FAILED: {str(e)}")
             logger.error(f"Serializer errors: {getattr(serializer, 'errors', 'No errors attr')}")
             
-            # Return a more detailed error response
             error_detail = getattr(serializer, 'errors', {'detail': str(e)})
             return Response(
                 error_detail,
@@ -83,18 +82,13 @@ class MyTokenObtainPairView(TokenObtainPairView):
         
         # MFA code setup
         method = request.data.get('method', 'email')
-        code = str(random.randint(100000, 999999))
         session_id = str(uuid.uuid4())
         
         logger.info(f"Creating verification code with method: {method}")
         logger.info(f"Session ID: {session_id}")
         
-        api_models.Verification_Code.objects.create(
-            user=user,
-            code=code,
-            method=method,
-            session_id=session_id
-        )
+        # Delete any existing verification codes for this user to prevent reuse
+        api_models.Verification_Code.objects.filter(user=user).delete()
         
         if method == 'sms' and user.phone_number:
             try:
@@ -104,28 +98,68 @@ class MyTokenObtainPairView(TokenObtainPairView):
                 
                 if not all([account_sid, auth_token, verify_service_sid]):
                     logger.warning("Twilio credentials missing")
-                else:
-                    client = Client(account_sid, auth_token)
-                    
-                    client.verify.v2.services(verify_service_sid).verifications.create(
-                        to=str(user.phone_number),
-                        channel='sms'
+                    return Response(
+                        {"error": "SMS service not configured"},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
                     )
-                    logger.info(f"SMS verification sent to {user.phone_number}")
+                
+                client = Client(account_sid, auth_token)
+                
+                # Twilio generates its own code, we don't need to create one
+                verification = client.verify.v2.services(verify_service_sid).verifications.create(
+                    to=str(user.phone_number),
+                    channel='sms'
+                )
+                
+                # Store session_id with method for verification
+                api_models.Verification_Code.objects.create(
+                    user=user,
+                    code='',  # Empty for Twilio-managed codes
+                    method=method,
+                    session_id=session_id
+                )
+                
+                logger.info(f"SMS verification sent to {user.phone_number}")
+                logger.info(f"Twilio verification status: {verification.status}")
+                
             except Exception as e:
                 logger.error(f"SMS sending failed: {str(e)}")
+                return Response(
+                    {"error": f"Failed to send SMS: {str(e)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
         
-        if method == 'email':
+        elif method == 'email':
             try:
+                # For email, we generate our own code
+                code = str(random.randint(100000, 999999))
+                
+                api_models.Verification_Code.objects.create(
+                    user=user,
+                    code=code,
+                    method=method,
+                    session_id=session_id
+                )
+                
                 send_mail(
                     subject='Login Verification Code',
-                    message=f'Your login verification code is {code}. This code will expire shortly.',
+                    message=f'Your login verification code is {code}. This code will expire in 10 minutes.',
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[user.email]
                 )
-                logger.info(f"Email verification sent to {user.email}")
+                logger.info(f"Email verification sent to {user.email} with code: {code}")
+                
             except Exception as e:
                 logger.error(f"Email sending failed: {str(e)}")
+                return Response(
+                    {"error": f"Failed to send email: {str(e)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        else:
+            return Response(
+                {"error": "Invalid MFA method or missing phone number for SMS"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         user_data = UserSerializer(user).data
         
@@ -138,7 +172,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
             'mfa_required': True,
             'session_id': session_id,
             'user': user_data,
-            'detail': 'Verification code sent.'
+            'detail': f'Verification code sent via {method}.'
         }, status=status.HTTP_200_OK)
 
 class RegisterUser(generics.CreateAPIView):
@@ -247,32 +281,94 @@ class VerifyCodeView(generics.CreateAPIView):
     permission_classes = [AllowAny]
 
     def create(self, request, *args, **kwargs):
-        user = request.user
         session_id = request.data.get('session_id')
         code = request.data.get('code')
 
-        account_sid = os.getenv('ACCOUNT_SID')
-        auth_token = os.getenv('AUTH_TOKEN')
-        verify_service_sid = os.getenv('VERIFY_SERVICE_SID')
+        logger.info(f"MFA verification attempt - Session ID: {session_id}")
 
-        if not user or not session_id or not code:
-            return Response({'error': 'Missing data'}, status=status.HTTP_400_BAD_REQUEST)
+        if not session_id or not code:
+            return Response(
+                {'verified': False, 'error': 'Missing session_id or code'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
-        valid_code = api_models.Verification_Code.objects.filter(
+        # Find the verification code record
+        verification_record = api_models.Verification_Code.objects.filter(
             session_id=session_id,
         ).order_by('-created_at').first()
-        if not valid_code:
-            return Response({'verified': False, 'error': 'Invalid code'}, status=status.HTTP_400_BAD_REQUEST)
         
-        phone_number = str(user.phone_number)
-        client = Client(account_sid, auth_token)
-        verification_check = client.verify.v2.services(verify_service_sid).verification_checks.create(
-        to=phone_number,
-        code=code)
-        if not verification_check.valid:
-            return Response({'verified': False, 'error': 'Invalid code'}, status=status.HTTP_400_BAD_REQUEST)
-        request.session['mfa'] = True
-        return Response({'verified': True}, status=status.HTTP_200_OK)
+        if not verification_record:
+            logger.error(f"No verification record found for session: {session_id}")
+            return Response(
+                {'verified': False, 'error': 'Invalid or expired session'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if the code has expired (10 minutes)
+        from django.utils import timezone
+        from datetime import timedelta
+        if timezone.now() - verification_record.created_at > timedelta(minutes=10):
+            verification_record.delete()
+            return Response(
+                {'verified': False, 'error': 'Verification code has expired'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        user = verification_record.user
+        method = verification_record.method
+        
+        # Verify based on method
+        if method == 'sms':
+            # Use Twilio to verify
+            try:
+                account_sid = os.getenv('ACCOUNT_SID')
+                auth_token = os.getenv('AUTH_TOKEN')
+                verify_service_sid = os.getenv('VERIFY_SERVICE_SID')
+                
+                if not user.phone_number:
+                    return Response(
+                        {'verified': False, 'error': 'No phone number on file'}, 
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                client = Client(account_sid, auth_token)
+                verification_check = client.verify.v2.services(verify_service_sid).verification_checks.create(
+                    to=str(user.phone_number),
+                    code=code
+                )
+                
+                logger.info(f"Twilio verification status: {verification_check.status}")
+                
+                if verification_check.status != 'approved':
+                    return Response(
+                        {'verified': False, 'error': 'Invalid verification code'}, 
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                    
+            except Exception as e:
+                logger.error(f"Twilio verification error: {str(e)}")
+                return Response(
+                    {'verified': False, 'error': 'Verification failed'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+        elif method == 'email':
+            # Compare with our stored code
+            if verification_record.code != code:
+                logger.error(f"Code mismatch. Expected: {verification_record.code}, Got: {code}")
+                return Response(
+                    {'verified': False, 'error': 'Invalid verification code'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Verification successful - clean up
+        verification_record.delete()
+        logger.info(f"MFA verification successful for user: {user.email}")
+        
+        return Response({
+            'verified': True,
+            'message': 'Verification successful'
+        }, status=status.HTTP_200_OK)
 
 class ProviderProfileView(generics.RetrieveAPIView, generics.UpdateAPIView):
     serializer_class = api_serializers.ProfileSerializer
