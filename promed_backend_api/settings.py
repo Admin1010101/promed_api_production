@@ -22,7 +22,7 @@ sentry_sdk.init(
 )
 
 TESTING = True
-APPEND_SLASH = False  # Changed to False for production consistency
+APPEND_SLASH = True  # Changed to False for production consistency
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -93,7 +93,7 @@ THIRD_PARTY_APPS = [
     'jazzmin',
     'rest_framework',
     'corsheaders',
-    'rest_framework_simplejwt.token_blacklist',
+    # 'rest_framework_simplejwt.token_blacklist',
     'anymail',
     'drf_yasg',
     'storages',
