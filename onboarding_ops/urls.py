@@ -17,3 +17,4 @@ urlpatterns = [
     path('documents/<int:pk>/', api_views.ProviderDocumentDetail.as_view(), name='provider-document-detail'),
 
 ]
+
