@@ -225,41 +225,18 @@ def jotform_webhook(request):
 @api_view(['POST', 'GET'])
 @permission_classes([permissions.AllowAny])
 def jotform_webhook_debug(request):
-    """
-    DEBUG endpoint to see exactly what JotForm sends.
-    Use this temporarily to capture the webhook data.
-    """
-    import json
-    
+    """Simple debug endpoint"""
     try:
-        # Safely extract headers
-        headers = {}
-        for key, value in request.META.items():
-            if key.startswith('HTTP_'):
-                headers[key] = value
-        
-        debug_info = {
-            "method": request.method,
-            "content_type": request.content_type,
-            "headers": headers,
-            "GET": dict(request.GET),
-            "POST": dict(request.POST),
-            "data": request.data if hasattr(request, 'data') else {},
-            "body": request.body.decode('utf-8') if request.body else None,
-        }
-        
-        # Log everything
-        logger.info("=== DEBUG WEBHOOK ===")
-        logger.info(json.dumps(debug_info, indent=2, default=str))
-        
         return Response({
             "success": True,
-            "message": "Debug data captured - check logs",
-            "captured_data": debug_info
+            "method": request.method,
+            "content_type": request.content_type,
+            "GET_params": dict(request.GET),
+            "POST_data": dict(request.POST),
+            "request_data": request.data,
         }, status=status.HTTP_200_OK)
-        
     except Exception as e:
-        logger.error(f"Debug endpoint error: {e}", exc_info=True)
+        logger.error(f"Debug error: {e}", exc_info=True)
         return Response({
             "success": False,
             "error": str(e),
