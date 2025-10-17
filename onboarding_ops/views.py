@@ -231,25 +231,40 @@ def jotform_webhook_debug(request):
     """
     import json
     
-    debug_info = {
-        "method": request.method,
-        "content_type": request.content_type,
-        "headers": dict(request.headers),
-        "GET": dict(request.GET),
-        "POST": dict(request.POST),
-        "data": request.data,
-        "body": request.body.decode('utf-8') if request.body else None,
-    }
-    
-    # Log everything
-    logger.info("=== DEBUG WEBHOOK ===")
-    logger.info(json.dumps(debug_info, indent=2, default=str))
-    
-    return Response({
-        "success": True,
-        "message": "Debug data captured - check logs",
-        "captured_data": debug_info
-    }, status=status.HTTP_200_OK)
+    try:
+        # Safely extract headers
+        headers = {}
+        for key, value in request.META.items():
+            if key.startswith('HTTP_'):
+                headers[key] = value
+        
+        debug_info = {
+            "method": request.method,
+            "content_type": request.content_type,
+            "headers": headers,
+            "GET": dict(request.GET),
+            "POST": dict(request.POST),
+            "data": request.data if hasattr(request, 'data') else {},
+            "body": request.body.decode('utf-8') if request.body else None,
+        }
+        
+        # Log everything
+        logger.info("=== DEBUG WEBHOOK ===")
+        logger.info(json.dumps(debug_info, indent=2, default=str))
+        
+        return Response({
+            "success": True,
+            "message": "Debug data captured - check logs",
+            "captured_data": debug_info
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Debug endpoint error: {e}", exc_info=True)
+        return Response({
+            "success": False,
+            "error": str(e),
+            "error_type": type(e).__name__
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class DocumentUploadView(APIView):
     """
