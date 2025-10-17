@@ -1,381 +1,206 @@
-# onboarding_ops/views.py
+# utils/azure_storage.py
 import os
 import logging
 from io import BytesIO
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from rest_framework import generics, permissions, status
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework.decorators import api_view, permission_classes
-from django.views.decorators.csrf import csrf_exempt
-
-from django.utils.text import slugify
 from django.conf import settings
-from django.core.mail import EmailMessage
-from django.template.loader import render_to_string
-from django.shortcuts import get_object_or_404
-import requests
-from azure.storage.blob import BlobServiceClient
-
-from patients.models import Patient
-from provider_auth.models import User
-from onboarding_ops.models import ProviderForm, ProviderDocument
-from onboarding_ops.serializers import (
-    ProviderFormSerializer,
-    ProviderDocumentSerializer,
-    JotFormWebhookSerializer,
-    DocumentUploadSerializer
-)
-from utils.azure_storage import generate_sas_url, upload_to_azure_stream
+from azure.storage.blob import BlobServiceClient, BlobSasPermissions, generate_blob_sas
 
 logger = logging.getLogger(__name__)
 
-class IsOwner(permissions.BasePermission):
-    def has_object_permission(self, request, view, obj):
-        return obj.user == request.user
-
-class ProviderFormListCreate(generics.ListCreateAPIView):
-    serializer_class = ProviderFormSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return ProviderForm.objects.filter(user=self.request.user)
-
-class ProviderFormDetail(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = ProviderFormSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOwner]
-
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return ProviderForm.objects.none()
-        return ProviderForm.objects.filter(user=self.request.user)
-
-@csrf_exempt
-@api_view(['POST'])
-@permission_classes([permissions.AllowAny])
-def jotform_webhook(request):
-    """
-    Webhook handler for JotForm submissions.
-    1. Downloads the submitted PDF
-    2. Uploads to Azure Blob Storage with proper path structure
-    3. Sends email notification to admins with the form link
-    4. Creates ProviderForm record in database
-    """
-    logger.info("=== JotForm Webhook Received ===")
-    logger.info(f"Request data: {request.data}")
-    
-    serializer = JotFormWebhookSerializer(data=request.data)
-    if not serializer.is_valid():
-        logger.error(f"Invalid webhook data: {serializer.errors}")
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    data = serializer.validated_data
-    form_data = data.get('content', {})
-    
-    # Extract provider email from form submission
-    provider_email = form_data.get('q4_providerEmail') or form_data.get('providerEmail')
-    form_name = data.get('formTitle', 'New Account Form')
-    submission_id = data.get('submissionID')
-
-    logger.info(f"Processing submission - Email: {provider_email}, ID: {submission_id}")
-
-    if not provider_email or not submission_id:
-        logger.error("Jotform webhook missing required data.")
-        return Response(
-            {"error": "Missing provider email or submission ID."}, 
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    # Find the provider user
+# Initialize blob service client
+def get_blob_service_client():
+    """Returns a BlobServiceClient instance"""
     try:
-        provider = User.objects.get(email=provider_email)
-        logger.info(f"Found provider: {provider.full_name} ({provider.email})")
-    except User.DoesNotExist:
-        logger.error(f"User with email {provider_email} not found.")
-        return Response(
-            {"error": "Provider not found."}, 
-            status=status.HTTP_404_NOT_FOUND
-        )
+        connection_string = settings.AZURE_STORAGE_CONNECTION_STRING
+        return BlobServiceClient.from_connection_string(connection_string)
+    except Exception as e:
+        logger.error(f"Failed to create BlobServiceClient: {e}")
+        raise
 
-    try:
-        # Download PDF from JotForm
-        pdf_url = form_data.get('submissionPDF', f"https://www.jotform.com/pdf-submission/{submission_id}")
-        logger.info(f"Downloading PDF from: {pdf_url}")
-        response = requests.get(pdf_url, timeout=30)
-        response.raise_for_status()
-        logger.info(f"PDF downloaded successfully, size: {len(response.content)} bytes")
+# For backward compatibility
+blob_service_client = get_blob_service_client()
 
-        # Generate file name with timestamp
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        file_name = f"{slugify(form_name)}-{timestamp}.pdf"
+def clean_string(s):
+    """Remove or replace problematic characters in strings"""
+    if not s:
+        return ""
+    # Replace spaces with underscores, remove special chars
+    s = s.strip()
+    s = s.replace(" ", "_")
+    # Keep only alphanumeric, underscore, hyphen, and period
+    return "".join(c for c in s if c.isalnum() or c in "._-")
 
-        # Define Azure blob path: provider_name/onboarding/form-date-timestamp
-        provider_slug = slugify(provider.full_name or provider.email.split('@')[0])
-        blob_path = f"media/{provider_slug}/onboarding/{file_name}"
-
-        logger.info(f"Uploading to Azure Blob Storage: {blob_path}")
-        logger.info(f"Container: {settings.AZURE_CONTAINER}")
-        logger.info(f"Content size: {len(response.content)} bytes")
+def upload_to_azure_stream(stream, blob_name, container_name='media'):
+    """
+    Upload a file stream to Azure Blob Storage.
+    
+    Args:
+        stream: File stream (BytesIO object)
+        blob_name: Full path/name for the blob (e.g., 'media/provider/file.pdf')
+        container_name: Azure container name
         
-        # Upload to Azure Blob Storage
-        with BytesIO(response.content) as stream:
-            upload_result = upload_to_azure_stream(stream, blob_path, settings.AZURE_CONTAINER)
-            logger.info(f"Azure upload result: {upload_result}")
-            
-            if not upload_result:
-                logger.error("⚠️ Azure upload returned False - check Azure credentials and permissions")
-            else:
-                logger.info("✅ Azure upload successful")
-
-        # Create or update database record with blob path as string
-        form, created = ProviderForm.objects.get_or_create(
-            user=provider,
-            submission_id=submission_id,
-            defaults={
-                'form_type': form_name,
-                'completed_form': blob_path,  # Store the blob path as string
-                'form_data': form_data,
-                'completed': True,
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        logger.info(f"Starting upload to Azure - Blob: {blob_name}, Container: {container_name}")
+        
+        # Get blob service client
+        blob_service_client = get_blob_service_client()
+        
+        # Get container client
+        container_client = blob_service_client.get_container_client(container_name)
+        
+        # Get blob client
+        blob_client = container_client.get_blob_client(blob_name)
+        
+        # Reset stream position to beginning
+        stream.seek(0)
+        
+        # Upload the blob
+        blob_client.upload_blob(
+            stream,
+            overwrite=True,
+            content_settings={
+                'content_type': 'application/pdf'
             }
         )
         
-        if not created:
-            # Update existing record
-            form.completed_form = blob_path
-            form.form_data = form_data
-            form.completed = True
-            form.save()
-            logger.info(f"Updated existing form record for submission {submission_id}")
-        else:
-            logger.info(f"Created new form record for submission {submission_id}")
-
-        # Generate SAS URL for email
-        try:
-            sas_url = generate_sas_url(
-                blob_name=blob_path,
-                container_name=settings.AZURE_CONTAINER,
-                permission='r'
-            )
-            logger.info("SAS URL generated successfully")
-        except Exception as e:
-            logger.warning(f"Could not generate SAS URL: {e}")
-            sas_url = None
-
-        # Send email notification to admins
-        try:
-            admin_emails = [email for name, email in settings.ADMINS]
-            
-            if not admin_emails:
-                logger.warning("No admin emails configured in settings.ADMINS")
-            else:
-                subject = f"New Provider Application - {provider.full_name}"
-                
-                # Render email body
-                email_body = render_to_string('email/new_provider_application.html', {
-                    'provider': provider,
-                    'form_name': form_name,
-                    'submission_id': submission_id,
-                    'sas_url': sas_url,
-                    'submission_date': form.date_created.strftime('%B %d, %Y at %I:%M %p'),
-                })
-
-                email = EmailMessage(
-                    subject,
-                    email_body,
-                    settings.DEFAULT_FROM_EMAIL,
-                    admin_emails,
-                )
-                email.content_subtype = "html"
-                email.send()
-                
-                logger.info(f"Email sent to admins: {admin_emails}")
-
-        except Exception as email_error:
-            logger.error(f"Failed to send email notification: {email_error}", exc_info=True)
-            # Don't fail the webhook if email fails
-
-        logger.info("=== Webhook processed successfully ===")
+        logger.info(f"✅ Successfully uploaded {blob_name} to Azure Blob Storage")
+        return True
         
-        return Response(
-            {
-                "success": True, 
-                "message": "Form processed and saved to Azure.",
-                "form_id": form.id,
-                "blob_path": blob_path,
-                "completed": form.completed
-            }, 
-            status=status.HTTP_200_OK
-        )
-
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Failed to download PDF from Jotform: {e}")
-        return Response(
-            {"error": "Failed to download PDF."}, 
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
     except Exception as e:
-        logger.error(f"An error occurred: {e}", exc_info=True)
-        return Response(
-            {"error": f"Internal server error: {str(e)}"}, 
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+        logger.error(f"❌ Failed to upload {blob_name} to Azure: {e}", exc_info=True)
+        return False
 
-class DocumentUploadView(APIView):
+def generate_sas_url(blob_name, container_name='media', permission='r', expiry_hours=1):
     """
-    Handles document uploads from providers.
-    Files are emailed to the supervising physician as attachments.
-    """
-    permission_classes = [permissions.IsAuthenticated]
-
-    def post(self, request, *args, **kwargs):
-        serializer = DocumentUploadSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        doc_type = serializer.validated_data['document_type']
-        uploaded_files = serializer.validated_data['files']
-        user = request.user
-
-        # Get supervising physician email from settings
-        physician_email = getattr(settings, 'SUPERVISING_PHYSICIAN_EMAIL', 'doctor@example.com')
-
-        try:
-            subject = f"New Documents from {user.full_name or user.email}"
-            
-            # Render email body
-            body = render_to_string('email/document_upload.html', {
-                'user': user,
-                'document_type': doc_type,
-                'file_count': len(uploaded_files),
-            })
-
-            email = EmailMessage(
-                subject,
-                body,
-                settings.DEFAULT_FROM_EMAIL,
-                [physician_email],
-            )
-            email.content_subtype = "html"
-
-            # Attach all uploaded files
-            for uploaded_file in uploaded_files:
-                email.attach(uploaded_file.name, uploaded_file.read(), uploaded_file.content_type)
-
-            email.send()
-            logger.info(f"Documents emailed to {physician_email} from {user.email}")
-
-            # Create tracking record
-            ProviderDocument.objects.create(
-                user=user,
-                document_type=doc_type,
-            )
-            
-            return Response(
-                {"success": "Documents uploaded and emailed successfully."}, 
-                status=status.HTTP_200_OK
-            )
-
-        except Exception as e:
-            logger.error(f"Document upload/email failed: {e}", exc_info=True)
-            return Response(
-                {"error": str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-class CheckBlobExistsView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get(self, request, container_name, blob_name, *args, **kwargs):
-        try:
-            blob_service_client = BlobServiceClient.from_connection_string(
-                settings.AZURE_STORAGE_CONNECTION_STRING
-            )
-            container_client = blob_service_client.get_container_client(container_name)
-            blob_client = container_client.get_blob_client(blob_name)
-
-            if blob_client.exists():
-                return Response({'exists': True}, status=status.HTTP_200_OK)
-            else:
-                return Response({'exists': False}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-class ProviderDocumentListCreate(generics.ListCreateAPIView):
-    serializer_class = ProviderDocumentSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return ProviderDocument.objects.filter(user=self.request.user)
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-class ProviderDocumentDetail(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = ProviderDocumentSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOwner]
-
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return ProviderDocument.objects.none()
+    Generate a SAS URL for accessing a blob.
+    
+    Args:
+        blob_name: Full path/name of the blob
+        container_name: Azure container name
+        permission: 'r' for read, 'w' for write, etc.
+        expiry_hours: How many hours until the URL expires
         
-        return ProviderDocument.objects.filter(user=self.request.user)
-
-class GenerateSASURLView(APIView):
+    Returns:
+        str: Full URL with SAS token
     """
-    Generates a SAS URL for a blob path.
+    try:
+        logger.info(f"Generating SAS URL for blob: {blob_name}")
+        
+        # Get blob service client
+        blob_service_client = get_blob_service_client()
+        
+        # Parse account name from connection string
+        account_name = blob_service_client.account_name
+        account_key = None
+        
+        # Extract account key from connection string
+        conn_str = settings.AZURE_STORAGE_CONNECTION_STRING
+        for part in conn_str.split(';'):
+            if part.startswith('AccountKey='):
+                account_key = part.split('=', 1)[1]
+                break
+        
+        if not account_key:
+            raise ValueError("Could not extract AccountKey from connection string")
+        
+        # Set expiry time
+        expiry = datetime.utcnow() + timedelta(hours=expiry_hours)
+        
+        # Generate SAS token
+        sas_token = generate_blob_sas(
+            account_name=account_name,
+            container_name=container_name,
+            blob_name=blob_name,
+            account_key=account_key,
+            permission=BlobSasPermissions(read=True) if permission == 'r' else BlobSasPermissions(write=True),
+            expiry=expiry
+        )
+        
+        # Construct full URL
+        sas_url = f"https://{account_name}.blob.core.windows.net/{container_name}/{blob_name}?{sas_token}"
+        
+        logger.info(f"✅ SAS URL generated successfully (expires in {expiry_hours} hours)")
+        return sas_url
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to generate SAS URL for {blob_name}: {e}", exc_info=True)
+        raise
+
+def delete_blob(blob_name, container_name='media'):
     """
-    permission_classes = [permissions.IsAuthenticated]
+    Delete a blob from Azure Blob Storage.
+    
+    Args:
+        blob_name: Full path/name of the blob to delete
+        container_name: Azure container name
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        logger.info(f"Deleting blob: {blob_name} from container: {container_name}")
+        
+        blob_service_client = get_blob_service_client()
+        container_client = blob_service_client.get_container_client(container_name)
+        blob_client = container_client.get_blob_client(blob_name)
+        
+        blob_client.delete_blob()
+        
+        logger.info(f"✅ Successfully deleted {blob_name}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to delete {blob_name}: {e}", exc_info=True)
+        return False
 
-    def get(self, request, *args, **kwargs):
-        patient_id = request.query_params.get('patient_id')
-        form_type = request.query_params.get('form_type')
+def blob_exists(blob_name, container_name='media'):
+    """
+    Check if a blob exists in Azure Blob Storage.
+    
+    Args:
+        blob_name: Full path/name of the blob
+        container_name: Azure container name
+        
+    Returns:
+        bool: True if exists, False otherwise
+    """
+    try:
+        blob_service_client = get_blob_service_client()
+        container_client = blob_service_client.get_container_client(container_name)
+        blob_client = container_client.get_blob_client(blob_name)
+        
+        return blob_client.exists()
+        
+    except Exception as e:
+        logger.error(f"Error checking blob existence: {e}")
+        return False
 
-        if not patient_id or not form_type:
-            return Response(
-                {"error": "Missing patient_id or form_type query parameter."}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            patient = get_object_or_404(Patient, pk=patient_id)
-            latest_form = ProviderForm.objects.filter(
-                user=request.user,
-                patient=patient,
-                form_type__iexact=form_type,
-                completed=True
-            ).order_by('-date_created').first()
-
-            if not latest_form or not latest_form.completed_form:
-                return Response({
-                    "error": "No completed JotForm submission found for this patient.",
-                    "completed_form_path": None,
-                    "patient_id": patient_id
-                }, status=status.HTTP_404_NOT_FOUND)
-
-        except Exception as e:
-            logger.error(f"Error fetching ProviderForm: {e}")
-            return Response(
-                {"error": "Database lookup failed."}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-        try:
-            sas_url = generate_sas_url(
-                blob_name=latest_form.completed_form,
-                container_name=settings.AZURE_CONTAINER,
-                permission='r'
-            )
-
-            return Response({
-                "sas_url": sas_url,
-                "completed_form_path": latest_form.completed_form,
-                "form_data": latest_form.form_data
-            }, status=status.HTTP_200_OK)
-
-        except Exception as e:
-            logger.error(f"Failed to generate SAS URL for blob {latest_form.completed_form}: {e}")
-            return Response(
-                {"error": "Failed to generate secure file link."}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+def list_blobs(prefix='', container_name='media'):
+    """
+    List all blobs in a container with optional prefix filter.
+    
+    Args:
+        prefix: Optional prefix to filter blobs (e.g., 'media/provider-name/')
+        container_name: Azure container name
+        
+    Returns:
+        list: List of blob names
+    """
+    try:
+        blob_service_client = get_blob_service_client()
+        container_client = blob_service_client.get_container_client(container_name)
+        
+        blob_list = []
+        for blob in container_client.list_blobs(name_starts_with=prefix):
+            blob_list.append(blob.name)
+        
+        return blob_list
+        
+    except Exception as e:
+        logger.error(f"Error listing blobs: {e}")
+        return []
