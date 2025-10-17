@@ -39,7 +39,7 @@ urlpatterns = [
     path('api/v1/', include('notifications.urls')),
     path('api/v1/', include('sales_rep.urls')),
     path('api/v1/', include('patients.urls')),
-    path('api/v1/onboarding_ops/', include('onboarding_ops.urls')),
+    path('api/v1/onboarding/', include('onboarding_ops.urls')),
     path('health', simple_health_check, name='health_check'),
     
 ]
