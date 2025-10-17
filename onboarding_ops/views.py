@@ -64,12 +64,13 @@ def jotform_webhook(request):
     """
     logger.info("=== JotForm Webhook Received ===")
     logger.info(f"Request method: {request.method}")
+    logger.info(f"Content-Type: {request.content_type}")
     logger.info(f"Request data: {request.data}")
-    logger.info(f"Request POST: {request.POST}")
-    logger.info(f"Request body: {request.body[:500] if request.body else 'No body'}")
+    logger.info(f"Request POST: {dict(request.POST) if request.POST else {}}")
     
     # JotForm sends data in different formats, try to handle all
     raw_data = request.data if request.data else request.POST.dict()
+    logger.info(f"Raw data being processed: {raw_data}")
     
     serializer = JotFormWebhookSerializer(data=raw_data)
     if not serializer.is_valid():
