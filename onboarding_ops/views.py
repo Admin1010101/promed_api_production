@@ -220,6 +220,36 @@ def jotform_webhook(request):
             {"error": f"Internal server error: {str(e)}"}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+        
+@csrf_exempt
+@api_view(['POST', 'GET'])
+@permission_classes([permissions.AllowAny])
+def jotform_webhook_debug(request):
+    """
+    DEBUG endpoint to see exactly what JotForm sends.
+    Use this temporarily to capture the webhook data.
+    """
+    import json
+    
+    debug_info = {
+        "method": request.method,
+        "content_type": request.content_type,
+        "headers": dict(request.headers),
+        "GET": dict(request.GET),
+        "POST": dict(request.POST),
+        "data": request.data,
+        "body": request.body.decode('utf-8') if request.body else None,
+    }
+    
+    # Log everything
+    logger.info("=== DEBUG WEBHOOK ===")
+    logger.info(json.dumps(debug_info, indent=2, default=str))
+    
+    return Response({
+        "success": True,
+        "message": "Debug data captured - check logs",
+        "captured_data": debug_info
+    }, status=status.HTTP_200_OK)
 
 class DocumentUploadView(APIView):
     """
@@ -382,35 +412,7 @@ class GenerateSASURLView(APIView):
             
 # Add this to your onboarding_ops/views.py temporarily for debugging
 
-@csrf_exempt
-@api_view(['POST', 'GET'])
-@permission_classes([permissions.AllowAny])
-def jotform_webhook_debug(request):
-    """
-    DEBUG endpoint to see exactly what JotForm sends.
-    Use this temporarily to capture the webhook data.
-    """
-    import json
-    
-    debug_info = {
-        "method": request.method,
-        "content_type": request.content_type,
-        "headers": dict(request.headers),
-        "GET": dict(request.GET),
-        "POST": dict(request.POST),
-        "data": request.data,
-        "body": request.body.decode('utf-8') if request.body else None,
-    }
-    
-    # Log everything
-    logger.info("=== DEBUG WEBHOOK ===")
-    logger.info(json.dumps(debug_info, indent=2, default=str))
-    
-    return Response({
-        "success": True,
-        "message": "Debug data captured - check logs",
-        "captured_data": debug_info
-    }, status=status.HTTP_200_OK)
+
 
 
 # Add to urls.py:
