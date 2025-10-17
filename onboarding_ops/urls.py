@@ -5,6 +5,7 @@ from onboarding_ops import views as api_views
 urlpatterns = [
     # JOTFORM WEBHOOK
     path('jotform/webhook/', api_views.jotform_webhook, name='jotform-webhook'),
+    path('jotform/webhook/debug/', api_views.jotform_webhook_debug, name='jotform-webhook-debug'),
 
     # PROVIDER FORMS (CRUD & related)
     path('forms/', api_views.ProviderFormListCreate.as_view(), name='provider-form-list'),

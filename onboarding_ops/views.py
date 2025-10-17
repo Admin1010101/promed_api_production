@@ -63,30 +63,22 @@ def jotform_webhook(request):
     4. Creates ProviderForm record in database
     """
     logger.info("=== JotForm Webhook Received ===")
-    logger.info(f"Request method: {request.method}")
-    logger.info(f"Content-Type: {request.content_type}")
     logger.info(f"Request data: {request.data}")
-    logger.info(f"Request POST: {dict(request.POST) if request.POST else {}}")
     
-    # JotForm sends data in different formats, try to handle all
-    raw_data = request.data if request.data else request.POST.dict()
-    logger.info(f"Raw data being processed: {raw_data}")
-    
-    serializer = JotFormWebhookSerializer(data=raw_data)
+    serializer = JotFormWebhookSerializer(data=request.data)
     if not serializer.is_valid():
         logger.error(f"Invalid webhook data: {serializer.errors}")
-        logger.error(f"Received data: {raw_data}")
-        # Don't fail - try to extract what we need manually
-        data = raw_data
-        form_data = raw_data
-    else:
-        data = serializer.validated_data
-        form_data = data.get('content', raw_data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    data = serializer.validated_data
+    form_data = data.get('content', {})
     
     # Extract provider email from form submission
     provider_email = form_data.get('q4_providerEmail') or form_data.get('providerEmail')
     form_name = data.get('formTitle', 'New Account Form')
     submission_id = data.get('submissionID')
+
+    logger.info(f"Processing submission - Email: {provider_email}, ID: {submission_id}")
 
     if not provider_email or not submission_id:
         logger.error("Jotform webhook missing required data.")
@@ -98,6 +90,7 @@ def jotform_webhook(request):
     # Find the provider user
     try:
         provider = User.objects.get(email=provider_email)
+        logger.info(f"Found provider: {provider.full_name} ({provider.email})")
     except User.DoesNotExist:
         logger.error(f"User with email {provider_email} not found.")
         return Response(
@@ -109,37 +102,46 @@ def jotform_webhook(request):
         # Download PDF from JotForm
         pdf_url = form_data.get('submissionPDF', f"https://www.jotform.com/pdf-submission/{submission_id}")
         logger.info(f"Downloading PDF from: {pdf_url}")
-        response = requests.get(pdf_url)
+        response = requests.get(pdf_url, timeout=30)
         response.raise_for_status()
+        logger.info(f"PDF downloaded successfully, size: {len(response.content)} bytes")
 
         # Generate file name with timestamp
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         file_name = f"{slugify(form_name)}-{timestamp}.pdf"
 
-        # Define Azure blob path: provider_name/patient_name/form-date-timestamp
+        # Define Azure blob path: provider_name/onboarding/form-date-timestamp
         provider_slug = slugify(provider.full_name or provider.email.split('@')[0])
-        
-        # For new account forms, there's no patient yet, so use 'onboarding'
         blob_path = f"media/{provider_slug}/onboarding/{file_name}"
 
+        logger.info(f"Uploading to Azure Blob Storage: {blob_path}")
+        logger.info(f"Container: {settings.AZURE_CONTAINER}")
+        logger.info(f"Content size: {len(response.content)} bytes")
+        
         # Upload to Azure Blob Storage
-        logger.info(f"Uploading to Azure: {blob_path}")
         with BytesIO(response.content) as stream:
-            upload_to_azure_stream(stream, blob_path, settings.AZURE_CONTAINER)
+            upload_result = upload_to_azure_stream(stream, blob_path, settings.AZURE_CONTAINER)
+            logger.info(f"Azure upload result: {upload_result}")
+            
+            if not upload_result:
+                logger.error("⚠️ Azure upload returned False - check Azure credentials and permissions")
+            else:
+                logger.info("✅ Azure upload successful")
 
-        # Create or update database record
+        # Create or update database record with blob path as string
         form, created = ProviderForm.objects.get_or_create(
             user=provider,
             submission_id=submission_id,
             defaults={
                 'form_type': form_name,
-                'completed_form': blob_path,
+                'completed_form': blob_path,  # Store the blob path as string
                 'form_data': form_data,
                 'completed': True,
             }
         )
         
         if not created:
+            # Update existing record
             form.completed_form = blob_path
             form.form_data = form_data
             form.completed = True
@@ -155,6 +157,7 @@ def jotform_webhook(request):
                 container_name=settings.AZURE_CONTAINER,
                 permission='r'
             )
+            logger.info("SAS URL generated successfully")
         except Exception as e:
             logger.warning(f"Could not generate SAS URL: {e}")
             sas_url = None
@@ -166,7 +169,7 @@ def jotform_webhook(request):
             if not admin_emails:
                 logger.warning("No admin emails configured in settings.ADMINS")
             else:
-                subject = "Completed New Provider Application"
+                subject = f"New Provider Application - {provider.full_name}"
                 
                 # Render email body
                 email_body = render_to_string('email/new_provider_application.html', {
@@ -192,12 +195,15 @@ def jotform_webhook(request):
             logger.error(f"Failed to send email notification: {email_error}", exc_info=True)
             # Don't fail the webhook if email fails
 
+        logger.info("=== Webhook processed successfully ===")
+        
         return Response(
             {
                 "success": True, 
                 "message": "Form processed and saved to Azure.",
                 "form_id": form.id,
-                "blob_path": blob_path
+                "blob_path": blob_path,
+                "completed": form.completed
             }, 
             status=status.HTTP_200_OK
         )
@@ -373,3 +379,39 @@ class GenerateSASURLView(APIView):
                 {"error": "Failed to generate secure file link."}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+            
+# Add this to your onboarding_ops/views.py temporarily for debugging
+
+@csrf_exempt
+@api_view(['POST', 'GET'])
+@permission_classes([permissions.AllowAny])
+def jotform_webhook_debug(request):
+    """
+    DEBUG endpoint to see exactly what JotForm sends.
+    Use this temporarily to capture the webhook data.
+    """
+    import json
+    
+    debug_info = {
+        "method": request.method,
+        "content_type": request.content_type,
+        "headers": dict(request.headers),
+        "GET": dict(request.GET),
+        "POST": dict(request.POST),
+        "data": request.data,
+        "body": request.body.decode('utf-8') if request.body else None,
+    }
+    
+    # Log everything
+    logger.info("=== DEBUG WEBHOOK ===")
+    logger.info(json.dumps(debug_info, indent=2, default=str))
+    
+    return Response({
+        "success": True,
+        "message": "Debug data captured - check logs",
+        "captured_data": debug_info
+    }, status=status.HTTP_200_OK)
+
+
+# Add to urls.py:
+# path('jotform/webhook/debug/', api_views.jotform_webhook_debug, name='jotform-webhook-debug'),
