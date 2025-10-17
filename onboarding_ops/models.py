@@ -22,16 +22,24 @@ def provider_document_upload_path(instance, filename):
 class ProviderForm(models.Model):
     """
     Model for completed forms submitted via Jotform.
-    The PDF file is saved directly to Azure Blob Storage.
+    The PDF file path is stored as a string reference to Azure Blob Storage.
     """
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='submitted_forms')
     patient = models.ForeignKey(Patient, on_delete=models.SET_NULL, null=True, blank=True)
     form_type = models.CharField(max_length=100, help_text="e.g., 'New Account Form', 'IVR Report'")
     submission_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
-    completed_form = models.FileField(upload_to=provider_form_upload_path, null=True, blank=True)
+    # Changed from FileField to CharField to store Azure blob path
+    completed_form = models.CharField(max_length=500, null=True, blank=True, help_text="Azure blob path to the completed form")
     completed = models.BooleanField(default=False)
     form_data = models.JSONField(null=True, blank=True, help_text="A snapshot of the form's data.")
     date_created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date_created']
+        indexes = [
+            models.Index(fields=['user', 'form_type', 'completed']),
+            models.Index(fields=['submission_id']),
+        ]
 
     def __str__(self):
         return f'{self.form_type} for {self.user.email}'
@@ -39,17 +47,19 @@ class ProviderForm(models.Model):
 class ProviderDocument(models.Model):
     """
     Model to track documents uploaded by the provider for emailing.
-    Files are NOT stored in this system.
+    Files are NOT stored in this system - they are emailed directly.
     """
     DOCUMENT_TYPES = [
         ('PROVIDER_RECORDS_REVIEW', 'Provider Records Review'),
-        ('MISCELLANEOUS', 'miscellaneous'),
+        ('MISCELLANEOUS', 'Miscellaneous'),
     ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='uploaded_documents')
     document_type = models.CharField(max_length=50, choices=DOCUMENT_TYPES)
-    # The 'file' field is removed as we will not store it.
     uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-uploaded_at']
 
     def __str__(self):
         return f'{self.document_type} - {self.user.email}'

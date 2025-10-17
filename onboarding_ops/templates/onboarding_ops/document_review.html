@@ -1,0 +1,416 @@
+<!-- templates/email/new_provider_application.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <script src="https://kit.fontawesome.com/678db39ab5.js" crossorigin="anonymous"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet" />
+    <title>Promed Health + | New Provider Application</title>
+    <style type="text/css">
+      body, html {
+        font-family: 'Montserrat', sans-serif;
+        background-color: #f2f4f6;
+        margin: 0;
+        padding: 0;
+        width: 100% !important;
+      }
+      .wrapper {
+        width: 100%;
+        table-layout: fixed;
+        background-color: #f2f4f6;
+      }
+      .main {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+      }
+      .header, .footer {
+        text-align: center;
+        padding: 20px;
+      }
+      .logo-link {
+        font-size: 24px;
+        font-weight: 700;
+        color: #444;
+        text-decoration: none;
+      }
+      .info-text {
+        font-size: 14px;
+        color: #6a737d;
+        margin: 4px 0;
+      }
+      .content-area {
+        padding: 30px 20px;
+      }
+      .headline {
+        font-size: 26px;
+        font-weight: 700;
+        color: #1a202c;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .intro-text {
+        font-size: 16px;
+        line-height: 24px;
+        color: #5d6674;
+        margin-bottom: 20px;
+      }
+      .data-point {
+        margin: 10px 0;
+        padding: 12px;
+        background-color: #f8f9fa;
+        border-left: 4px solid #14b8a6;
+        border-radius: 4px;
+      }
+      .data-label {
+        font-weight: 700;
+        color: #1a202c;
+        display: inline-block;
+        min-width: 150px;
+      }
+      .button {
+        display: inline-block;
+        padding: 14px 32px;
+        background-color: #14b8a6;
+        color: #ffffff !important;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 600;
+        margin: 20px 0;
+        text-align: center;
+      }
+      .button:hover {
+        background-color: #0f9584;
+      }
+      .footer-text {
+        font-size: 12px;
+        color: #93a2b1;
+      }
+      .notice {
+        background-color: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 12px;
+        margin: 20px 0;
+        font-size: 14px;
+        color: #856404;
+        border-radius: 4px;
+      }
+      a {
+        color: #1E90FF;
+        word-break: break-word;
+      }
+      @media only screen and (max-width: 600px) {
+        .main {
+          border-radius: 0 !important;
+        }
+        .headline {
+          font-size: 22px;
+        }
+        .intro-text {
+          font-size: 14px;
+        }
+        .data-label {
+          min-width: auto;
+          display: block;
+          margin-bottom: 4px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <center class="wrapper">
+      <table class="main" cellpadding="0" cellspacing="0">
+        <tr>
+          <td class="header">
+            <a href="#" class="logo-link">Promed Health Plus</a>
+            <div class="info-text">
+              <i class="fa-solid fa-location-dot"></i> 1100 Ludlow Street, Philadelphia, PA 19107
+            </div>
+            <div class="info-text">
+              <i class="fa-solid fa-phone"></i> (267) 555 - 1212
+            </div>
+            <div class="info-text">
+              <i class="fa-solid fa-envelope"></i> admin@promedhealthplus.com
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <div class="content-area">
+              <h1 class="headline">Completed New Provider Application</h1>
+              <p class="intro-text">
+                A new provider has successfully completed their account application form and is ready for administrative review.
+              </p>
+
+              <div class="data-point">
+                <span class="data-label">Provider Name:</span> {{ provider.full_name|default:provider.email }}
+              </div>
+              
+              <div class="data-point">
+                <span class="data-label">Email:</span> <a href="mailto:{{ provider.email }}">{{ provider.email }}</a>
+              </div>
+              
+              <div class="data-point">
+                <span class="data-label">Phone:</span> {{ provider.phone_number|default:"Not provided" }}
+              </div>
+
+              {% if provider.facility %}
+              <div class="data-point">
+                <span class="data-label">Practice/Facility:</span> {{ provider.facility }}
+              </div>
+              {% endif %}
+              
+              <div class="data-point">
+                <span class="data-label">Form Type:</span> {{ form_name }}
+              </div>
+              
+              <div class="data-point">
+                <span class="data-label">Submission ID:</span> {{ submission_id }}
+              </div>
+              
+              <div class="data-point">
+                <span class="data-label">Submission Date:</span> {{ submission_date }}
+              </div>
+
+              {% if sas_url %}
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="{{ sas_url }}" class="button">
+                  <i class="fa-solid fa-file-pdf"></i> View Application Form
+                </a>
+              </div>
+              <div class="notice">
+                <strong>Note:</strong> The secure link above is valid for 1 hour. Please review the application at your earliest convenience.
+              </div>
+              {% else %}
+              <div class="notice">
+                <strong>Note:</strong> The application form is available in the system but a secure link could not be generated. Please access it through the admin portal.
+              </div>
+              {% endif %}
+
+              <p class="intro-text" style="font-weight: 600; margin-top: 30px; text-align: center; color: #1a202c;">
+                Please review the application and take the necessary next steps for onboarding approval.
+              </p>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="footer">
+            <p class="footer-text">&copy; 2025 Promed Health Plus. All Rights Reserved.</p>
+            <p class="footer-text">This is an automated notification. Please do not reply to this email.</p>
+          </td>
+        </tr>
+      </table>
+    </center>
+  </body>
+</html>
+
+<!-- templates/email/document_upload.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <script src="https://kit.fontawesome.com/678db39ab5.js" crossorigin="anonymous"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet" />
+    <title>Promed Health + | Document Submission</title>
+    <style type="text/css">
+      body, html {
+        font-family: 'Montserrat', sans-serif;
+        background-color: #f2f4f6;
+        margin: 0;
+        padding: 0;
+        width: 100% !important;
+      }
+      .wrapper {
+        width: 100%;
+        table-layout: fixed;
+        background-color: #f2f4f6;
+      }
+      .main {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+      }
+      .header, .footer {
+        text-align: center;
+        padding: 20px;
+      }
+      .logo-link {
+        font-size: 24px;
+        font-weight: 700;
+        color: #444;
+        text-decoration: none;
+      }
+      .info-text {
+        font-size: 14px;
+        color: #6a737d;
+        margin: 4px 0;
+      }
+      .content-area {
+        padding: 30px 20px;
+      }
+      .headline {
+        font-size: 26px;
+        font-weight: 700;
+        color: #1a202c;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .intro-text {
+        font-size: 16px;
+        line-height: 24px;
+        color: #5d6674;
+        margin-bottom: 20px;
+      }
+      .data-point {
+        margin: 10px 0;
+        padding: 12px;
+        background-color: #f8f9fa;
+        border-left: 4px solid #14b8a6;
+        border-radius: 4px;
+      }
+      .data-label {
+        font-weight: 700;
+        color: #1a202c;
+        display: inline-block;
+        min-width: 150px;
+      }
+      .attachment-box {
+        background-color: #e8f5f3;
+        border: 2px dashed #14b8a6;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 8px;
+        text-align: center;
+      }
+      .attachment-icon {
+        font-size: 48px;
+        color: #14b8a6;
+        margin-bottom: 10px;
+      }
+      .footer-text {
+        font-size: 12px;
+        color: #93a2b1;
+      }
+      .notice {
+        background-color: #d1ecf1;
+        border-left: 4px solid #17a2b8;
+        padding: 12px;
+        margin: 20px 0;
+        font-size: 14px;
+        color: #0c5460;
+        border-radius: 4px;
+      }
+      a {
+        color: #1E90FF;
+        word-break: break-word;
+      }
+      @media only screen and (max-width: 600px) {
+        .main {
+          border-radius: 0 !important;
+        }
+        .headline {
+          font-size: 22px;
+        }
+        .intro-text {
+          font-size: 14px;
+        }
+        .data-label {
+          min-width: auto;
+          display: block;
+          margin-bottom: 4px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <center class="wrapper">
+      <table class="main" cellpadding="0" cellspacing="0">
+        <tr>
+          <td class="header">
+            <a href="#" class="logo-link">Promed Health Plus</a>
+            <div class="info-text">
+              <i class="fa-solid fa-location-dot"></i> 1100 Ludlow Street, Philadelphia, PA 19107
+            </div>
+            <div class="info-text">
+              <i class="fa-solid fa-phone"></i> (267) 555 - 1212
+            </div>
+            <div class="info-text">
+              <i class="fa-solid fa-envelope"></i> admin@promedhealthplus.com
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <div class="content-area">
+              <h1 class="headline">Medical Document Submission for Review</h1>
+              <p class="intro-text">Dear Supervising Physician,</p>
+              <p class="intro-text">
+                You have received new medical documents from a provider for your professional review and approval.
+              </p>
+
+              <div class="data-point">
+                <span class="data-label">Provider Name:</span> {{ user.full_name|default:user.email }}
+              </div>
+              
+              <div class="data-point">
+                <span class="data-label">Email:</span> <a href="mailto:{{ user.email }}">{{ user.email }}</a>
+              </div>
+              
+              <div class="data-point">
+                <span class="data-label">Phone:</span> {{ user.phone_number|default:"Not provided" }}
+              </div>
+
+              {% if user.facility %}
+              <div class="data-point">
+                <span class="data-label">Practice/Facility:</span> {{ user.facility }}
+              </div>
+              {% endif %}
+              
+              <div class="data-point">
+                <span class="data-label">Document Type:</span> {{ document_type }}
+              </div>
+
+              <div class="attachment-box">
+                <div class="attachment-icon">
+                  <i class="fa-solid fa-paperclip"></i>
+                </div>
+                <p style="margin: 0; font-weight: 600; color: #1a202c;">
+                  {{ file_count }} Document{{ file_count|pluralize }} Attached
+                </p>
+                <p style="margin: 10px 0 0 0; font-size: 14px; color: #5d6674;">
+                  Please review the attached file{{ file_count|pluralize }} below
+                </p>
+              </div>
+
+              <div class="notice">
+                <i class="fa-solid fa-info-circle"></i> <strong>Action Required:</strong> Please review the attached documents and provide your professional assessment or approval as needed.
+              </div>
+
+              <p class="intro-text" style="font-weight: 600; margin-top: 30px; text-align: center; color: #1a202c;">
+                Thank you for your prompt attention to this matter.
+              </p>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="footer">
+            <p class="footer-text">&copy; 2025 Promed Health Plus. All Rights Reserved.</p>
+            <p class="footer-text">This is an automated notification. Please do not reply to this email.</p>
+          </td>
+        </tr>
+      </table>
+    </center>
+  </body>
+</html>
