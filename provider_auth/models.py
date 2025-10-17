@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _ # Required for Django field definitions
 from sales_rep.models import SalesRep
 from phonenumber_field.modelfields import PhoneNumberField
+from promed_backend_api.storage_backends import AzureStaticStorage
 import random
 import uuid
 # REMOVED: django.core.mail, django.template.loader (No longer needed here)
@@ -37,6 +38,9 @@ USER_ROLES = (
 def generate_code():
     return str(random.randint(100000, 999999))
 
+def user_directory_path(instance, filename):
+    # file will be uploaded to: MEDIA_ROOT/user_<id>/<filename>
+    return f'user_{instance.user.id}/{filename}'
 #sends verify email from here
 class User(AbstractUser):
     username = models.CharField(unique=True, max_length=255)
@@ -104,8 +108,9 @@ class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     sales_rep = models.ForeignKey(SalesRep, on_delete=models.SET_NULL, null=True, blank=True, related_name="providers")
     image = models.FileField(
-    upload_to='images',
-    default='images/default_user.jpg',
+    storage= AzureStaticStorage,
+    upload_to=user_directory_path,
+    default='https://promedheatlhdatastorage.blob.core.windows.net/static/images/default_user.jpg',
     null=True,
     blank=True
     )
