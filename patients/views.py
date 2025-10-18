@@ -73,27 +73,35 @@ class PatientListView(generics.ListCreateAPIView):
             )
 
     def perform_create(self, serializer):
-        """Save the patient with the current user as the provider"""
         logger.info("="*50)
         logger.info("🔍 PERFORM CREATE")
         logger.info(f"User ID: {self.request.user.id}")
         logger.info(f"User Email: {self.request.user.email}")
-        logger.info(f"User exists in DB: {User.objects.filter(id=self.request.user.id).exists()}")
-        logger.info(f"Serializer validated_data keys: {list(serializer.validated_data.keys())}")
-        logger.info(f"'provider' in validated_data: {'provider' in serializer.validated_data}")
-        logger.info(f"'provider_id' in validated_data: {'provider_id' in serializer.validated_data}")
+        logger.info(f"User Type: {type(self.request.user)}")
+        logger.info(f"User Model: {self.request.user.__class__.__name__}")
+        logger.info(f"User PK: {self.request.user.pk}")
+        
+        # Check if user exists in correct table
+        from provider_auth.models import User
+        user_exists = User.objects.filter(id=self.request.user.id).exists()
+        logger.info(f"User exists in provider_auth.User: {user_exists}")
+        
+        if user_exists:
+            user_obj = User.objects.get(id=self.request.user.id)
+            logger.info(f"User from DB: {user_obj.email} (ID: {user_obj.id})")
+        
         logger.info("="*50)
         
         try:
-            # Explicitly remove provider fields from validated_data just in case
             validated_data = serializer.validated_data
             validated_data.pop('provider', None)
             validated_data.pop('provider_id', None)
             
             # Save with the current user as provider
             patient = serializer.save(provider=self.request.user)
-            logger.info(f"✅ Patient created successfully with ID: {patient.id}")
+            logger.info(f"✅ Patient created with ID: {patient.id}")
             logger.info(f"✅ Patient provider ID: {patient.provider_id}")
+            logger.info(f"✅ Patient provider email: {patient.provider.email}")
             
         except Exception as e:
             logger.error(f"❌ Error in perform_create: {str(e)}", exc_info=True)
