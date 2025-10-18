@@ -190,28 +190,18 @@ class CreateOrderView(generics.CreateAPIView):
 
         except Exception as e:
             print(f"Error saving PDF to Azure Blob Storage: {e}")
+
     def send_invoice_email(self, order):
         try:
-            # Build recipient list safely
+            sales_rep_email = order.provider.profile.sales_rep.email
             recipient_list = [
                 order.provider.email,
+                sales_rep_email,
                 settings.DEFAULT_FROM_EMAIL,
                 'harold@promedhealthplus.com',
                 'kayvoncrenshaw@gmail.com',
                 'william.dev@promedhealthplus.com'
             ]
-            
-            # ✅ Safely add sales rep email if it exists
-            if hasattr(order.provider, 'profile') and order.provider.profile:
-                if hasattr(order.provider.profile, 'sales_rep') and order.provider.profile.sales_rep:
-                    sales_rep_email = order.provider.profile.sales_rep.email
-                    if sales_rep_email:
-                        recipient_list.insert(1, sales_rep_email)  # Add after provider email
-                        logger.info(f"📧 Added sales rep email: {sales_rep_email}")
-                else:
-                    logger.warning(f"⚠️ No sales rep assigned to provider {order.provider.email}")
-            else:
-                logger.warning(f"⚠️ No profile found for provider {order.provider.email}")
 
             subject = f"Invoice for Order {order.id} || {order.patient.first_name} {order.patient.last_name} || {order.created_at.strftime('%Y-%m-%d')}"
             html_content = render_to_string('orders/order_invoice.html', {'order': order})
@@ -234,12 +224,11 @@ class CreateOrderView(generics.CreateAPIView):
             )
             email.attach(f"invoice_order_{order.id}.pdf", pdf_file_stream.read(), 'application/pdf')
             email.send(fail_silently=False)
-            
-            logger.info(f"✅ Invoice email sent to {len(recipient_list)} recipients")
 
         except Exception as e:
-            logger.error(f"❌ Error sending invoice email for order {order.id}: {e}")
+            print(f"Error sending invoice email for order {order.id}: {e}")
             raise
+
 
 class ProviderOrderHistoryView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
