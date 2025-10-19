@@ -12,9 +12,57 @@ import orders.models as api_models
 from rest_framework.response import Response
 from utils.azure_storage import blob_service_client, clean_string
 from decimal import Decimal
+import re  
+from decimal import Decimal
 import logging
 
 logger = logging.getLogger(__name__)
+
+def generate_pdf_from_html(html_content):
+    """Generates a PDF file from HTML content using xhtml2pdf."""
+    result_file = BytesIO()
+    pisa_status = pisa.pisaDocument(
+        BytesIO(html_content.encode("UTF-8")),
+        dest=result_file
+    )
+    if not pisa_status.err:
+        result_file.seek(0)
+        return result_file
+    print(f"xhtml2pdf error encountered: {pisa_status.err}")
+    return None
+
+
+def parse_variant_size_to_cm2(size_str):
+    """
+    Parse variant size string and return area in cm².
+    Handles formats like:
+    - "2 x 2" (assumes cm)
+    - "2 x 2 cm"
+    - "20 x 20 mm" (converts to cm)
+    """
+    if not size_str:
+        return Decimal('0')
+    
+    try:
+        # Match: number x number with optional unit (mm or cm)
+        match = re.match(r'(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(mm|cm)?', size_str, re.IGNORECASE)
+        if not match:
+            logger.warning(f"⚠️ Could not parse size: {size_str}")
+            return Decimal('0')
+        
+        length = Decimal(match.group(1))
+        width = Decimal(match.group(2))
+        unit = match.group(3).lower() if match.group(3) else 'cm'  # Default to cm
+        
+        # Convert mm to cm (1cm = 10mm)
+        if unit == 'mm':
+            length = length / Decimal('10')
+            width = width / Decimal('10')
+        
+        return length * width  # Return area in cm²
+    except Exception as e:
+        logger.error(f"❌ Error parsing size '{size_str}': {e}")
+        return Decimal('0')
 
 def generate_pdf_from_html(html_content):
     """Generates a PDF file from HTML content using xhtml2pdf."""
@@ -108,18 +156,15 @@ class CreateOrderView(generics.CreateAPIView):
             
             try:
                 variant = ProductVariant.objects.get(id=variant_id)
-                # Parse size like "2 x 2" or "4x4"
-                size_str = variant.size
-                import re
-                match = re.match(r'(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)', size_str, re.IGNORECASE)
-                if match:
-                    length = Decimal(match.group(1))
-                    width = Decimal(match.group(2))
-                    variant_area = length * width
-                    total_ordered_area += variant_area * Decimal(str(quantity))
-                    logger.info(f"  📦 Variant {variant_id} ({size_str}): {variant_area} cm² x {quantity} = {variant_area * Decimal(str(quantity))} cm²")
+                # ✅ Use the new helper function that handles mm/cm
+                variant_area = parse_variant_size_to_cm2(variant.size)
+                
+                if variant_area > 0:
+                    item_total_area = variant_area * Decimal(str(quantity))
+                    total_ordered_area += item_total_area
+                    logger.info(f"  📦 Variant {variant_id} ({variant.size}): {variant_area} cm² x {quantity} = {item_total_area} cm²")
                 else:
-                    logger.warning(f"⚠️ Could not parse size for variant {variant_id}: {size_str}")
+                    logger.warning(f"⚠️ Could not calculate area for variant {variant_id}: {variant.size}")
             except ProductVariant.DoesNotExist:
                 return Response(
                     {'error': f'Product variant {variant_id} not found'},
