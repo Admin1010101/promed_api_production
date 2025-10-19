@@ -12,8 +12,7 @@ class NotesView(viewsets.ModelViewSet):
         patient_id = self.request.query_params.get('patient')
         if patient_id:
             queryset = queryset.filter(patient_id=patient_id)
-        return queryset
-    
+        return queryset.order_by('-id')  # Most recent first
     
         
         
