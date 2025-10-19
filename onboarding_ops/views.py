@@ -55,17 +55,33 @@ class ProviderFormDetail(generics.RetrieveUpdateDestroyAPIView):
 @permission_classes([permissions.AllowAny])
 def jotform_webhook(request):
     """
-    Webhook handler for JotForm submissions.
+    Webhook with detailed response for debugging.
+    Returns step-by-step progress in the response.
     """
+    debug_info = []
+    
+    def log(msg, level="INFO"):
+        debug_info.append(f"[{level}] {msg}")
+        logger.info(msg)
+    
     try:
+        log("🎯 Webhook received")
+        
+        # Validate request
         serializer = JotFormWebhookSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            log(f"Serializer errors: {serializer.errors}", "ERROR")
+            return Response({
+                "success": False,
+                "error": "Invalid data",
+                "details": serializer.errors,
+                "debug": debug_info
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
         form_data = data.get('content', {})
         
-        # Extract provider email
+        # Extract data
         provider_email = (
             form_data.get('q4_providerEmail') or 
             form_data.get('providerEmail') or
@@ -73,116 +89,169 @@ def jotform_webhook(request):
             form_data.get('email') or
             form_data.get('contactEmail')
         )
-        
         form_name = data.get('formTitle', 'New Account Form')
         submission_id = data.get('submissionID')
+        
+        log(f"Provider: {provider_email}")
+        log(f"Form: {form_name}")
+        log(f"Submission: {submission_id}")
 
         if not provider_email or not submission_id:
-            return Response(
-                {"error": "Missing provider email or submission ID."}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            log("Missing required fields", "ERROR")
+            return Response({
+                "success": False,
+                "error": "Missing provider email or submission ID",
+                "debug": debug_info
+            }, status=400)
 
         # Find provider
         try:
             provider = User.objects.get(email=provider_email)
+            log(f"✅ Provider found: {provider.full_name}")
         except User.DoesNotExist:
-            return Response(
-                {"error": f"Provider with email {provider_email} not found."}, 
-                status=status.HTTP_404_NOT_FOUND
-            )
+            log(f"Provider not found: {provider_email}", "ERROR")
+            return Response({
+                "success": False,
+                "error": "Provider not found",
+                "debug": debug_info
+            }, status=404)
 
         # Download PDF
         pdf_url = form_data.get('submissionPDF', f"https://www.jotform.com/pdf-submission/{submission_id}")
+        log(f"Downloading PDF from: {pdf_url}")
         
-        max_retries = 3
-        response = None
-        
-        for attempt in range(max_retries):
-            try:
-                response = requests.get(pdf_url, timeout=30)
-                response.raise_for_status()
-                break
-            except requests.exceptions.RequestException as e:
-                if attempt < max_retries - 1:
-                    import time
-                    time.sleep(2)
-                else:
-                    return Response(
-                        {"error": "Failed to download PDF from JotForm."}, 
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                    )
+        try:
+            response = requests.get(pdf_url, timeout=30)
+            response.raise_for_status()
+            pdf_size = len(response.content)
+            log(f"✅ PDF downloaded: {pdf_size} bytes")
+        except Exception as e:
+            log(f"PDF download failed: {str(e)}", "ERROR")
+            return Response({
+                "success": False,
+                "error": "Failed to download PDF",
+                "details": str(e),
+                "debug": debug_info
+            }, status=500)
 
-        if not response or len(response.content) == 0:
-            return Response(
-                {"error": "Downloaded PDF is empty"}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        if pdf_size == 0:
+            log("PDF is empty", "ERROR")
+            return Response({
+                "success": False,
+                "error": "PDF is empty",
+                "debug": debug_info
+            }, status=500)
 
-        # Generate blob path (no "media/" prefix since container is already "media")
+        # Generate blob path
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         file_name = f"{slugify(form_name)}-{timestamp}.pdf"
         provider_slug = slugify(provider.full_name or provider.email.split('@')[0])
         blob_path = f"{provider_slug}/onboarding/{file_name}"
         container_name = settings.AZURE_MEDIA_CONTAINER
         
-        # Upload to Azure using direct SDK
+        log(f"Blob path: {blob_path}")
+        log(f"Container: {container_name}")
+        
+        # Check Azure config
+        conn_str = settings.AZURE_STORAGE_CONNECTION_STRING
+        if not conn_str:
+            log("Azure connection string not configured", "ERROR")
+            return Response({
+                "success": False,
+                "error": "Azure storage not configured",
+                "debug": debug_info
+            }, status=500)
+        
+        log(f"Connection string length: {len(conn_str)}")
+        
+        # Upload to Azure
         try:
-            blob_service_client = BlobServiceClient.from_connection_string(
-                settings.AZURE_STORAGE_CONNECTION_STRING
-            )
+            log("Creating BlobServiceClient...")
+            from azure.storage.blob import BlobServiceClient
+            blob_service_client = BlobServiceClient.from_connection_string(conn_str)
+            log("✅ BlobServiceClient created")
+            
+            log("Creating BlobClient...")
             blob_client = blob_service_client.get_blob_client(
                 container=container_name,
                 blob=blob_path
             )
+            log("✅ BlobClient created")
             
-            # Upload
+            log(f"Uploading {pdf_size} bytes...")
             blob_client.upload_blob(response.content, overwrite=True)
+            log("✅ Upload blob completed")
             
+            # Verify
+            log("Verifying blob exists...")
+            if blob_client.exists():
+                log("✅ BLOB VERIFIED IN AZURE!")
+                blob_verified = True
+            else:
+                log("⚠️ Blob uploaded but exists() returned False", "WARNING")
+                blob_verified = False
+                
         except Exception as e:
-            return Response(
-                {"error": "Failed to upload to Azure Blob Storage"}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            log(f"Azure upload error: {type(e).__name__}: {str(e)}", "ERROR")
+            import traceback
+            log(f"Traceback: {traceback.format_exc()}", "ERROR")
+            return Response({
+                "success": False,
+                "error": "Azure upload failed",
+                "error_type": type(e).__name__,
+                "error_message": str(e),
+                "debug": debug_info
+            }, status=500)
+
+        # Save to database
+        try:
+            log("Saving to database...")
+            form, created = ProviderForm.objects.get_or_create(
+                user=provider,
+                submission_id=submission_id,
+                defaults={
+                    'form_type': form_name,
+                    'completed_form': blob_path,
+                    'form_data': form_data,
+                    'completed': True,
+                }
             )
+            
+            if not created:
+                form.completed_form = blob_path
+                form.form_data = form_data
+                form.completed = True
+                form.save()
+                log(f"✅ Updated form record {form.id}")
+            else:
+                log(f"✅ Created form record {form.id}")
+                
+        except Exception as e:
+            log(f"Database error: {str(e)}", "ERROR")
+            return Response({
+                "success": False,
+                "error": "Database save failed",
+                "details": str(e),
+                "debug": debug_info
+            }, status=500)
 
-        # Create database record
-        form, created = ProviderForm.objects.get_or_create(
-            user=provider,
-            submission_id=submission_id,
-            defaults={
-                'form_type': form_name,
-                'completed_form': blob_path,
-                'form_data': form_data,
-                'completed': True,
-            }
-        )
-        
-        if not created:
-            form.completed_form = blob_path
-            form.form_data = form_data
-            form.completed = True
-            form.save()
-
-        # Generate SAS URL for email
+        # Generate SAS URL
         sas_url = None
         try:
+            log("Generating SAS URL...")
             from utils.azure_storage import generate_sas_url
-            sas_url = generate_sas_url(
-                blob_name=blob_path,
-                container_name=container_name,
-                permission='r',
-                expiry_hours=72
-            )
+            sas_url = generate_sas_url(blob_path, container_name, 'r', 72)
+            log("✅ SAS URL generated")
         except Exception as e:
-            pass
+            log(f"SAS URL generation failed: {str(e)}", "WARNING")
 
         # Send email
         try:
+            log("Sending email...")
             admin_emails = [email for name, email in settings.ADMINS]
             
             if admin_emails:
                 subject = f"New Provider Application - {provider.full_name}"
-                
                 email_body = render_to_string('email/new_provider_application.html', {
                     'provider': provider,
                     'form_name': form_name,
@@ -190,37 +259,47 @@ def jotform_webhook(request):
                     'sas_url': sas_url,
                     'submission_date': form.date_created.strftime('%B %d, %Y at %I:%M %p'),
                 })
-
-                email = EmailMessage(
-                    subject,
-                    email_body,
-                    settings.DEFAULT_FROM_EMAIL,
-                    admin_emails,
-                )
+                email = EmailMessage(subject, email_body, settings.DEFAULT_FROM_EMAIL, admin_emails)
                 email.content_subtype = "html"
                 email.send()
+                log(f"✅ Email sent to {len(admin_emails)} recipients")
+            else:
+                log("No admin emails configured", "WARNING")
+                
+        except Exception as e:
+            log(f"Email failed: {str(e)}", "WARNING")
 
-        except Exception as email_error:
-            pass
+        log("✅ WEBHOOK COMPLETED SUCCESSFULLY")
         
-        return Response(
-            {
-                "success": True, 
-                "message": "Form processed and saved to Azure.",
+        # Return detailed success response
+        return Response({
+            "success": True,
+            "message": "Form processed and saved to Azure",
+            "data": {
                 "form_id": form.id,
                 "blob_path": blob_path,
-                "completed": form.completed,
+                "container": container_name,
+                "file_size": pdf_size,
+                "blob_verified": blob_verified,
                 "provider_email": provider_email,
-                "file_size": len(response.content)
-            }, 
-            status=status.HTTP_200_OK
-        )
+                "submission_id": submission_id,
+                "sas_url_generated": sas_url is not None
+            },
+            "debug": debug_info
+        }, status=200)
 
     except Exception as e:
-        return Response(
-            {"error": "Internal server error occurred"}, 
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+        log(f"FATAL ERROR: {type(e).__name__}: {str(e)}", "ERROR")
+        import traceback
+        log(f"Traceback: {traceback.format_exc()}", "ERROR")
+        
+        return Response({
+            "success": False,
+            "error": "Internal server error",
+            "error_type": type(e).__name__,
+            "error_message": str(e),
+            "debug": debug_info
+        }, status=500)
         
 @csrf_exempt
 @api_view(['POST', 'GET'])
