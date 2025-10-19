@@ -10,13 +10,27 @@ from django.core.mail import EmailMessage
 import orders.serializers as api_serializers
 import orders.models as api_models
 from rest_framework.response import Response
-from utils.azure_storage import blob_service_client, clean_string
 from decimal import Decimal
 import re  
-from decimal import Decimal
 import logging
 
 logger = logging.getLogger(__name__)
+
+# Import Azure functions properly
+try:
+    from utils.azure_storage import get_blob_service_client
+    AZURE_AVAILABLE = True
+except ImportError:
+    AZURE_AVAILABLE = False
+    logger.warning("⚠️ utils.azure_storage not available - using fallback")
+
+
+def clean_string(text):
+    """Clean string for use in file paths."""
+    if not text:
+        return "unknown"
+    return "".join(c if c.isalnum() or c in (' ', '-', '_') else '_' for c in text).strip()
+
 
 def generate_pdf_from_html(html_content):
     """Generates a PDF file from HTML content using xhtml2pdf."""
@@ -64,18 +78,6 @@ def parse_variant_size_to_cm2(size_str):
         logger.error(f"❌ Error parsing size '{size_str}': {e}")
         return Decimal('0')
 
-def generate_pdf_from_html(html_content):
-    """Generates a PDF file from HTML content using xhtml2pdf."""
-    result_file = BytesIO()
-    pisa_status = pisa.pisaDocument(
-        BytesIO(html_content.encode("UTF-8")),
-        dest=result_file
-    )
-    if not pisa_status.err:
-        result_file.seek(0)
-        return result_file
-    print(f"xhtml2pdf error encountered: {pisa_status.err}")
-    return None
 
 class CreateOrderView(generics.CreateAPIView):
     serializer_class = api_serializers.OrderSerializer
@@ -212,12 +214,17 @@ class CreateOrderView(generics.CreateAPIView):
             )
 
     def save_invoice_to_azure(self, order):
+        """Save invoice PDF to Azure Blob Storage."""
+        if not AZURE_AVAILABLE:
+            logger.warning("⚠️ Azure not available - skipping PDF save")
+            return
+            
         try:
             html_content = render_to_string('orders/order_invoice.html', {'order': order})
             pdf_file_stream = generate_pdf_from_html(html_content)
 
             if not pdf_file_stream:
-                print(f"Skipping Azure upload: Failed to generate PDF for order {order.id}.")
+                logger.error(f"❌ Failed to generate PDF for order {order.id}")
                 return
 
             provider_name = clean_string(order.provider.full_name)
@@ -225,18 +232,21 @@ class CreateOrderView(generics.CreateAPIView):
             file_name = f"invoice_order_{order.id}.pdf"
             blob_path = f"orders/{provider_name}/{patient_name}/{file_name}"
 
+            # Get blob service client
+            blob_service_client = get_blob_service_client()
             blob_client = blob_service_client.get_blob_client(
-                container=settings.AZURE_CONTAINER,
+                container=settings.AZURE_MEDIA_CONTAINER,
                 blob=blob_path
             )
 
             blob_client.upload_blob(pdf_file_stream, overwrite=True)
-            print(f"PDF invoice for order {order.id} saved to Azure Blob at: {blob_path}")
+            logger.info(f"✅ PDF invoice for order {order.id} saved to Azure at: {blob_path}")
 
         except Exception as e:
-            print(f"Error saving PDF to Azure Blob Storage: {e}")
+            logger.error(f"❌ Error saving PDF to Azure: {e}", exc_info=True)
 
     def send_invoice_email(self, order):
+        """Send invoice email with PDF attachment."""
         try:
             # Build recipient list safely
             recipient_list = [
@@ -309,6 +319,10 @@ class InvoicePDFView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, order_id):
+        """Download invoice PDF from Azure Blob Storage."""
+        if not AZURE_AVAILABLE:
+            raise Http404("Azure storage not available")
+            
         try:
             order = api_models.Order.objects.get(id=order_id, provider=request.user)
 
@@ -317,8 +331,10 @@ class InvoicePDFView(APIView):
             file_name = f"invoice_order_{order.id}.pdf"
             blob_path = f"orders/{provider_name}/{patient_name}/{file_name}"
 
+            # Get blob service client
+            blob_service_client = get_blob_service_client()
             blob_client = blob_service_client.get_blob_client(
-                container=settings.AZURE_CONTAINER,
+                container=settings.AZURE_MEDIA_CONTAINER,
                 blob=blob_path
             )
 
@@ -333,5 +349,5 @@ class InvoicePDFView(APIView):
         except api_models.Order.DoesNotExist:
             raise Http404("Order not found")
         except Exception as e:
-            print(f"Error retrieving invoice PDF: {e}")
+            logger.error(f"❌ Error retrieving invoice PDF: {e}", exc_info=True)
             raise Http404("Could not retrieve invoice")

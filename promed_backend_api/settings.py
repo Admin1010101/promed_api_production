@@ -236,6 +236,7 @@ AZURE_CONTAINER = AZURE_MEDIA_CONTAINER
 # Admin emails - UPDATE THESE WITH REAL EMAIL ADDRESSES
 ADMINS = [
     ('Admin Name', 'admin@promedhealthplus.com'),
+    ('William Dev', 'william.dev@promedhealthplus.com'),
 ]
 
 # Supervising physician email for document uploads
