@@ -33,6 +33,9 @@ RUNNING_ON_AZURE = os.getenv('WEBSITE_SITE_NAME') is not None
 
 AUTH_USER_MODEL = 'provider_auth.User'
 
+USE_TZ = True
+TIME_ZONE = 'UTC' 
+
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
 
@@ -156,6 +159,8 @@ REST_FRAMEWORK = {
     ],
     # Don't require authentication for views that explicitly set AllowAny
     'UNAUTHENTICATED_USER': None,
+    'DATETIME_FORMAT': '%Y-%m-%dT%H:%M:%S.%fZ',
+    'DATE_FORMAT': '%Y-%m-%d',
 }
 
 WSGI_APPLICATION = 'promed_backend_api.wsgi.application'
