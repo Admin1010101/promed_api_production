@@ -231,6 +231,16 @@ AZURE_STATIC_CONTAINER = 'static'
 AZURE_MEDIA_CONTAINER = 'media'
 AZURE_OVERWRITE_FILES = True
 
+AZURE_CONTAINER = AZURE_MEDIA_CONTAINER
+
+# Admin emails - UPDATE THESE WITH REAL EMAIL ADDRESSES
+ADMINS = [
+    ('Admin Name', 'admin@promedhealthplus.com'),
+]
+
+# Supervising physician email for document uploads
+SUPERVISING_PHYSICIAN_EMAIL = 'william.chandler21@yahoo.com'
+
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 STORAGES = {
