@@ -63,6 +63,8 @@ def jotform_webhook(request):
     4. Creates ProviderForm record in database
     """
     logger.info("=== JotForm Webhook Received ===")
+    logger.info(f"Request method: {request.method}")
+    logger.info(f"Request headers: {dict(request.headers)}")
     logger.info(f"Request data: {request.data}")
     
     serializer = JotFormWebhookSerializer(data=request.data)
@@ -73,38 +75,68 @@ def jotform_webhook(request):
     data = serializer.validated_data
     form_data = data.get('content', {})
     
-    # Extract provider email from form submission
-    provider_email = form_data.get('q4_providerEmail') or form_data.get('providerEmail')
+    # Extract provider email from form submission - try multiple field names
+    provider_email = (
+        form_data.get('q4_providerEmail') or 
+        form_data.get('providerEmail') or
+        form_data.get('q3_email') or
+        form_data.get('email') or
+        form_data.get('contactEmail')
+    )
+    
     form_name = data.get('formTitle', 'New Account Form')
     submission_id = data.get('submissionID')
 
-    logger.info(f"Processing submission - Email: {provider_email}, ID: {submission_id}")
+    logger.info(f"Processing submission - Email: {provider_email}, ID: {submission_id}, Form: {form_name}")
 
     if not provider_email or not submission_id:
-        logger.error("Jotform webhook missing required data.")
+        logger.error(f"Jotform webhook missing required data. Email: {provider_email}, ID: {submission_id}")
+        logger.error(f"Available form_data keys: {list(form_data.keys())}")
         return Response(
-            {"error": "Missing provider email or submission ID."}, 
+            {"error": "Missing provider email or submission ID.", "available_fields": list(form_data.keys())}, 
             status=status.HTTP_400_BAD_REQUEST
         )
 
     # Find the provider user
     try:
         provider = User.objects.get(email=provider_email)
-        logger.info(f"Found provider: {provider.full_name} ({provider.email})")
+        logger.info(f"✅ Found provider: {provider.full_name} ({provider.email})")
     except User.DoesNotExist:
-        logger.error(f"User with email {provider_email} not found.")
+        logger.error(f"❌ User with email {provider_email} not found in database.")
         return Response(
-            {"error": "Provider not found."}, 
+            {"error": f"Provider with email {provider_email} not found."}, 
             status=status.HTTP_404_NOT_FOUND
         )
 
     try:
-        # Download PDF from JotForm
+        # Download PDF from JotForm with retries
         pdf_url = form_data.get('submissionPDF', f"https://www.jotform.com/pdf-submission/{submission_id}")
         logger.info(f"Downloading PDF from: {pdf_url}")
-        response = requests.get(pdf_url, timeout=30)
-        response.raise_for_status()
-        logger.info(f"PDF downloaded successfully, size: {len(response.content)} bytes")
+        
+        max_retries = 3
+        response = None
+        
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(pdf_url, timeout=30)
+                response.raise_for_status()
+                logger.info(f"✅ PDF downloaded successfully on attempt {attempt + 1}, size: {len(response.content)} bytes")
+                break
+            except requests.exceptions.RequestException as e:
+                if attempt < max_retries - 1:
+                    logger.warning(f"PDF download failed (attempt {attempt + 1}/{max_retries}), retrying... Error: {e}")
+                    import time
+                    time.sleep(2)
+                else:
+                    logger.error(f"❌ PDF download failed after {max_retries} attempts: {e}")
+                    raise
+
+        if not response or len(response.content) == 0:
+            logger.error("❌ Downloaded PDF is empty")
+            return Response(
+                {"error": "Downloaded PDF is empty"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
         # Generate file name with timestamp
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -114,19 +146,35 @@ def jotform_webhook(request):
         provider_slug = slugify(provider.full_name or provider.email.split('@')[0])
         blob_path = f"media/{provider_slug}/onboarding/{file_name}"
 
-        logger.info(f"Uploading to Azure Blob Storage: {blob_path}")
-        logger.info(f"Container: {settings.AZURE_CONTAINER}")
-        logger.info(f"Content size: {len(response.content)} bytes")
+        logger.info(f"📤 Uploading to Azure Blob Storage:")
+        logger.info(f"  - Blob path: {blob_path}")
+        logger.info(f"  - Container: {settings.AZURE_CONTAINER}")
+        logger.info(f"  - Content size: {len(response.content)} bytes")
         
         # Upload to Azure Blob Storage
         with BytesIO(response.content) as stream:
             upload_result = upload_to_azure_stream(stream, blob_path, settings.AZURE_CONTAINER)
-            logger.info(f"Azure upload result: {upload_result}")
+            logger.info(f"Upload result: {upload_result}")
             
             if not upload_result:
                 logger.error("⚠️ Azure upload returned False - check Azure credentials and permissions")
+                return Response(
+                    {"error": "Failed to upload to Azure Blob Storage"}, 
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
             else:
                 logger.info("✅ Azure upload successful")
+
+        # Verify the upload
+        from utils.azure_storage import blob_exists
+        if blob_exists(blob_path, settings.AZURE_CONTAINER):
+            logger.info("✅ File verified in Azure Blob Storage")
+        else:
+            logger.error("❌ File NOT found in Azure after upload!")
+            return Response(
+                {"error": "File upload verification failed"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
         # Create or update database record with blob path as string
         form, created = ProviderForm.objects.get_or_create(
@@ -146,18 +194,19 @@ def jotform_webhook(request):
             form.form_data = form_data
             form.completed = True
             form.save()
-            logger.info(f"Updated existing form record for submission {submission_id}")
+            logger.info(f"✅ Updated existing form record for submission {submission_id}")
         else:
-            logger.info(f"Created new form record for submission {submission_id}")
+            logger.info(f"✅ Created new form record for submission {submission_id}")
 
         # Generate SAS URL for email
         try:
             sas_url = generate_sas_url(
                 blob_name=blob_path,
                 container_name=settings.AZURE_CONTAINER,
-                permission='r'
+                permission='r',
+                expiry_hours=72  # Link valid for 3 days
             )
-            logger.info("SAS URL generated successfully")
+            logger.info("✅ SAS URL generated successfully")
         except Exception as e:
             logger.warning(f"Could not generate SAS URL: {e}")
             sas_url = None
@@ -167,7 +216,7 @@ def jotform_webhook(request):
             admin_emails = [email for name, email in settings.ADMINS]
             
             if not admin_emails:
-                logger.warning("No admin emails configured in settings.ADMINS")
+                logger.warning("⚠️ No admin emails configured in settings.ADMINS")
             else:
                 subject = f"New Provider Application - {provider.full_name}"
                 
@@ -189,13 +238,13 @@ def jotform_webhook(request):
                 email.content_subtype = "html"
                 email.send()
                 
-                logger.info(f"Email sent to admins: {admin_emails}")
+                logger.info(f"✅ Email sent to admins: {admin_emails}")
 
         except Exception as email_error:
-            logger.error(f"Failed to send email notification: {email_error}", exc_info=True)
+            logger.error(f"❌ Failed to send email notification: {email_error}", exc_info=True)
             # Don't fail the webhook if email fails
 
-        logger.info("=== Webhook processed successfully ===")
+        logger.info("=== ✅ Webhook processed successfully ===")
         
         return Response(
             {
@@ -203,19 +252,21 @@ def jotform_webhook(request):
                 "message": "Form processed and saved to Azure.",
                 "form_id": form.id,
                 "blob_path": blob_path,
-                "completed": form.completed
+                "completed": form.completed,
+                "provider_email": provider_email,
+                "file_size": len(response.content)
             }, 
             status=status.HTTP_200_OK
         )
 
     except requests.exceptions.RequestException as e:
-        logger.error(f"Failed to download PDF from Jotform: {e}")
+        logger.error(f"❌ Failed to download PDF from Jotform: {e}")
         return Response(
-            {"error": "Failed to download PDF."}, 
+            {"error": "Failed to download PDF from JotForm.", "details": str(e)}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
     except Exception as e:
-        logger.error(f"An error occurred: {e}", exc_info=True)
+        logger.error(f"❌ An error occurred: {e}", exc_info=True)
         return Response(
             {"error": f"Internal server error: {str(e)}"}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR

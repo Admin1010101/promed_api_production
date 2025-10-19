@@ -193,6 +193,24 @@ SIMPLE_JWT = {
     'USER_ID_CLAIM': 'user_id',
 }
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': 'debug.log',
+        },
+    },
+    'loggers': {
+        'onboarding_ops': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+        },
+    },
+}
+
 EMAIL_BACKEND = 'anymail.backends.sendgrid.EmailBackend'
 SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
 
