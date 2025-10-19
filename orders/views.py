@@ -230,6 +230,7 @@ class CreateOrderView(generics.CreateAPIView):
             provider_name = clean_string(order.provider.full_name)
             patient_name = clean_string(order.patient.first_name + " " + order.patient.last_name)
             file_name = f"invoice_order_{order.id}.pdf"
+            # No "orders/" prefix since we're using the media container
             blob_path = f"orders/{provider_name}/{patient_name}/{file_name}"
 
             # Get blob service client
