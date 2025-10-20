@@ -38,43 +38,23 @@ logger = logging.getLogger(__name__)
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
-    
+
     def post(self, request, *args, **kwargs):
         logger.info("=" * 50)
         logger.info("LOGIN ATTEMPT STARTED")
-        logger.info(f"Request data keys: {list(request.data.keys())}")
-        logger.info(f"Email provided: {request.data.get('email', 'NOT PROVIDED')}")
-        logger.info(f"Method: {request.data.get('method', 'NOT PROVIDED')}")
-        
-        # Check if user exists
-        email = request.data.get('email')
-        if email:
-            try:
-                user = User.objects.get(email=email)
-                logger.info(f"User found: {user.email}")
-                logger.info(f"User is_active: {user.is_active}")
-                logger.info(f"User is_verified: {user.is_verified}")
-                logger.info(f"User is_approved: {user.is_approved}")
-            except User.DoesNotExist:
-                logger.error(f"No user found with email: {email}")
         
         serializer = self.get_serializer(data=request.data)
         
         try:
             serializer.is_valid(raise_exception=True)
-            logger.info("Serializer validation PASSED")
         except Exception as e:
             logger.error(f"Serializer validation FAILED: {str(e)}")
-            logger.error(f"Serializer errors: {getattr(serializer, 'errors', 'No errors attr')}")
-            
-            error_detail = getattr(serializer, 'errors', {'detail': str(e)})
             return Response(
-                error_detail,
+                getattr(serializer, 'errors', {'detail': str(e)}),
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         user = serializer.user
-        logger.info(f"Authentication successful for: {user.email}")
         
         # Generate tokens
         refresh = serializer.validated_data['refresh']
@@ -82,13 +62,14 @@ class MyTokenObtainPairView(TokenObtainPairView):
         
         # MFA code setup
         method = request.data.get('method', 'email')
-        session_id = str(uuid.uuid4())
+        session_id = str(uuid.uuid4())  # ✅ NEW session ID every time
         
-        logger.info(f"Creating verification code with method: {method}")
-        logger.info(f"Session ID: {session_id}")
+        logger.info(f"Creating NEW verification with method: {method}")
+        logger.info(f"New Session ID: {session_id}")
         
-        # Delete any existing verification codes for this user to prevent reuse
-        api_models.Verification_Code.objects.filter(user=user).delete()
+        # ✅ FIX: Delete ALL old verification codes for this user
+        deleted_count = api_models.Verification_Code.objects.filter(user=user).delete()[0]
+        logger.info(f"Deleted {deleted_count} old verification codes for user: {user.email}")
         
         if method == 'sms' and user.phone_number:
             try:
@@ -97,7 +78,6 @@ class MyTokenObtainPairView(TokenObtainPairView):
                 verify_service_sid = os.getenv('VERIFY_SERVICE_SID')
                 
                 if not all([account_sid, auth_token, verify_service_sid]):
-                    logger.warning("Twilio credentials missing")
                     return Response(
                         {"error": "SMS service not configured"},
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -105,7 +85,23 @@ class MyTokenObtainPairView(TokenObtainPairView):
                 
                 client = Client(account_sid, auth_token)
                 
-                # Twilio generates its own code, we don't need to create one
+                # ✅ FIX: Cancel any pending Twilio verifications first
+                try:
+                    # Get any pending verifications
+                    verifications = client.verify.v2.services(verify_service_sid).verifications.list(
+                        to=str(user.phone_number),
+                        status='pending'
+                    )
+                    for v in verifications:
+                        try:
+                            client.verify.v2.services(verify_service_sid).verifications(v.sid).update(status='canceled')
+                            logger.info(f"Canceled old Twilio verification: {v.sid}")
+                        except:
+                            pass
+                except Exception as e:
+                    logger.warning(f"Could not cancel old verifications: {e}")
+                
+                # ✅ NOW create new verification
                 verification = client.verify.v2.services(verify_service_sid).verifications.create(
                     to=str(user.phone_number),
                     channel='sms'
@@ -119,8 +115,8 @@ class MyTokenObtainPairView(TokenObtainPairView):
                     session_id=session_id
                 )
                 
-                logger.info(f"SMS verification sent to {user.phone_number}")
-                logger.info(f"Twilio verification status: {verification.status}")
+                logger.info(f"✅ NEW SMS verification sent to {user.phone_number}")
+                logger.info(f"Twilio SID: {verification.sid}, Status: {verification.status}")
                 
             except Exception as e:
                 logger.error(f"SMS sending failed: {str(e)}")
@@ -131,7 +127,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
         
         elif method == 'email':
             try:
-                # For email, we generate our own code
+                # ✅ Generate NEW random code
                 code = str(random.randint(100000, 999999))
                 
                 api_models.Verification_Code.objects.create(
@@ -147,7 +143,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[user.email]
                 )
-                logger.info(f"Email verification sent to {user.email} with code: {code}")
+                logger.info(f"✅ NEW email verification sent to {user.email} with code: {code}")
                 
             except Exception as e:
                 logger.error(f"Email sending failed: {str(e)}")
@@ -163,14 +159,14 @@ class MyTokenObtainPairView(TokenObtainPairView):
         
         user_data = UserSerializer(user).data
         
-        logger.info("LOGIN SUCCESSFUL - Returning response")
+        logger.info("✅ LOGIN SUCCESSFUL - Returning NEW MFA session")
         logger.info("=" * 50)
         
         return Response({
             'access': str(access),
             'refresh': str(refresh),
             'mfa_required': True,
-            'session_id': session_id,
+            'session_id': session_id,  # ✅ New session ID
             'user': user_data,
             'detail': f'Verification code sent via {method}.'
         }, status=status.HTTP_200_OK)

@@ -202,6 +202,11 @@ def save_new_account_form(request):
     """
     Save new account form as PDF to Azure Blob Storage using xhtml2pdf
     """
+    if not request.user or not request.user.is_authenticated:
+        return Response(
+            {"error": "Authentication failed. User not found."},
+            status=status.HTTP_401_UNAUTHORIZED # Use 401
+        )
     try:
         form_data = request.data.get('form_data', {})
         
