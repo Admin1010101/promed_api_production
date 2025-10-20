@@ -16,6 +16,9 @@ urlpatterns = [
     path('documents/upload/', api_views.DocumentUploadView.as_view(), name='document-upload-email'),
     path('documents/', api_views.ProviderDocumentListCreate.as_view(), name='provider-document-list'),
     path('documents/<int:pk>/', api_views.ProviderDocumentDetail.as_view(), name='provider-document-detail'),
+    # ... existing patterns ...
+    path('forms/save-new-account/', api_views.save_new_account_form, name='save-new-account-form'),
+    path('forms/check-status/', api_views.check_new_account_form_status, name='check-new-account-form-status'),
 
 ]
 

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page { size: letter; margin: 0.75in; }
+        body { font-family: Arial, sans-serif; font-size: 10pt; line-height: 1.4; }
+        .header { text-align: center; margin-bottom: 20px; border-bottom: 3px solid #1e3a8a; padding-bottom: 15px; }
+        .header h1 { font-size: 18pt; margin: 0 0 5px 0; color: #1e3a8a; }
+        .header h2 { font-size: 14pt; margin: 0; font-weight: normal; color: #1e3a8a; }
+        .section { margin-bottom: 15px; page-break-inside: avoid; }
+        .section-title { background: #1e3a8a; color: white; padding: 5px 10px; font-weight: bold; margin-bottom: 8px; }
+        .field-row { display: table; width: 100%; margin-bottom: 8px; }
+        .field { display: table-cell; width: 50%; padding-right: 10px; }
+        .field-label { font-weight: bold; font-size: 9pt; color: #333; }
+        .field-value { border-bottom: 1px solid #000; padding: 2px 5px; min-height: 18px; }
+        .provider-info { background: #e0e7ff; border: 2px solid #1e3a8a; padding: 10px; margin-bottom: 15px; }
+        .signature-box { margin-top: 30px; border: 2px solid #000; padding: 20px; }
+        .footer { margin-top: 30px; text-align: center; font-size: 8pt; color: #666; border-top: 1px solid #ccc; padding-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>ProMed Health Plus</h1>
+        <h2>NEW ACCOUNT FORM</h2>
+    </div>
+
+    <div class="provider-info">
+        <strong>Provider Information:</strong><br>
+        Name: {{ provider.full_name }} | 
+        Email: {{ provider.email }}
+        {% if provider.phone_number %} | Phone: {{ provider.phone_number }}{% endif %}
+    </div>
+
+    <div class="section">
+        <div class="section-title">Sales Information</div>
+        <div class="field-row">
+            <div class="field">
+                <div class="field-label">Distributor:</div>
+                <div class="field-value">{{ form_data.distributor }}</div>
+            </div>
+            <div class="field">
+                <div class="field-label">Sales Rep Name:</div>
+                <div class="field-value">{{ form_data.salesRepName }}</div>
+            </div>
+        </div>
+        <div class="field-row">
+            <div class="field">
+                <div class="field-label">ISO If Applicable:</div>
+                <div class="field-value">{{ form_data.isoIfApplicable }}</div>
+            </div>
+            <div class="field">
+                <div class="field-label">Sales Rep Cell:</div>
+                <div class="field-value">{{ form_data.salesRepCell }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Provider & Practice Information</div>
+        <div class="field-row">
+            <div class="field">
+                <div class="field-label">Provider Name:</div>
+                <div class="field-value">{{ form_data.providerName }}</div>
+            </div>
+            <div class="field">
+                <div class="field-label">Tax ID Number:</div>
+                <div class="field-value">{{ form_data.taxIdNumber }}</div>
+            </div>
+        </div>
+        <div class="field">
+            <div class="field-label">Practice Name:</div>
+            <div class="field-value">{{ form_data.practiceName }}</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Shipping Address</div>
+        <div class="field">
+            <div class="field-label">Ship To:</div>
+            <div class="field-value">{{ form_data.shipTo }}</div>
+        </div>
+        <div class="field-row">
+            <div class="field">
+                <div class="field-label">City:</div>
+                <div class="field-value">{{ form_data.shipCity }}</div>
+            </div>
+            <div class="field" style="width: 25%;">
+                <div class="field-label">State:</div>
+                <div class="field-value">{{ form_data.shipState }}</div>
+            </div>
+            <div class="field" style="width: 25%;">
+                <div class="field-label">ZIP:</div>
+                <div class="field-value">{{ form_data.shipZip }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Contact Information</div>
+        <div class="field">
+            <div class="field-label">Contact Name:</div>
+            <div class="field-value">{{ form_data.contactName }}</div>
+        </div>
+        <div class="field-row">
+            <div class="field">
+                <div class="field-label">Contact Phone:</div>
+                <div class="field-value">{{ form_data.contactPhone }}</div>
+            </div>
+            <div class="field">
+                <div class="field-label">Contact Email:</div>
+                <div class="field-value">{{ form_data.contactEmail }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Practice Information</div>
+        <div class="field">
+            <div class="field-label">Practice Phone:</div>
+            <div class="field-value">{{ form_data.practicePhone }}</div>
+        </div>
+        <div class="field">
+            <div class="field-label">Practice Fax:</div>
+            <div class="field-value">{{ form_data.practiceFax }}</div>
+        </div>
+        <div class="field">
+            <div class="field-label">Practice Email:</div>
+            <div class="field-value">{{ form_data.practiceEmail }}</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Billing NPI</div>
+        <div class="field-row">
+            <div class="field">
+                <div class="field-label">Individual NPI:</div>
+                <div class="field-value">{{ form_data.individualNpi }}</div>
+            </div>
+            <div class="field">
+                <div class="field-label">Group NPI:</div>
+                <div class="field-value">{{ form_data.groupNpi }}</div>
+            </div>
+        </div>
+        <div class="field">
+            <div class="field-label">PTAN:</div>
+            <div class="field-value">{{ form_data.ptan }}</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Billing Address</div>
+        <div class="field">
+            <div class="field-label">Bill To:</div>
+            <div class="field-value">{{ form_data.billTo }}</div>
+        </div>
+        <div class="field-row">
+            <div class="field">
+                <div class="field-label">City:</div>
+                <div class="field-value">{{ form_data.billCity }}</div>
+            </div>
+            <div class="field" style="width: 25%;">
+                <div class="field-label">State:</div>
+                <div class="field-value">{{ form_data.billState }}</div>
+            </div>
+            <div class="field" style="width: 25%;">
+                <div class="field-label">ZIP:</div>
+                <div class="field-value">{{ form_data.billZip }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Accounts Payable</div>
+        <div class="field">
+            <div class="field-label">AP Contact Name:</div>
+            <div class="field-value">{{ form_data.apContactName }}</div>
+        </div>
+        <div class="field">
+            <div class="field-label">AP Phone:</div>
+            <div class="field-value">{{ form_data.apPhone }}</div>
+        </div>
+        <div class="field">
+            <div class="field-label">AP Email:</div>
+            <div class="field-value">{{ form_data.apEmail }}</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Billing Party Contact Information</div>
+        <div class="field-row">
+            <div class="field">
+                <div class="field-label">Contact Name:</div>
+                <div class="field-value">{{ form_data.billingContactName }}</div>
+            </div>
+            <div class="field">
+                <div class="field-label">Email:</div>
+                <div class="field-value">{{ form_data.billingContactEmail }}</div>
+            </div>
+        </div>
+        <div class="field">
+            <div class="field-label">Phone:</div>
+            <div class="field-value">{{ form_data.billingContactPhone }}</div>
+        </div>
+        <div class="field">
+            <div class="field-label">Biller Type:</div>
+            <div class="field-value">
+                {% if form_data.billerType == 'internal' %}☑ Internal Biller  ☐ 3rd Party Biller{% else %}☐ Internal Biller  ☑ 3rd Party Biller{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="signature-box">
+        <div class="field-row">
+            <div class="field">
+                <div class="field-label">Authorized Signature Name:</div>
+                <div class="field-value">{{ form_data.signatureName }}</div>
+            </div>
+            <div class="field">
+                <div class="field-label">Date:</div>
+                <div class="field-value">{{ form_data.signatureDate }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        ProMed Health Plus | 1100 Ludlow Street Philadelphia, PA 19107 | 267-235-1092 | www.promedhealthplus.com<br>
+        Form submitted on {{ submission_date }}
+    </div>
+</body>
+</html>
