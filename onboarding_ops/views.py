@@ -196,7 +196,6 @@ class GenerateSASURLView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def save_new_account_form(request):
@@ -214,7 +213,7 @@ def save_new_account_form(request):
         }
         
         # Render HTML template
-        html_string = render_to_string('onboarding/new_account_form_pdf.html', context)
+        html_string = render_to_string('onboarding_ops/new_account_form_pdf.html', context)
         
         # Generate PDF using xhtml2pdf
         pdf_buffer = BytesIO()
