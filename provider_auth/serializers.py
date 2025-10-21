@@ -195,7 +195,7 @@ class ProfileSerializer(serializers.ModelSerializer):
     def get_image(self, obj):
         if obj.image:
             return obj.image.url
-        return None
+        return f'https://promedheatlhdatastorage.blob.core.windows.net/media/defaults/default_user.jpg'
 
 class SendCodeSerializer(serializers.Serializer):
     method = serializers.ChoiceField(choices=['email', 'sms'])

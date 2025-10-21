@@ -108,12 +108,11 @@ class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     sales_rep = models.ForeignKey(SalesRep, on_delete=models.SET_NULL, null=True, blank=True, related_name="providers")
     image = models.FileField(
-        storage= AzureMediaStorage, 
+        storage=AzureMediaStorage,
         upload_to=user_directory_path,
-        default='defaults/default_user.jpg', 
         null=True,
         blank=True
-    )
+        )
 
     full_name = models.CharField(max_length=255, null=True, blank=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
