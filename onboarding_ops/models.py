@@ -28,7 +28,6 @@ class ProviderForm(models.Model):
     patient = models.ForeignKey(Patient, on_delete=models.SET_NULL, null=True, blank=True)
     form_type = models.CharField(max_length=100, help_text="e.g., 'New Account Form', 'IVR Report'")
     submission_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
-    # Changed from FileField to CharField to store Azure blob path
     completed_form = models.CharField(max_length=500, null=True, blank=True, help_text="Azure blob path to the completed form")
     completed = models.BooleanField(default=False)
     form_data = models.JSONField(null=True, blank=True, help_text="A snapshot of the form's data.")
@@ -79,18 +78,23 @@ class ProviderDocument(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='provider_documents'
+        related_name='provider_documents',
+        null=True,
+        blank=True
     )
     document_type = models.CharField(
         max_length=50,
         choices=DOCUMENT_TYPE_CHOICES,
-        default='MISCELLANEOUS'
+        default='MISCELLANEOUS',
+        blank=True,
+        null=True
     )
     notes = models.TextField(
         blank=True,
-        help_text='Internal notes about the document upload (e.g., email recipient, file count)'
+        help_text='Internal notes about the document upload (e.g., email recipient, file count)',
+        null=True,
     )
-    uploaded_at = models.DateTimeField(auto_now_add=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     
     class Meta:
         ordering = ['-uploaded_at']
