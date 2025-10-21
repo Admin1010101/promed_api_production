@@ -63,3 +63,39 @@ class ProviderDocument(models.Model):
 
     def __str__(self):
         return f'{self.document_type} - {self.user.email}'
+    
+
+class ProviderDocument(models.Model):
+    """
+    Tracks document uploads from providers to physician
+    Note: Actual files are NOT stored, only emailed
+    This model tracks metadata for audit purposes
+    """
+    DOCUMENT_TYPE_CHOICES = [
+        ('PROVIDER_RECORDS_REVIEW', 'Provider Records Review'),
+        ('MISCELLANEOUS', 'Miscellaneous'),
+    ]
+    
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='provider_documents'
+    )
+    document_type = models.CharField(
+        max_length=50,
+        choices=DOCUMENT_TYPE_CHOICES,
+        default='MISCELLANEOUS'
+    )
+    notes = models.TextField(
+        blank=True,
+        help_text='Internal notes about the document upload (e.g., email recipient, file count)'
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-uploaded_at']
+        verbose_name = 'Provider Document'
+        verbose_name_plural = 'Provider Documents'
+    
+    def __str__(self):
+        return f"{self.user.full_name or self.user.email} - {self.document_type} - {self.uploaded_at.strftime('%Y-%m-%d')}"
