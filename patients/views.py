@@ -4,24 +4,32 @@ import json
 from datetime import datetime
 from django.conf import settings
 from django.utils.text import slugify
-from django.template.loader import render_to_string # Import template loader
-from io import BytesIO # To handle file content in memory
+from django.template.loader import render_to_string 
+from io import BytesIO 
 
 # Import pisa for PDF generation
 from xhtml2pdf import pisa 
 
+# --- FIXES APPLIED HERE ---
+from rest_framework import generics             # ⬅️ FIX: Import the 'generics' module
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from . import serializers as api_serializers   # ⬅️ FIX: Import serializers from the current app directory
+# --- END FIXES ---
+
 from azure.storage.blob import BlobServiceClient
-from azure.storage.blob import ContentSettings # Required for setting content type
+from azure.storage.blob import ContentSettings 
 
 from patients.models import Patient
 from onboarding_ops.models import ProviderForm
 from utils.azure_storage import generate_sas_url 
+from provider_auth.models import User # Import User model specifically for logging checks
 
 logger = logging.getLogger(__name__)
+
+# --- ViewSets remain unchanged, using the now-defined generics and api_serializers ---
 
 class PatientListView(generics.ListCreateAPIView):
     serializer_class = api_serializers.PatientSerializer
@@ -78,7 +86,6 @@ class PatientListView(generics.ListCreateAPIView):
         except Exception as e:
             logger.error(f"❌ Error creating patient: {str(e)}", exc_info=True)
             
-            # Return a proper JSON error response instead of letting it become HTML
             return Response(
                 {
                     'error': str(e),
@@ -92,12 +99,8 @@ class PatientListView(generics.ListCreateAPIView):
         logger.info("🔍 PERFORM CREATE")
         logger.info(f"User ID: {self.request.user.id}")
         logger.info(f"User Email: {self.request.user.email}")
-        logger.info(f"User Type: {type(self.request.user)}")
-        logger.info(f"User Model: {self.request.user.__class__.__name__}")
-        logger.info(f"User PK: {self.request.user.pk}")
         
         # Check if user exists in correct table
-        from provider_auth.models import User
         user_exists = User.objects.filter(id=self.request.user.id).exists()
         logger.info(f"User exists in provider_auth.User: {user_exists}")
         
@@ -181,20 +184,16 @@ class PatientDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 def create_pdf_from_template(template_src, context_dict):
     """Renders a Django template to a PDF file."""
-    # 1. Get the HTML content from the template
     html = render_to_string(template_src, context_dict)
     
-    # 2. Create a file-like buffer to receive PDF content
     result = BytesIO()
     
-    # 3. Convert HTML to PDF
     pdf = pisa.CreatePDF(
         html, 
         dest=result, 
         encoding='utf-8'
     )
     
-    # 4. Return the buffer's contents (the PDF bytes) if no error occurred
     if not pdf.err:
         return result.getvalue()
     
@@ -228,22 +227,28 @@ def save_patient_vr_form(request):
     
     try:
         # 2. PDF Generation (using a template)
-        
-        # Context to pass to the Django template (needs patient, form_data, user, etc.)
         context = {
             'form_data': form_data,
             'patient': patient,
             'provider': request.user,
             'date_submitted': datetime.now().strftime("%B %d, %Y"),
-            # Add configurations needed for rendering (like product lists)
+            # Placeholder product lists for PDF rendering
             'PRODUCT_CHECKBOXES': [
                 'Membrane Wrap Q4205', 'Activate Matrix Q4301', 'Restorgin Q4191', 'Amnio-Maxx Q4239',
-                # ... include all product list from your React component
+                'Emerge Matrix Q4297', 'Helicoll Q4164', 'NeoStim TL Q4265', 'Derm-Maxx Q4238', 
+                'AmnioAMP-MP Q4250', 'Membrane Wrap Hydro Q4290', 'Xcell Amnio Matrix Q4280', 
+                'ACAp-atch Q4325', 'DermaBind FM Q4313', 'caregraFT Q4322', 'DermaBind TL Q4225', 
+                'alloPLY Q4323', 'Revoshield+ Q4289',
             ],
-            # ... include WOUND_BILLING_CODES, POS_OPTIONS, etc.
+            'POS_OPTIONS': ["Hospital Inpatient (21)", "Hospital Outpatient (22)", "Physician's Office (11)", "ASC (24)", "Home Health (12)"],
+            'WOUND_BILLING_CODES': [
+                {'label': 'Skin substitute procedure', 'code': '15271'},
+                {'label': 'Wound care debridement (small)', 'code': '11042'},
+                {'label': 'Wound care debridement (large)', 'code': '11045'},
+            ]
         }
 
-        # **You must create this Django HTML template at patients/templates/patient_ivr_form.html**
+        # You must ensure this template exists at patients/templates/patient_ivr_form.html
         pdf_bytes = create_pdf_from_template('patients/patient_ivr_form.html', context)
 
         if not pdf_bytes:
@@ -264,7 +269,6 @@ def save_patient_vr_form(request):
             blob=blob_path
         )
         
-        # Upload the PDF bytes
         blob_client.upload_blob(
             pdf_bytes, 
             overwrite=True, 
@@ -284,7 +288,7 @@ def save_patient_vr_form(request):
         # 5. Generate SAS URL for response
         sas_url = generate_sas_url(blob_path, settings.AZURE_MEDIA_CONTAINER, 'r', 72)
         
-        logger.info(f"✅ Patient VR Form PDF generated via xhtml2pdf and submitted for Patient ID {patient_id}. Blob path: {blob_path}")
+        logger.info(f"✅ Patient VR Form PDF submitted for Patient ID {patient_id}. Blob path: {blob_path}")
 
         return Response({
             "success": True,
@@ -299,4 +303,4 @@ def save_patient_vr_form(request):
             "success": False,
             "error": "Failed to process Patient VR form submission via xhtml2pdf.",
             "detail": str(e)
-        }, status=500) 
+        }, status=500)
