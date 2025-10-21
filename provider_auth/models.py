@@ -108,11 +108,11 @@ class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     sales_rep = models.ForeignKey(SalesRep, on_delete=models.SET_NULL, null=True, blank=True, related_name="providers")
     image = models.FileField(
-    storage= AzureStaticStorage,
-    upload_to=user_directory_path,
-    default='https://promedheatlhdatastorage.blob.core.windows.net/static/images/default_user.jpg',
-    null=True,
-    blank=True
+        storage= AzureStaticStorage,
+        upload_to=user_directory_path,
+        default='images/default_user.jpg', 
+        null=True,
+        blank=True
     )
 
     full_name = models.CharField(max_length=255, null=True, blank=True)
