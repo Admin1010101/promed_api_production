@@ -241,6 +241,7 @@ ADMINS = [
 
 # Supervising physician email for document uploads
 SUPERVISING_PHYSICIAN_EMAIL = 'drdavid@promedhealthplus.com'
+# SUPERVISING_PHYSICIAN_EMAIL = 'drdavid@promedhealthplus.com'
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 

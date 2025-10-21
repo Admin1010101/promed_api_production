@@ -5,19 +5,18 @@ from datetime import datetime
 from django.conf import settings
 from django.utils.text import slugify
 from django.template.loader import render_to_string 
+from django.core.mail import EmailMessage
 from io import BytesIO 
 
 # Import pisa for PDF generation
 from xhtml2pdf import pisa 
 
-# --- FIXES APPLIED HERE ---
-from rest_framework import generics             # ⬅️ FIX: Import the 'generics' module
+from rest_framework import generics
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from . import serializers as api_serializers   # ⬅️ FIX: Import serializers from the current app directory
-# --- END FIXES ---
+from . import serializers as api_serializers
 
 from azure.storage.blob import BlobServiceClient
 from azure.storage.blob import ContentSettings 
@@ -25,11 +24,11 @@ from azure.storage.blob import ContentSettings
 from patients.models import Patient
 from onboarding_ops.models import ProviderForm
 from utils.azure_storage import generate_sas_url 
-from provider_auth.models import User # Import User model specifically for logging checks
+from provider_auth.models import User
 
 logger = logging.getLogger(__name__)
 
-# --- ViewSets remain unchanged, using the now-defined generics and api_serializers ---
+# --- ViewSets remain unchanged ---
 
 class PatientListView(generics.ListCreateAPIView):
     serializer_class = api_serializers.PatientSerializer
@@ -205,7 +204,8 @@ def create_pdf_from_template(template_src, context_dict):
 def save_patient_vr_form(request):
     """
     Saves Patient VR form data, generates the PDF using xhtml2pdf, 
-    and uploads the PDF to Azure Blob Storage.
+    uploads to Azure Blob Storage with proper path structure, 
+    emails the provider, and updates the patient's IVR PDF URL.
     """
     patient_id = request.data.get('patient_id') 
     form_data = request.data.get('form_data', {})
@@ -248,18 +248,21 @@ def save_patient_vr_form(request):
             ]
         }
 
-        # You must ensure this template exists at patients/templates/patient_ivr_form.html
         pdf_bytes = create_pdf_from_template('patients/patient_ivr_form.html', context)
 
         if not pdf_bytes:
             raise Exception("Failed to generate PDF content.")
 
-        # 3. Upload PDF to Azure Blob Storage
+        # 3. Upload PDF to Azure Blob Storage with CORRECT path structure
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Create proper path: patients_documents/provider_username/patient_name/pdf_name.pdf
+        provider_slug = slugify(request.user.email.split('@')[0] if request.user.email else f"provider_{request.user.id}")
         patient_slug = slugify(patient.full_name or f"patient_{patient_id}")
-        form_type_slug = slugify("Patient VR Form") 
-        file_name = f"{form_type_slug}_{timestamp}.pdf" 
-        blob_path = f"patient_forms/{patient_slug}/{form_type_slug}/{file_name}"
+        file_name = f"IVR_Form_{timestamp}.pdf"
+        
+        # ✅ CORRECTED PATH STRUCTURE
+        blob_path = f"patients_documents/{provider_slug}/{patient_slug}/{file_name}"
         
         blob_service_client = BlobServiceClient.from_connection_string(
             settings.AZURE_STORAGE_CONNECTION_STRING
@@ -275,32 +278,69 @@ def save_patient_vr_form(request):
             content_settings=ContentSettings(content_type='application/pdf')
         )
 
+        # Verify upload
+        if not blob_client.exists():
+            logger.error("Blob upload verification failed")
+            raise Exception("Failed to verify file upload to Azure")
+
         # 4. Save to database
         provider_form = ProviderForm.objects.create(
             user=request.user,
             patient=patient,  
-            form_type='Patient VR Form (PDF)',
+            form_type='Patient IVR Form',
             completed_form=blob_path,
             form_data=form_data, 
             completed=True
         )
         
-        # 5. Generate SAS URL for response
+        # 5. Generate SAS URL for response and email
         sas_url = generate_sas_url(blob_path, settings.AZURE_MEDIA_CONTAINER, 'r', 72)
         
-        logger.info(f"✅ Patient VR Form PDF submitted for Patient ID {patient_id}. Blob path: {blob_path}")
+        # 6. ✅ NEW: Send email to provider/user
+        try:
+            provider_email = request.user.email
+            
+            if provider_email:
+                subject = f"IVR Form Submitted - {patient.full_name}"
+                email_body = render_to_string('email/ivr_form_submission.html', {
+                    'provider': request.user,
+                    'patient': patient,
+                    'form_data': form_data,
+                    'sas_url': sas_url,
+                    'submission_date': datetime.now().strftime('%B %d, %Y at %I:%M %p'),
+                })
+                
+                email = EmailMessage(
+                    subject, 
+                    email_body, 
+                    settings.DEFAULT_FROM_EMAIL, 
+                    [provider_email]
+                )
+                email.content_subtype = "html"
+                
+                # Attach the PDF to the email
+                email.attach(file_name, pdf_bytes, 'application/pdf')
+                
+                email.send()
+                
+                logger.info(f"✅ IVR Form email sent to: {provider_email}")
+        except Exception as e:
+            logger.warning(f"⚠️ Email failed for IVR form: {str(e)}")
+        
+        logger.info(f"✅ Patient IVR Form PDF submitted for Patient ID {patient_id}. Blob path: {blob_path}")
 
         return Response({
             "success": True,
             "form_id": provider_form.id,
             "sas_url": sas_url,
-            "message": "Patient VR Form PDF saved and linked successfully"
+            "blob_path": blob_path,
+            "message": "Patient IVR Form PDF saved, emailed, and linked successfully"
         }, status=201)
         
     except Exception as e:
-        logger.error(f"Error saving Patient VR form (xhtml2pdf): {str(e)}", exc_info=True)
+        logger.error(f"Error saving Patient IVR form: {str(e)}", exc_info=True)
         return Response({
             "success": False,
-            "error": "Failed to process Patient VR form submission via xhtml2pdf.",
+            "error": "Failed to process Patient IVR form submission.",
             "detail": str(e)
         }, status=500)

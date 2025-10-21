@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IVR Form Submitted</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            line-height: 1.6;
+            color: #374151;
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .email-header {
+            background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
+            color: #ffffff;
+            padding: 30px;
+            text-align: center;
+        }
+        .email-header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+        }
+        .email-header p {
+            margin: 10px 0 0 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .email-body {
+            padding: 30px;
+        }
+        .greeting {
+            font-size: 16px;
+            color: #1f2937;
+            margin-bottom: 20px;
+        }
+        .info-section {
+            background-color: #f9fafb;
+            border-left: 4px solid #0d9488;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .info-section h2 {
+            margin: 0 0 15px 0;
+            font-size: 18px;
+            color: #0d9488;
+            font-weight: 600;
+        }
+        .info-row {
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #6b7280;
+            font-size: 14px;
+        }
+        .info-value {
+            color: #1f2937;
+            font-size: 14px;
+            text-align: right;
+        }
+        .button-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn-primary {
+            display: inline-block;
+            padding: 14px 32px;
+            background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 16px;
+            box-shadow: 0 2px 4px rgba(13, 148, 136, 0.3);
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
+        }
+        .attachment-notice {
+            background-color: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 14px;
+            color: #1e40af;
+        }
+        .attachment-notice strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #1e3a8a;
+        }
+        .footer {
+            background-color: #f9fafb;
+            padding: 20px 30px;
+            text-align: center;
+            font-size: 12px;
+            color: #6b7280;
+            border-top: 1px solid #e5e7eb;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+        .divider {
+            height: 1px;
+            background-color: #e5e7eb;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="email-header">
+            <h1>✅ IVR Form Submitted</h1>
+            <p>Insurance Verification Request</p>
+        </div>
+
+        <!-- Body -->
+        <div class="email-body">
+            <p class="greeting">
+                Hello {{ provider.full_name|default:provider.email }},
+            </p>
+
+            <p>
+                Your Insurance Verification Request (IVR) form has been successfully submitted and saved.
+            </p>
+
+            <!-- Patient Information -->
+            <div class="info-section">
+                <h2>📋 Submission Details</h2>
+                <div class="info-row">
+                    <span class="info-label">Patient Name:</span>
+                    <span class="info-value">{{ patient.full_name }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">MRN:</span>
+                    <span class="info-value">{{ patient.medical_record_number|default:"N/A" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Date of Birth:</span>
+                    <span class="info-value">{{ patient.date_of_birth|date:"M d, Y"|default:"N/A" }}</span>
+                </div>
+                <div class="divider"></div>
+                <div class="info-row">
+                    <span class="info-label">Provider:</span>
+                    <span class="info-value">{{ provider.full_name|default:provider.email }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Submitted:</span>
+                    <span class="info-value">{{ submission_date }}</span>
+                </div>
+            </div>
+
+            <!-- Insurance Information -->
+            {% if form_data.primaryInsuranceName %}
+            <div class="info-section">
+                <h2>🏥 Primary Insurance</h2>
+                <div class="info-row">
+                    <span class="info-label">Insurance Name:</span>
+                    <span class="info-value">{{ form_data.primaryInsuranceName }}</span>
+                </div>
+                {% if form_data.primaryPolicyNumber %}
+                <div class="info-row">
+                    <span class="info-label">Policy Number:</span>
+                    <span class="info-value">{{ form_data.primaryPolicyNumber }}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Attachment Notice -->
+            <div class="attachment-notice">
+                <strong>📎 Attached Document:</strong>
+                The completed IVR form PDF is attached to this email for your records.
+            </div>
+
+            <!-- View Button -->
+            <div class="button-container">
+                <a href="{{ sas_url }}" class="btn-primary" target="_blank">
+                    View Form Online
+                </a>
+            </div>
+
+            <p style="font-size: 14px; color: #6b7280; margin-top: 30px;">
+                This form has been securely stored and is accessible through your patient portal. 
+                The link above will remain valid for 72 hours.
+            </p>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>ProMed Health Plus</strong></p>
+            <p>30839 Thousand Oaks Blvd, West Lake Village, CA 91362</p>
+            <p>(888) 338-0490 | www.promedhealthplus.com</p>
+            <p style="margin-top: 15px; font-size: 11px; color: #9ca3af;">
+                This is an automated notification. Please do not reply to this email.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

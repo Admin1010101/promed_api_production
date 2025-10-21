@@ -50,7 +50,6 @@ class ProviderFormDetail(generics.RetrieveUpdateDestroyAPIView):
         if getattr(self, 'swagger_fake_view', False):
             return ProviderForm.objects.none()
         return ProviderForm.objects.filter(user=self.request.user)
-
 # DocumentUploadView (Updated POST method)
 
 class DocumentUploadView(APIView):
