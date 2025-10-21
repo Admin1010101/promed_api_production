@@ -16,6 +16,22 @@ ORDER_STATUS_CHOICES = (
     ('failed', 'Failed'),
 )
 
+# orders/models.py
+from django.db import models
+from django.conf import settings
+from django.utils import timezone # ⬅️ NEW: Import for current year
+from patients.models import Patient
+from product.models import Product, ProductVariant
+from decimal import Decimal
+
+
+ORDER_STATUS_CHOICES = (
+    # ... (Your status choices remain the same)
+    ('pending', 'Pending'),
+    ('processing', 'Processing'),
+    # ...
+)
+
 class Order(models.Model):
     provider = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='orders')
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='orders')
@@ -26,12 +42,26 @@ class Order(models.Model):
     zip_code = models.CharField(max_length=20)
     country = models.CharField(max_length=100, null=True, blank=True)
     status = models.CharField(max_length=50, choices=ORDER_STATUS_CHOICES, default='pending')
+    order_number = models.CharField(max_length=50, unique=True, blank=True, null=True)
     delivery_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        
+        if is_new and not self.order_number:
+            prefix = "PH"
+            year = timezone.now().year
+            padded_id = str(self.id).zfill(5) 
+            self.order_number = f'{prefix}-{year}-{padded_id}'
+
+            super().save(update_fields=['order_number'])
     def __str__(self):
-        return f'Order# {self.id} for {self.patient}'
+        # ⬅️ Use the new professional order number here
+        return f'{self.order_number} for {self.patient}'
     class Meta:
         db_table = 'orders'
 
