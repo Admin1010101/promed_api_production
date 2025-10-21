@@ -129,6 +129,11 @@ class Profile(models.Model):
     def save(self, *args, **kwargs):
         if not self.full_name:
             self.full_name = self.user.username
+
+        # Ensure default image is set if none provided or if improperly assigned
+        if not self.image or str(self.image).startswith('http'):
+            self.image = 'defaults/default_user.jpg'
+
         super().save(*args, **kwargs)
 
 

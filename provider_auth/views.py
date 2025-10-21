@@ -178,6 +178,13 @@ class RegisterUser(generics.CreateAPIView):
     
     def perform_create(self, serializer):
         user = serializer.save()
+
+        # Ensure profile exists (if not created in serializer)
+        profile = getattr(user, 'profile', None)
+        if profile and not profile.image:
+            profile.image = 'defaults/default_user.jpg'
+            profile.save()
+
         token, created = EmailVerificationToken.objects.get_or_create(user=user)
         verification_link = f"{BASE_CLIENT_URL}/#/verify-email/{token.token}"
 
@@ -196,6 +203,7 @@ class RegisterUser(generics.CreateAPIView):
             recipient_list=[user.email],
             fail_silently=False
         )
+
 
 class VerifyEmailView(generics.GenericAPIView):
     permission_classes = [AllowAny]
