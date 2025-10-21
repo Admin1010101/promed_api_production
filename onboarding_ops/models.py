@@ -45,27 +45,6 @@ class ProviderForm(models.Model):
 
 class ProviderDocument(models.Model):
     """
-    Model to track documents uploaded by the provider for emailing.
-    Files are NOT stored in this system - they are emailed directly.
-    """
-    DOCUMENT_TYPES = [
-        ('PROVIDER_RECORDS_REVIEW', 'Provider Records Review'),
-        ('MISCELLANEOUS', 'Miscellaneous'),
-    ]
-
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='uploaded_documents')
-    document_type = models.CharField(max_length=50, choices=DOCUMENT_TYPES)
-    uploaded_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['-uploaded_at']
-
-    def __str__(self):
-        return f'{self.document_type} - {self.user.email}'
-    
-
-class ProviderDocument(models.Model):
-    """
     Tracks document uploads from providers to physician
     Note: Actual files are NOT stored, only emailed
     This model tracks metadata for audit purposes
