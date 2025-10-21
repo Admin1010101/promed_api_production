@@ -236,3 +236,5 @@ class RequestPasswordResetSerializer(serializers.Serializer):
 class EmptySerializer(serializers.Serializer):
     """Used for views that don't take body data (like token verification)."""
     pass
+
+    

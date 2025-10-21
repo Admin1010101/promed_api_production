@@ -15,4 +15,5 @@ urlpatterns = [
     path('provider/verify-email/<uuid:token>/', api_views.VerifyEmailView.as_view(), name='verify-email'),
     path('provider/reset-password/<uuid:token>/', api_views.ResetPasswordView.as_view(), name='reset-password'),
     path('provider/request-password-reset/', api_views.RequestPasswordResetView.as_view(), name='request-password-reset'), 
+    path('contact/submit/', api_views.PublicContactView.as_view(), name='public_inquiry_form'),
 ]

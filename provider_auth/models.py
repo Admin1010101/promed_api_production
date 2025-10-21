@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _ # Required for Django field definitions
 from sales_rep.models import SalesRep
 from phonenumber_field.modelfields import PhoneNumberField
-from promed_backend_api.storage_backends import AzureStaticStorage
+from promed_backend_api.storage_backends import AzureStaticStorage, AzureMediaStorage
 import random
 import uuid
 # REMOVED: django.core.mail, django.template.loader (No longer needed here)
@@ -108,9 +108,9 @@ class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     sales_rep = models.ForeignKey(SalesRep, on_delete=models.SET_NULL, null=True, blank=True, related_name="providers")
     image = models.FileField(
-        storage= AzureStaticStorage,
+        storage= AzureMediaStorage, 
         upload_to=user_directory_path,
-        default='images/default_user.jpg', 
+        default='defaults/default_user.jpg', 
         null=True,
         blank=True
     )
@@ -160,3 +160,4 @@ class PasswordResetToken(models.Model):
 
     def is_expired(self):
         return timezone.now() > self.created_at + timezone.timedelta(minutes=30)
+    

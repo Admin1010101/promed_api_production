@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Website Inquiry</title>
+    <style>
+        body { margin: 0; padding: 0; background-color: #f4f4f4; }
+        table { border-collapse: collapse; }
+        .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
+        .header { background-color: #10b981; padding: 25px 30px; color: #ffffff; text-align: center; }
+        .content { padding: 30px; }
+        .divider { border-bottom: 2px solid #e0f2f1; margin: 20px 0; }
+        .data-table tr:nth-child(even) { background-color: #f9ffef; } /* Light alternating row color */
+    </style>
+</head>
+<body style="font-family: 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333333; margin: 0; padding: 0; background-color: #f4f4f4;">
+    
+    <div class="container" style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+        
+        <div class="header" style="background-color: #10b981; padding: 25px 30px; color: #ffffff; text-align: center;">
+            <h1 style="margin: 0; font-size: 24px; font-weight: bold;">
+                ProMed Health <span style="font-weight: 300;">Plus</span>
+            </h1>
+            <p style="margin: 5px 0 0; font-size: 16px;">New Website Inquiry</p>
+        </div>
+
+        <div class="content" style="padding: 30px;">
+            <h2 style="color: #10b981; margin-top: 0; font-size: 20px;">
+                Customer Details
+            </h2>
+            <p style="margin-bottom: 25px;">A new visitor has submitted an inquiry through the website contact form. Please review the details below.</p>
+            
+            <table class="data-table" style="width: 100%; border-collapse: collapse; margin-top: 15px; border: 1px solid #eeeeee; border-radius: 8px; overflow: hidden;">
+                <tr style="background-color: #f0fdfa;">
+                    <td colspan="2" style="padding: 12px; font-weight: bold; color: #0f766e; border-bottom: 1px solid #e0f2f1;">
+                        INQUIRY SUMMARY
+                    </td>
+                </tr>
+                <tr class="data-row" style="background-color: #f9f9f9;">
+                    <td style="padding: 12px 15px; border-bottom: 1px solid #eeeeee; font-weight: bold; width: 30%; color: #555;">Name:</td>
+                    <td style="padding: 12px 15px; border-bottom: 1px solid #eeeeee;">{{ name }}</td>
+                </tr>
+                <tr class="data-row">
+                    <td style="padding: 12px 15px; border-bottom: 1px solid #eeeeee; font-weight: bold; width: 30%; color: #555;">Email:</td>
+                    <td style="padding: 12px 15px; border-bottom: 1px solid #eeeeee;"><a href="mailto:{{ email }}" style="color: #0d9488; text-decoration: none;">{{ email }}</a></td>
+                </tr>
+                <tr class="data-row" style="background-color: #f9f9f9;">
+                    <td style="padding: 12px 15px; border-bottom: 1px solid #eeeeee; font-weight: bold; width: 30%; color: #555;">Phone:</td>
+                    <td style="padding: 12px 15px; border-bottom: 1px solid #eeeeee;">{{ phone }}</td>
+                </tr>
+                <tr class="data-row">
+                    <td style="padding: 12px 15px; border-bottom: 1px solid #eeeeee; font-weight: bold; width: 30%; color: #555;">Location:</td>
+                    <td style="padding: 12px 15px; border-bottom: 1px solid #eeeeee;">{{ city }}, {{ state }} {{ zip }}</td>
+                </tr>
+            </table>
+
+            <h3 style="color: #10b981; margin-top: 30px; margin-bottom: 10px; font-size: 18px;">Question/Message:</h3>
+            
+            <div style="white-space: pre-wrap; background-color: #f0fdfa; padding: 15px; border-radius: 8px; border: 1px solid #2dd4bf; color: #155724;">
+                <p style="margin: 0;">{{ question }}</p>
+            </div>
+        </div>
+
+        <div style="padding: 20px 30px; text-align: center; background-color: #e0f2f1; border-top: 1px solid #d1e7dd;">
+            <p style="margin: 0; color: #555555; font-size: 12px;">
+                &copy; {{ year }} ProMed Health Plus. All rights reserved.
+            </p>
+        </div>
+        
+    </div>
+</body>
+</html>
