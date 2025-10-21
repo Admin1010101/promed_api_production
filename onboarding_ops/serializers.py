@@ -39,10 +39,12 @@ class ProviderDocumentSerializer(serializers.ModelSerializer):
 
 
 # Document Upload serializer - Enhanced with validation
+from rest_framework import serializers
+
 class DocumentUploadSerializer(serializers.Serializer):
     """
-    Serializer for handling multiple file uploads
-    Files are validated and prepared for email attachment
+    Serializer for handling multiple file uploads, including an optional message.
+    Files are validated and prepared for email attachment.
     """
     document_type = serializers.ChoiceField(
         choices=[
@@ -50,6 +52,13 @@ class DocumentUploadSerializer(serializers.Serializer):
             ('MISCELLANEOUS', 'Miscellaneous'),
         ],
         required=True
+    )
+    
+    # 🟢 NEW FIELD: Optional message for the physician
+    message = serializers.CharField(
+        required=False, 
+        allow_blank=True,
+        max_length=5000, # Set a reasonable maximum length for the message
     )
     
     files = serializers.ListField(

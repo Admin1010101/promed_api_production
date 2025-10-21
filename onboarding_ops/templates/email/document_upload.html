@@ -1,200 +1,168 @@
-<!-- templates/email/document_upload.html -->
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>New Medical Documents</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
+    <title>New Provider Documents for Review</title>
+    
+    <style type="text/css">
+        body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; }
+        body { margin: 0; padding: 0; }
+        /* Reset styles */
+        table { border-collapse: collapse !important; }
+        .ExternalClass { width: 100%; }
+        .ExternalClass, .ExternalClass p, .ExternalClass span, .ExternalClass font, .ExternalClass td, .ExternalClass div { line-height: 100%; }
+        a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; font-size: inherit !important; font-family: inherit !important; font-weight: inherit !important; line-height: inherit !important; }
+
+        /* General styles */
+        .content-table {
             background-color: #ffffff;
             border-radius: 8px;
-            padding: 30px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
         }
-        .header {
-            border-bottom: 3px solid #0d9488;
-            padding-bottom: 15px;
-            margin-bottom: 25px;
+        .header-bg {
+            background-color: #0d9488; /* Teal-600 */
+            color: #ffffff;
+            padding: 20px 30px;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
         }
-        .header h1 {
-            margin: 0;
-            color: #0d9488;
-            font-size: 24px;
-        }
-        .info-section {
-            background-color: #f0fdfa;
-            border-left: 4px solid #0d9488;
+        .section-box {
+            background-color: #f0fdfa; /* Teal-50 */
+            border-left: 4px solid #0d9988;
             padding: 15px;
             margin: 20px 0;
             border-radius: 4px;
         }
-        .info-row {
-            display: flex;
-            margin-bottom: 10px;
-        }
-        .info-row:last-child {
-            margin-bottom: 0;
-        }
-        .info-label {
-            font-weight: 600;
-            min-width: 140px;
-            color: #0f766e;
-        }
-        .info-value {
-            color: #334155;
-        }
-        .file-list {
-            background-color: #fafafa;
-            border: 1px solid #e5e7eb;
-            border-radius: 4px;
+        .message-box {
+            background-color: #fef3c7; /* Amber-100 */
+            border-left: 4px solid #f59e0b; /* Amber-500 */
             padding: 15px;
             margin: 20px 0;
+            border-radius: 4px;
         }
-        .file-list h3 {
-            margin: 0 0 12px 0;
-            font-size: 16px;
+        .file-list-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 14px;
             color: #374151;
         }
-        .file-item {
-            display: flex;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        .file-item:last-child {
+        .file-list-item:last-child {
             border-bottom: none;
         }
-        .file-icon {
-            width: 24px;
-            height: 24px;
-            margin-right: 10px;
-            background-color: #0d9488;
-            border-radius: 3px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 10px;
-            font-weight: bold;
-        }
-        .file-name {
-            flex: 1;
-            color: #1f2937;
-            font-size: 14px;
-        }
-        .notice {
-            background-color: #fef3c7;
-            border-left: 4px solid #f59e0b;
-            padding: 12px 15px;
-            margin: 20px 0;
-            border-radius: 4px;
-            font-size: 14px;
-            color: #92400e;
-        }
-        .footer {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #e5e7eb;
-            font-size: 13px;
-            color: #6b7280;
-            text-align: center;
-        }
-        .button {
-            display: inline-block;
-            background-color: #0d9488;
-            color: white;
-            padding: 12px 24px;
-            text-decoration: none;
-            border-radius: 6px;
+        .label {
             font-weight: 600;
-            margin: 15px 0;
+            color: #0f766e;
+            width: 140px;
+        }
+        .value {
+            color: #334155;
+        }
+        .footer-text {
+            color: #6b7280;
+            font-size: 12px;
+            line-height: 1.5;
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>📄 New Medical Documents Received</h1>
-        </div>
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: Arial, sans-serif;">
 
-        <p>Dear Dr. {{ recipient_name|default:"Supervising Physician" }},</p>
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+            <td align="center" style="padding: 20px 0 40px 0;">
+                
+                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px;">
+                    <tr>
+                        <td class="content-table" style="padding: 0;">
 
-        <p>
-            A provider has submitted medical documents for your review. 
-            The files are attached to this email.
-        </p>
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" class="header-bg">
+                                <tr>
+                                    <td style="font-size: 24px; font-weight: bold; padding: 10px 30px; text-align: center;">
+                                        📄 New Documents for Review
+                                    </td>
+                                </tr>
+                            </table>
 
-        <div class="info-section">
-            <div class="info-row">
-                <span class="info-label">Provider Name:</span>
-                <span class="info-value">{{ provider_name }}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Provider Email:</span>
-                <span class="info-value">{{ provider_email }}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Document Type:</span>
-                <span class="info-value">{{ document_type }}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Submission Date:</span>
-                <span class="info-value">{{ submission_date }}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Number of Files:</span>
-                <span class="info-value">{{ file_count }} file(s)</span>
-            </div>
-        </div>
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="padding: 30px;">
+                                <tr>
+                                    <td style="color: #333333; font-size: 15px; line-height: 1.6;">
+                                        <p style="margin: 0 0 20px 0;">Dear Dr. {{ recipient_name|default:"Supervising Physician" }},</p>
 
-        <div class="file-list">
-            <h3>📎 Attached Documents:</h3>
-            {% for file_name in file_names %}
-            <div class="file-item">
-                <div class="file-icon">
-                    {% if file_name|lower|slice:"-4:" == ".pdf" %}
-                        PDF
-                    {% elif ".doc" in file_name|lower %}
-                        DOC
-                    {% elif ".jpg" in file_name|lower or ".jpeg" in file_name|lower or ".png" in file_name|lower or ".gif" in file_name|lower %}
-                        IMG
-                    {% else %}
-                        FILE
-                    {% endif %}
-                </div>
-                <span class="file-name">{{ file_name }}</span>
-            </div>
-            {% endfor %}
-        </div>
+                                        <p style="margin: 0 0 20px 0;">
+                                            A provider has used the portal to submit **{{ file_count }}** documents for your immediate review.
+                                            The files are attached directly to this email for your convenience.
+                                        </p>
 
-        <div class="notice">
-            <strong>⚠️ Note:</strong> These documents have been sent directly from the provider's onboarding portal and require your review. Please download the attachments from this email.
-        </div>
+                                        {% if provider_message %}
+                                        <div class="message-box">
+                                            <p style="margin-top: 0; font-weight: 700; color: #92400e; font-size: 15px;">
+                                                Message from Provider ({{ provider_name }}):
+                                            </p>
+                                            <p style="margin-bottom: 0; white-space: pre-wrap; font-size: 14px; color: #334155;">
+                                                {{ provider_message }}
+                                            </p>
+                                        </div>
+                                        {% endif %}
+                                        <div class="section-box">
+                                            <p style="margin-top: 0; font-weight: 700; color: #0f766e; font-size: 16px; border-bottom: 1px solid #b2f5ea; padding-bottom: 8px;">
+                                                Submission Details
+                                            </p>
+                                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-size: 14px;">
+                                                <tr><td class="label">Provider Name:</td><td class="value">{{ provider_name }}</td></tr>
+                                                <tr><td class="label">Provider Email:</td><td class="value">{{ provider_email }}</td></tr>
+                                                <tr><td class="label">Document Type:</td><td class="value">{{ document_type }}</td></tr>
+                                                <tr><td class="label">Submission Date:</td><td class="value">{{ submission_date }}</td></tr>
+                                            </table>
+                                        </div>
 
-        <p style="margin-top: 25px;">
-            If you have any questions or need clarification about these documents, 
-            you can reply directly to this email to contact {{ provider_name }}.
-        </p>
+                                        <p style="margin: 20px 0 10px 0; font-weight: 700; color: #333333; font-size: 16px;">
+                                            📎 Attached File List ({{ file_count }} total):
+                                        </p>
+                                        <div style="border: 1px solid #e5e7eb; border-radius: 4px; padding: 5px 15px;">
+                                            {% for file_name in file_names %}
+                                            <div class="file-list-item">
+                                                <span style="font-weight: 600;">
+                                                    {% if file_name|lower|slice:"-4:" == ".pdf" %}PDF:
+                                                    {% elif ".doc" in file_name|lower %}Word:
+                                                    {% elif ".jpg" in file_name|lower or ".jpeg" in file_name|lower or ".png" in file_name|lower or ".gif" in file_name|lower %}Image:
+                                                    {% else %}File:
+                                                    {% endif %}
+                                                </span>
+                                                {{ file_name }}
+                                            </div>
+                                            {% endfor %}
+                                        </div>
 
-        <div class="footer">
-            <p>
-                This is an automated notification from the ProMed Health Plus Provider Portal.<br>
-                Please do not reply to this email address.
-            </p>
-            <p style="margin-top: 10px; font-size: 12px;">
-                &copy; {{ submission_date|slice:"-4:" }} ProMed Health Plus. All rights reserved.
-            </p>
-        </div>
-    </div>
-</body>
+                                        <p style="margin-top: 30px;">
+                                            If you have any questions, please reply directly to this email to contact 
+                                            {{ provider_name }}.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-top: 1px solid #e5e7eb; padding: 20px 30px;">
+                                <tr>
+                                    <td align="center" class="footer-text">
+                                        <p style="margin: 0;">
+                                            This is an automated notification from the ProMed Health Plus Provider Portal.
+                                            Please do not reply to this address unless you are contacting the provider directly.
+                                        </p>
+                                        <p style="margin: 10px 0 0 0; font-size: 11px;">
+                                            &copy; {{ submission_date|slice:"-4:" }} ProMed Health Plus. All rights reserved.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                        </td>
+                    </tr>
+                </table>
+                </td>
+        </tr>
+    </table>
+    </body>
 </html>

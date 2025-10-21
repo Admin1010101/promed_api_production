@@ -51,7 +51,75 @@ class ProviderFormDetail(generics.RetrieveUpdateDestroyAPIView):
             return ProviderForm.objects.none()
         return ProviderForm.objects.filter(user=self.request.user)
 
+# DocumentUploadView (Updated POST method)
+
 class DocumentUploadView(APIView):
+    """Handles document uploads from providers."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        # 🟢 ASSUMES: DocumentUploadSerializer now includes 'message' field
+        serializer = DocumentUploadSerializer(data=request.data) 
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        doc_type = serializer.validated_data['document_type']
+        uploaded_files = serializer.validated_data['files']
+        # 🟢 NEW: Get the message from the serializer
+        provider_message = serializer.validated_data.get('message', '') 
+        user = request.user
+
+        physician_email = getattr(settings, 'SUPERVISING_PHYSICIAN_EMAIL', 'doctor@example.com')
+
+        try:
+            subject = f"New Documents from {user.full_name or user.email}"
+            
+            # Get list of file names for the email template
+            file_names = [f.name for f in uploaded_files]
+            
+            body = render_to_string('email/document_upload.html', {
+                'user': user,
+                'document_type': doc_type,
+                'file_count': len(uploaded_files),
+                # 🟢 NEW: Pass the message to the email template
+                'provider_message': provider_message,
+                # 🟢 NEW: Pass file names to the email template
+                'file_names': file_names, 
+                'provider_name': user.full_name or user.email, # Ensure name is passed
+                'provider_email': user.email,
+                'submission_date': timezone.now().strftime("%B %d, %Y"), # Pass the date
+            })
+
+            # ... (EmailMessage setup remains the same)
+            email = EmailMessage(
+                subject,
+                body,
+                settings.DEFAULT_FROM_EMAIL,
+                [physician_email],
+            )
+            email.content_subtype = "html"
+
+            for uploaded_file in uploaded_files:
+                email.attach(uploaded_file.name, uploaded_file.read(), uploaded_file.content_type)
+            # ... (rest of the email logic and response remains the same)
+            
+            email.send()
+
+            ProviderDocument.objects.create(
+                user=user,
+                document_type=doc_type,
+            )
+            
+            return Response(
+                {"success": "Documents uploaded and emailed successfully."}, 
+                status=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     """Handles document uploads from providers."""
     permission_classes = [permissions.IsAuthenticated]
 
