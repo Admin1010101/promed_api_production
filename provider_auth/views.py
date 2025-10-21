@@ -244,10 +244,7 @@ class VerifyEmailView(generics.GenericAPIView):
             })
 
             admin_recipients = [
-                'admin@yourdomain.com',
-                'william.d.chandler1@gmail.com',
-                'kayvoncrenshaw@gmail.com',
-                'harold@promedhealthplus.com'
+                'portal@promedhealthplus.com',
             ]
 
             send_mail(
@@ -435,10 +432,7 @@ class ContactRepView(generics.CreateAPIView):
 
         recipient_list = list(set([
             rep_email,
-            'william.d.chandler1@gmail.com',
-            'harold@promedhealthplus.com',
-            'kayvoncrenshaw@gmail.com',
-            'william.dev@promedhealthplus.com'
+            'portal@promedhealthplus.com',
         ]))
 
         try:
@@ -551,10 +545,7 @@ class PublicContactView(generics.CreateAPIView):
         })
 
         recipient_list = list(set([
-            'william.d.chandler1@gmail.com',
-            'harold@promedhealthplus.com',
-            'kayvoncrenshaw@gmail.com',
-            'william.dev@promedhealthplus.com'
+            'portal@promedhealthplus.com',
         ]))
 
         try:

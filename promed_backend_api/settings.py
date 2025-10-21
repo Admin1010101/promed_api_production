@@ -219,7 +219,7 @@ EMAIL_HOST_USER = 'apikey'
 EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = 'william.dev@promedhealthplus.com'
+DEFAULT_FROM_EMAIL = 'portal@promedhealthplus.com',
 
 AZURE_ACCOUNT_NAME = os.getenv('AZURE_ACCOUNT_NAME')
 AZURE_ACCOUNT_KEY = os.getenv('AZURE_ACCOUNT_KEY')
@@ -235,12 +235,12 @@ AZURE_CONTAINER = AZURE_MEDIA_CONTAINER
 
 # Admin emails - UPDATE THESE WITH REAL EMAIL ADDRESSES
 ADMINS = [
-    ('Admin Name', 'admin@promedhealthplus.com'),
-    ('William Dev', 'william.dev@promedhealthplus.com'),
+    ('Primary Email Sender', 'admin@promedhealthplus.com'),
+    ('William Dev', 'portal@promedhealthplus'),
 ]
 
 # Supervising physician email for document uploads
-SUPERVISING_PHYSICIAN_EMAIL = 'william.chandler21@yahoo.com'
+SUPERVISING_PHYSICIAN_EMAIL = 'drdavid@promedhealthplus.com'
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 

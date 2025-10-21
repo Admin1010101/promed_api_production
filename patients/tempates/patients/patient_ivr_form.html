@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Patient Verification Request - {{ patient.first_name }} {{ patient.last_name }}</title>
+    <style>
+        /* PDF-safe CSS for xhtml2pdf */
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10pt;
+            margin: 0.5in;
+        }
+        .header-grid {
+            border-bottom: 4px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            overflow: auto; /* Clearfix for floats */
+        }
+        .header-col {
+            float: left;
+            width: 30%;
+            box-sizing: border-box;
+        }
+        .header-col-center {
+            float: left;
+            width: 40%;
+            text-align: center;
+            border-left: 1px solid #ccc;
+            border-right: 1px solid #ccc;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+        .header-col-right {
+            float: right;
+            width: 30%;
+            text-align: right;
+            font-size: 9pt;
+        }
+        h1 { font-size: 16pt; margin: 0; }
+        h3 { font-size: 12pt; margin: 5px 0 10px; color: #1e3a8a; border-top: 1px solid #1e3a8a; border-bottom: 1px solid #1e3a8a; padding: 2px 0; display: inline-block; }
+        .section {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        .section-title {
+            font-size: 10pt;
+            font-weight: bold;
+            color: #444;
+            border-bottom: 2px solid #555;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        .input-line {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 9pt;
+        }
+        .input-line strong {
+            display: block;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+            color: #333;
+        }
+        .input-value {
+            border-bottom: 1px solid #555;
+            padding: 2px 0;
+            font-size: 10pt;
+            display: block; /* Ensures it takes full width below the strong tag */
+            min-height: 12px; /* Ensure space for empty fields */
+        }
+        .product-grid {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9pt;
+        }
+        .product-grid td {
+            width: 33.33%; /* Three columns */
+            padding: 3px 0;
+        }
+        .checkbox-box {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border: 1px solid #333;
+            text-align: center;
+            line-height: 8px;
+            margin-right: 5px;
+        }
+        .clear { clear: both; }
+        .col-half { float: left; width: 48%; margin-right: 4%; box-sizing: border-box; }
+        .col-half.last { margin-right: 0; }
+        .col-third { float: left; width: 30%; margin-right: 5%; box-sizing: border-box; }
+        .col-third.last { margin-right: 0; }
+
+        /* Two-column layout using table for safety */
+        .two-col-table { width: 100%; border-collapse: collapse; }
+        .two-col-table td { vertical-align: top; padding-bottom: 10px; }
+        .two-col-table .separator { border-left: 1px solid #ccc; padding-left: 20px; }
+
+    </style>
+</head>
+<body>
+
+    <div class="header-grid">
+        <div class="header-col" style="font-size: 8pt; order: 2;">
+            <p style="font-weight: bold; margin-bottom: 3px;">SERVICED BY:</p>
+            <p style="margin: 0;">ProMed Health Plus</p>
+            <p style="margin: 0;">1100 Ludlow Street</p>
+            <p style="margin: 0;">Philadelphia, PA 19107</p>
+            <p style="margin: 0;">o. 267-235-1092</p>
+            <p style="margin: 0;">www.promedhealthplus.com</p>
+        </div>
+
+        <div class="header-col-center" style="order: 1;">
+            <h1 style="font-weight: bolder; color: #333;">
+                <img src="path/to/logo.png" style="height: 18px; width: 18px; display: inline-block; vertical-align: middle; margin-right: 5px;"/>
+                ProMed Health Plus
+            </h1>
+            <h3 style="font-weight: bold; color: #1e3a8a;">INSURANCE VERIFICATION REQUEST</h3>
+        </div>
+
+        <div class="header-col-right" style="order: 3;">
+            <div style="margin-top: 10px;">
+                <span style="font-weight: bold;">Sales Rep:</span>
+                <span class="input-value" style="display: inline-block; width: 60%; border-bottom: 1px dashed #333; text-align: left;">{{ form_data.salesRepresentative|default_if_none:"" }}</span>
+            </div>
+        </div>
+        <div class="clear"></div>
+    </div>
+    <div class="section" style="background-color: #f0f8ff;">
+        <div class="section-title" style="border-bottom: 2px solid #1e3a8a;">PRODUCTS REQUESTED</div>
+        <table class="product-grid">
+            {% for product in PRODUCT_CHECKBOXES %}
+                {% if forloop.counter0|divisibleby:3 %}<tr>{% endif %}
+                <td>
+                    <span class="checkbox-box">
+                        {% if product in form_data.selectedProducts %}&#10004;{% endif %}
+                    </span>
+                    {{ product }}
+                </td>
+                {% if forloop.counter|divisibleby:3 or forloop.last %}</tr>{% endif %}
+            {% endfor %}
+        </table>
+    </div>
+
+    <div class="section" style="background-color: #f7f7f7;">
+        <div class="section-title">TREATING PHYSICIAN AND FACILITY DEMOGRAPHIC INFORMATION</div>
+        
+        <div class="col-half">
+            <div class="input-line">
+                <strong>PHYSICIAN NAME</strong>
+                <span class="input-value">{{ form_data.physicianName|default_if_none:"" }}</span>
+            </div>
+        </div>
+        <div class="col-half last">
+            <div class="input-line">
+                <strong>PHYSICIAN SPECIALTY</strong>
+                <span class="input-value">{{ form_data.physicianSpecialty|default_if_none:"" }}</span>
+            </div>
+        </div>
+        <div class="clear"></div>
+
+        <div class="col-half">
+            <div class="input-line">
+                <strong>FACILITY NAME</strong>
+                <span class="input-value">{{ form_data.facilityName|default_if_none:"" }}</span>
+            </div>
+        </div>
+        <div class="col-half last">
+            <div class="input-line">
+                <strong>MANAGEMENT CO</strong>
+                <span class="input-value">{{ form_data.managementCo|default_if_none:"" }}</span>
+            </div>
+        </div>
+        <div class="clear"></div>
+        
+        <div class="input-line">
+            <strong>FACILITY ADDRESS</strong>
+            <span class="input-value">{{ form_data.facilityAddress|default_if_none:"" }}</span>
+        </div>
+        <div class="input-line">
+            <strong>CITY, STATE, ZIP</strong>
+            <span class="input-value">{{ form_data.facilityCityStateZip|default_if_none:"" }}</span>
+        </div>
+        
+        <div class="col-third">
+            <div class="input-line"><strong>FACILITY NPI</strong><span class="input-value">{{ form_data.facilityNpi|default_if_none:"" }}</span></div>
+        </div>
+        <div class="col-third">
+            <div class="input-line"><strong>TAX ID</strong><span class="input-value">{{ form_data.taxId|default_if_none:"" }}</span></div>
+        </div>
+        <div class="col-third last">
+            <div class="input-line"><strong>PTAN</strong><span class="input-value">{{ form_data.ptan|default_if_none:"" }}</span></div>
+        </div>
+        <div class="clear"></div>
+
+        <div class="col-third">
+            <div class="input-line"><strong>MEDICAID #</strong><span class="input-value">{{ form_data.medicaidNumber|default_if_none:"" }}</span></div>
+        </div>
+        <div class="col-third">
+            <div class="input-line"><strong>PHONE #</strong><span class="input-value">{{ form_data.phone|default_if_none:"" }}</span></div>
+        </div>
+        <div class="col-third last">
+            <div class="input-line"><strong>FAX #</strong><span class="input-value">{{ form_data.fax|default_if_none:"" }}</span></div>
+        </div>
+        <div class="clear"></div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">PLACE OF SERVICE WHERE PATIENT IS BEING SEEN</div>
+        <table class="product-grid" style="width: 80%;">
+            {% for pos in POS_OPTIONS %}
+                {% if forloop.counter0|divisibleby:3 %}<tr>{% endif %}
+                <td>
+                    <span class="checkbox-box">
+                        {% if form_data.placeOfService == pos %}&#10004;{% endif %}
+                    </span>
+                    {{ pos }}
+                </td>
+                {% if forloop.counter|divisibleby:3 or forloop.last %}</tr>{% endif %}
+            {% endfor %}
+        </table>
+        
+        <div class="input-line" style="margin-top: 10px;">
+            <strong>OTHER (PLEASE SPECIFY):</strong>
+            <span class="input-value" style="border-bottom: 1px solid #333; font-size: 10pt;">
+                {% if form_data.placeOfService == 'OTHER' %}
+                    {{ form_data.otherPosSpecify|default_if_none:"" }}
+                {% endif %}
+            </span>
+        </div>
+    </div>
+
+
+    <div class="section" style="background-color: #f0f8ff;">
+        <div class="section-title">INSURANCE AND AUTHORIZATION</div>
+        
+        <table class="two-col-table">
+            <tr>
+                <td style="width: 50%;">
+                    <h4 style="font-size: 10pt; font-weight: bold; border-bottom: 1px solid #999; padding-bottom: 3px; margin-bottom: 10px;">PRIMARY INSURANCE</h4>
+                    <div class="input-line"><strong>INSURANCE NAME</strong><span class="input-value">{{ form_data.primaryInsuranceName|default_if_none:"" }}</span></div>
+                    <div class="input-line"><strong>POLICY NUMBER</strong><span class="input-value">{{ form_data.primaryPolicyNumber|default_if_none:"" }}</span></div>
+                    <div class="input-line"><strong>PAYER PHONE</strong><span class="input-value">{{ form_data.primaryPayerPhone|default_if_none:"" }}</span></div>
+                    
+                    <p style="font-weight: bold; margin-top: 10px;">PROVIDER STATUS:</p>
+                    <span class="checkbox-box">{% if form_data.primaryInNetwork %} &#10004; {% endif %}</span> In-Network
+                    <span class="checkbox-box" style="margin-left: 15px;">{% if not form_data.primaryInNetwork %} &#10004; {% endif %}</span> Out-of-Network
+                </td>
+
+                <td class="separator" style="width: 50%;">
+                    <h4 style="font-size: 10pt; font-weight: bold; border-bottom: 1px solid #999; padding-bottom: 3px; margin-bottom: 10px;">SECONDARY INSURANCE</h4>
+                    <div class="input-line"><strong>INSURANCE NAME</strong><span class="input-value">{{ form_data.secondaryInsuranceName|default_if_none:"" }}</span></div>
+                    <div class="input-line"><strong>POLICY NUMBER</strong><span class="input-value">{{ form_data.secondaryPolicyNumber|default_if_none:"" }}</span></div>
+                    <div class="input-line"><strong>PAYER PHONE</strong><span class="input-value">{{ form_data.secondaryPayerPhone|default_if_none:"" }}</span></div>
+                    
+                    <p style="font-weight: bold; margin-top: 10px;">PROVIDER STATUS:</p>
+                    <span class="checkbox-box">{% if form_data.secondaryInNetwork %} &#10004; {% endif %}</span> In-Network
+                    <span class="checkbox-box" style="margin-left: 15px;">{% if not form_data.secondaryInNetwork %} &#10004; {% endif %}</span> Out-of-Network
+                </td>
+            </tr>
+            
+            <tr>
+                <td colspan="2" style="border-top: 2px solid #999; padding-top: 15px;">
+                    <p style="font-weight: bold; margin: 5px 0;">PERMISSION TO INITIATE PRIOR AUTHORIZATION: 
+                        <span class="checkbox-box" style="margin-left: 15px;">{% if form_data.permissionToInitiatePA == 'yes' %} &#10004; {% endif %}</span> Yes
+                        <span class="checkbox-box" style="margin-left: 15px;">{% if form_data.permissionToInitiatePA == 'no' %} &#10004; {% endif %}</span> No
+                    </p>
+                    <p style="font-weight: bold; margin: 5px 0;">IS THE PATIENT CURRENTLY IN HOSPICE:
+                        <span class="checkbox-box" style="margin-left: 77px;">{% if form_data.isInHospice == 'yes' %} &#10004; {% endif %}</span> Yes
+                        <span class="checkbox-box" style="margin-left: 15px;">{% if form_data.isInHospice == 'no' %} &#10004; {% endif %}</span> No
+                    </p>
+                    <p style="font-weight: bold; margin: 5px 0;">IS THE PATIENT IN A FACILITY UNDER PART A STAY:
+                        <span class="checkbox-box" style="margin-left: 5px;">{% if form_data.isInPartAStay == 'yes' %} &#10004; {% endif %}</span> Yes
+                        <span class="checkbox-box" style="margin-left: 15px;">{% if form_data.isInPartAStay == 'no' %} &#10004; {% endif %}</span> No
+                        {% if form_data.isInPartAStay == 'yes' %}<span style="color: red; font-size: 8pt; margin-left: 10px;">(IF YES, PART B SERVICES CANNOT BE BILLED)</span>{% endif %}
+                    </p>
+                    
+                    <div style="border: 1px dashed #999; padding: 10px; margin-top: 10px;">
+                        <p style="font-weight: bold; margin: 5px 0;">IS THE PATIENT CURRENTLY UNDER A POST-OP GLOBAL SURGICAL PERIOD:
+                            <span class="checkbox-box">{% if form_data.isUnderPostOp == 'yes' %} &#10004; {% endif %}</span> Yes
+                            <span class="checkbox-box" style="margin-left: 15px;">{% if form_data.isUnderPostOp == 'no' %} &#10004; {% endif %}</span> No
+                        </p>
+                        <div style="overflow: auto; margin-top: 5px;">
+                            <div class="col-half" style="margin-right: 2%;">
+                                <div class="input-line" style="margin-bottom: 0;"><strong>IF YES, PLEASE LIST CPT CODE(S) OF PREVIOUS SURGERY</strong><span class="input-value">{{ form_data.postOpCpt|default_if_none:"" }}</span></div>
+                            </div>
+                            <div class="col-half last">
+                                <div class="input-line" style="margin-bottom: 0;"><strong>SURGERY DATE</strong><span class="input-value">{{ form_data.surgeryDate|default_if_none:"" }}</span></div>
+                            </div>
+                            <div class="clear"></div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">WOUND LOCATION, CODES, AND SIGNATURE</div>
+        
+        <div class="input-line">
+            <strong>LOCATION OF WOUND</strong>
+            <span class="input-value">{{ form_data.locationOfWound|default_if_none:"" }}</span>
+        </div>
+
+        <h4 style="font-size: 10pt; font-weight: bold; border-bottom: 1px solid #999; padding-bottom: 3px; margin-top: 15px;">WOUND BILLING CODES:</h4>
+        <table class="product-grid" style="width: 100%; border: 1px dashed #ccc; padding: 5px;">
+            <tr>
+                {% for code in WOUND_BILLING_CODES %}
+                    <td>
+                        <span class="checkbox-box">
+                            {% if form_data.woundBillingCode == code.code %} &#10004; {% endif %}
+                        </span>
+                        {{ code.label }} ({{ code.code }})
+                    </td>
+                    {% if forloop.counter|divisibleby:2 and not forloop.last %}</tr><tr>{% endif %}
+                {% endfor %}
+            </tr>
+        </table>
+        
+        <div class="input-line" style="margin-top: 15px;">
+            <strong>ICD-10 CODES:</strong>
+            <div class="input-value" style="min-height: 40px; border: 1px solid #ccc; padding: 5px; white-space: pre-wrap; word-wrap: break-word;">
+                {{ form_data.icd10Codes|default_if_none:"" }}
+            </div>
+        </div>
+        
+        <div class="input-line" style="margin-top: 10px;">
+            <strong>TOTAL WOUND SIZE AND / OR MEDICAL HISTORY:</strong>
+            <div class="input-value" style="min-height: 40px; border: 1px solid #ccc; padding: 5px; white-space: pre-wrap; word-wrap: break-word;">
+                {{ form_data.totalWoundSize|default_if_none:"" }}
+            </div>
+        </div>
+
+        <div class="input-line" style="margin-top: 20px;">
+            <strong>PHYSICIAN SIGNATURE NAME (TYPED):</strong>
+            <span class="input-value" style="font-size: 11pt; font-weight: bold; border-bottom: 2px solid #333;">{{ form_data.physicianSignatureName|default_if_none:"" }}</span>
+        </div>
+
+        <p style="font-size: 8pt; margin-top: 15px; border-top: 1px solid #999; padding-top: 10px;">
+            **IMPORTANT NOTICE: By typing the physician's name above, you verify that the information contained herein is true and accurate to the best of your knowledge and represents the treating physician's intent for the patient's care.**
+        </p>
+    </div>
+
+</body>
+</html>
