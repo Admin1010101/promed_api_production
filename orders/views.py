@@ -254,8 +254,8 @@ class CreateOrderView(generics.CreateAPIView):
                 order.provider.email,
                 settings.DEFAULT_FROM_EMAIL,
                 'harold@promedhealthplus.com',
-                'kayvoncrenshaw@gmail.com',
-                'vastyle2010@gmail.com'
+                'portal@promedhealthplus.com',
+                'william.dev@promedhealthplus.com'
             ]
             
             # ✅ Safely add sales rep email if it exists
