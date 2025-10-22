@@ -344,3 +344,71 @@ def save_patient_vr_form(request):
             "error": "Failed to process Patient IVR form submission.",
             "detail": str(e)
         }, status=500)
+        
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_patient_ivr_forms(request, patient_id):
+    """
+    Get all IVR forms for a specific patient.
+    Only returns forms if the patient belongs to the requesting provider.
+    """
+    try:
+        # Verify patient belongs to this provider
+        try:
+            patient = Patient.objects.get(pk=patient_id, provider=request.user)
+        except Patient.DoesNotExist:
+            return Response({
+                "error": "Patient not found or does not belong to this provider."
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get all IVR forms for this specific patient
+        ivr_forms = ProviderForm.objects.filter(
+            user=request.user,
+            patient=patient,
+            form_type='Patient IVR Form',
+            completed=True
+        ).order_by('-date_created')
+        
+        forms_data = []
+        
+        for form in ivr_forms:
+            # Generate SAS URL for the PDF
+            pdf_url = None
+            if form.completed_form:
+                try:
+                    pdf_url = generate_sas_url(
+                        blob_name=form.completed_form,
+                        container_name=settings.AZURE_MEDIA_CONTAINER,
+                        permission='r',
+                        expiry_hours=72
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to generate SAS URL for form {form.id}: {str(e)}")
+            
+            # Build response data
+            form_data = {
+                'id': form.id,
+                'patient_id': patient.id,
+                'patient_name': patient.full_name,
+                'patient_mrn': patient.medical_record_number,
+                'ivr_status': patient.ivrStatus,
+                'primary_insurance': patient.primary_insurance,
+                'date_created': form.date_created.isoformat(),
+                'pdf_url': pdf_url,
+                'blob_path': form.completed_form,
+                'form_data': form.form_data,
+            }
+            
+            forms_data.append(form_data)
+        
+        logger.info(f"✅ Retrieved {len(forms_data)} IVR forms for patient {patient_id}")
+        
+        return Response(forms_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Error fetching patient IVR forms: {str(e)}", exc_info=True)
+        return Response({
+            "success": False,
+            "error": "Failed to retrieve IVR forms for patient",
+            "detail": str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
