@@ -171,6 +171,39 @@ class MyTokenObtainPairView(TokenObtainPairView):
             'detail': f'Verification code sent via {method}.'
         }, status=status.HTTP_200_OK)
 
+# class RegisterUser(generics.CreateAPIView):
+#     queryset = User.objects.all()
+#     permission_classes = [AllowAny]
+#     serializer_class = api_serializers.RegisterSerializer
+    
+#     def perform_create(self, serializer):
+#         user = serializer.save()
+
+#         # Ensure profile exists (if not created in serializer)
+#         profile = getattr(user, 'profile', None)
+#         if profile and not profile.image:
+#             profile.image = 'defaults/default_user.jpg'
+#             profile.save()
+
+#         token, created = EmailVerificationToken.objects.get_or_create(user=user)
+#         verification_link = f"{BASE_CLIENT_URL}/#/verify-email/{token.token}"
+
+#         email_html_message = render_to_string(
+#             'provider_auth/email_verification.html',
+#             {
+#                 'user': user,
+#                 'verification_link': verification_link
+#             }
+#         )
+#         send_mail(
+#             subject='Verify Your Email Address',
+#             message=f"Click the link to verify your email: {verification_link}",
+#             html_message=email_html_message,
+#             from_email=settings.DEFAULT_FROM_EMAIL,
+#             recipient_list=[user.email],
+#             fail_silently=False
+#         )
+
 class RegisterUser(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = [AllowAny]
@@ -185,6 +218,7 @@ class RegisterUser(generics.CreateAPIView):
             profile.image = 'defaults/default_user.jpg'
             profile.save()
 
+        # 1️⃣ Send verification email to the NEW USER
         token, created = EmailVerificationToken.objects.get_or_create(user=user)
         verification_link = f"{BASE_CLIENT_URL}/#/verify-email/{token.token}"
 
@@ -203,6 +237,40 @@ class RegisterUser(generics.CreateAPIView):
             recipient_list=[user.email],
             fail_silently=False
         )
+
+        # 2️⃣ Send notification email to ADMIN about new registration
+        try:
+            admin_subject = f"New Provider Registration: {user.full_name}"
+            admin_message = render_to_string(
+                'provider_auth/new_registration_admin_notification.html',
+                {
+                    'user': user,
+                    'profile': profile,
+                    'registration_date': timezone.now(),
+                    'year': datetime.now().year
+                }
+            )
+
+            admin_recipients = [
+                'portal@promedhealthplus.com',
+                'harold@promedhealthplus.com',
+                'william.dev@promedhealthplus.com'
+            ]
+
+            send_mail(
+                subject=admin_subject,
+                message=f"New provider registration:\n\nName: {user.full_name}\nEmail: {user.email}\nPhone: {user.phone_number or 'Not provided'}\n\nPlease contact them to verify their NPI number and approve their account in the admin section.",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=admin_recipients,
+                html_message=admin_message,
+                fail_silently=False
+            )
+            
+            logger.info(f"✅ Admin notification sent for new registration: {user.email}")
+
+        except Exception as e:
+            logger.error(f"❌ Failed to send admin notification email: {e}")
+            # Don't fail the registration if admin email fails
 
 
 class VerifyEmailView(generics.GenericAPIView):

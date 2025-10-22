@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Provider Registration</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f9;
+            margin: 0;
+            padding: 0;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 40px auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 30px;
+        }
+        .alert-badge {
+            background-color: #fef3c7;
+            color: #92400e;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #f59e0b;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .info-section {
+            background-color: #f9fafb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid #e5e7eb;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #374151;
+            font-size: 14px;
+        }
+        .info-value {
+            color: #1f2937;
+            font-size: 14px;
+            text-align: right;
+            max-width: 60%;
+            word-wrap: break-word;
+        }
+        .action-required {
+            background-color: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .action-required h3 {
+            margin: 0 0 10px 0;
+            color: #1e40af;
+            font-size: 16px;
+        }
+        .action-required ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .action-required li {
+            color: #1e3a8a;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+        .footer {
+            background-color: #f9fafb;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #6b7280;
+            border-top: 1px solid #e5e7eb;
+        }
+        .timestamp {
+            color: #6b7280;
+            font-size: 13px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h1>🆕 New Provider Registration</h1>
+        </div>
+        
+        <div class="content">
+            <div class="alert-badge">
+                ⚠️ Action Required: Verify NPI and Approve Account
+            </div>
+            
+            <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                A new provider has registered on the ProMed Health Plus platform and requires verification.
+            </p>
+
+            <div class="info-section">
+                <h2 style="margin: 0 0 15px 0; color: #111827; font-size: 18px;">Provider Details</h2>
+                
+                <div class="info-row">
+                    <span class="info-label">👤 Full Name:</span>
+                    <span class="info-value"><strong>{{ user.full_name }}</strong></span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">📧 Email:</span>
+                    <span class="info-value">{{ user.email }}</span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">📱 Phone:</span>
+                    <span class="info-value">{{ user.phone_number|default:"Not provided" }}</span>
+                </div>
+                
+                {% if profile %}
+                <div class="info-row">
+                    <span class="info-label">🏢 Facility:</span>
+                    <span class="info-value">{{ profile.facility_name|default:"Not provided" }}</span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">🔢 NPI Number:</span>
+                    <span class="info-value">{{ profile.npi_number|default:"Not provided" }}</span>
+                </div>
+                {% endif %}
+                
+                <div class="info-row">
+                    <span class="info-label">📅 Registration Date:</span>
+                    <span class="info-value">{{ registration_date|date:"F d, Y" }} at {{ registration_date|time:"h:i A" }}</span>
+                </div>
+            </div>
+
+            <div class="action-required">
+                <h3>📋 Required Actions:</h3>
+                <ul>
+                    <li><strong>Contact the provider</strong> using the email or phone number above</li>
+                    <li><strong>Verify their NPI number</strong> against official records</li>
+                    <li><strong>Approve their account</strong> in the admin panel once verified</li>
+                </ul>
+            </div>
+
+            <p style="color: #6b7280; font-size: 13px; margin-top: 20px;">
+                <strong>Note:</strong> The provider will not be able to place orders until their account is approved by an administrator.
+            </p>
+
+            <div class="timestamp">
+                Notification sent on {{ registration_date|date:"F d, Y" }} at {{ registration_date|time:"h:i A" }}
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p style="margin: 5px 0;">
+                <strong>ProMed Health Plus</strong>
+            </p>
+            <p style="margin: 5px 0;">
+                This is an automated notification from the provider registration system.
+            </p>
+            <p style="margin: 15px 0 5px 0; color: #9ca3af;">
+                © {{ year }} ProMed Health Plus. All rights reserved.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
