@@ -353,13 +353,19 @@ def get_patient_ivr_forms(request, patient_id):
     Get all IVR forms for a specific patient.
     Only returns forms if the patient belongs to the requesting provider.
     """
-    # Debug logging
+    # CRITICAL DEBUG LOGGING - Check if this even runs
+    print("="*80)
+    print(f"🔥 IVR ENDPOINT HIT! Patient ID: {patient_id}")
+    print(f"Request user: {request.user}")
+    print(f"Is authenticated: {request.user.is_authenticated}")
+    print(f"Auth header: {request.headers.get('Authorization', 'MISSING')}")
+    print("="*80)
+    
     logger.info("="*50)
     logger.info(f"🔍 IVR Forms Request for Patient ID: {patient_id}")
     logger.info(f"User authenticated: {request.user.is_authenticated}")
     logger.info(f"User: {request.user}")
     logger.info(f"User ID: {request.user.id if request.user.is_authenticated else 'N/A'}")
-    logger.info(f"Headers: {request.headers}")
     logger.info("="*50)
     
     try:
