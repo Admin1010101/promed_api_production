@@ -345,6 +345,7 @@ def save_patient_vr_form(request):
             "detail": str(e)
         }, status=500)
         
+        
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_patient_ivr_forms(request, patient_id):
@@ -352,11 +353,22 @@ def get_patient_ivr_forms(request, patient_id):
     Get all IVR forms for a specific patient.
     Only returns forms if the patient belongs to the requesting provider.
     """
+    # Debug logging
+    logger.info("="*50)
+    logger.info(f"🔍 IVR Forms Request for Patient ID: {patient_id}")
+    logger.info(f"User authenticated: {request.user.is_authenticated}")
+    logger.info(f"User: {request.user}")
+    logger.info(f"User ID: {request.user.id if request.user.is_authenticated else 'N/A'}")
+    logger.info(f"Headers: {request.headers}")
+    logger.info("="*50)
+    
     try:
         # Verify patient belongs to this provider
         try:
             patient = Patient.objects.get(pk=patient_id, provider=request.user)
+            logger.info(f"✅ Patient found: {patient.full_name}")
         except Patient.DoesNotExist:
+            logger.error(f"❌ Patient {patient_id} not found for user {request.user}")
             return Response({
                 "error": "Patient not found or does not belong to this provider."
             }, status=status.HTTP_404_NOT_FOUND)
@@ -368,6 +380,8 @@ def get_patient_ivr_forms(request, patient_id):
             form_type='Patient IVR Form',
             completed=True
         ).order_by('-date_created')
+        
+        logger.info(f"📋 Found {ivr_forms.count()} IVR forms for patient {patient_id}")
         
         forms_data = []
         
@@ -401,12 +415,12 @@ def get_patient_ivr_forms(request, patient_id):
             
             forms_data.append(form_data)
         
-        logger.info(f"✅ Retrieved {len(forms_data)} IVR forms for patient {patient_id}")
+        logger.info(f"✅ Returning {len(forms_data)} IVR forms for patient {patient_id}")
         
         return Response(forms_data, status=status.HTTP_200_OK)
         
     except Exception as e:
-        logger.error(f"Error fetching patient IVR forms: {str(e)}", exc_info=True)
+        logger.error(f"❌ Error fetching patient IVR forms: {str(e)}", exc_info=True)
         return Response({
             "success": False,
             "error": "Failed to retrieve IVR forms for patient",
