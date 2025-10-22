@@ -13,6 +13,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
         model = OrderItem
         fields = ['product', 'variant', 'quantity']
 
+
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True)
 
@@ -24,12 +25,10 @@ class OrderSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         items_data = validated_data.pop('items')
         user = self.context['request'].user
-
         order = Order.objects.create(
             provider=user,
             **validated_data
         )
-
         for item_data in items_data:
             OrderItem.objects.create(
                 order=order,
@@ -39,30 +38,44 @@ class OrderSerializer(serializers.ModelSerializer):
             )
         return order
 
+
 class OrderSummarySerializer(serializers.ModelSerializer):
     invoice_url = serializers.SerializerMethodField()
+
     class Meta:
         model = Order
         fields = ['id', 'created_at', 'status', 'invoice_url']
 
     def get_invoice_url(self, obj):
         request = self.context.get('request')
+        if not request:
+            return None
         path = reverse('order-invoice-pdf', args=[obj.id])
         return request.build_absolute_uri(path)
 
 
 class PatientOrderHistorySerializer(serializers.ModelSerializer):
     orders = serializers.SerializerMethodField()
+    total_orders_count = serializers.SerializerMethodField()  # ✅ NEW: Total count
 
     class Meta:
         model = Patient
-        fields = ['id', 'first_name', 'last_name', 'orders', 'activate_Account']
+        fields = ['id', 'first_name', 'last_name', 'orders', 'total_orders_count', 'activate_Account']
+
+    def get_total_orders_count(self, obj):
+        """Return total number of orders for this patient"""
+        return obj.orders.count()
 
     def get_orders(self, obj):
         request = self.context.get('request')
+        if not request:
+            return []
+        
+        # Check if we should return all orders or just the latest 5
         all_orders = request.query_params.get('all', 'false').lower() == 'true'
+        
         qs = obj.orders.order_by('-created_at')
         if not all_orders:
-            qs = qs[:5]
-
+            qs = qs[:5]  # Return only the 5 most recent
+        
         return OrderSummarySerializer(qs, many=True, context=self.context).data

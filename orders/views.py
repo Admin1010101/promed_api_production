@@ -158,7 +158,6 @@ class CreateOrderView(generics.CreateAPIView):
             
             try:
                 variant = ProductVariant.objects.get(id=variant_id)
-                # ✅ Use the new helper function that handles mm/cm
                 variant_area = parse_variant_size_to_cm2(variant.size)
                 
                 if variant_area > 0:
@@ -189,26 +188,33 @@ class CreateOrderView(generics.CreateAPIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        order_verified = data.get('order_verified', False)
-
+        # Create the order
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
 
         order = serializer.instance
+        order_verified = data.get('order_verified', False)
+
+        # ✅ ALWAYS save invoice to Azure and send email (removed the condition)
+        try:
+            self.save_invoice_to_azure(order)
+            self.send_invoice_email(order)
+            logger.info(f"✅ Invoice saved to Azure and email sent for order {order.id}")
+        except Exception as e:
+            logger.error(f"❌ Failed to save invoice/send email: {e}", exc_info=True)
+            # Continue anyway - order was created successfully
 
         if order_verified:
-            self.send_invoice_email(order)
-            self.save_invoice_to_azure(order)
-
-            logger.info(f"✅ Order {order.id} created and invoice sent")
+            logger.info(f"✅ Order {order.id} created and VERIFIED")
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             logger.info(f"✅ Order {order.id} created but PENDING VERIFICATION")
             return Response(
                 {
-                    "message": "Order placed successfully, but is currently PENDING VERIFICATION. No invoice was sent.",
-                    "order_id": order.id
+                    "message": "Order placed successfully, but is currently PENDING VERIFICATION.",
+                    "order_id": order.id,
+                    "order": serializer.data
                 },
                 status=status.HTTP_201_CREATED
             )
@@ -255,7 +261,7 @@ class CreateOrderView(generics.CreateAPIView):
                 settings.DEFAULT_FROM_EMAIL,
                 'harold@promedhealthplus.com',
                 'portal@promedhealthplus.com',
-                'william.dev@promedhealthplus.com'
+                'william.dev@ppromedhealth.com'
             ]
             
             # ✅ Safely add sales rep email if it exists
