@@ -1,24 +1,26 @@
 # patients/serializers.py
 from rest_framework import serializers
-from patients.models import Patient
+from patients.models import Patient, IVRForm
 from onboarding_ops.models import ProviderForm
 from django.conf import settings
 from utils.azure_storage import generate_sas_url
 import logging
 
+
 logger = logging.getLogger(__name__)
 
 class PatientSerializer(serializers.ModelSerializer):
-    """
-    Serializer for Patient model with computed IVR PDF URL.
-    """
-    latestIvrPdfUrl = serializers.SerializerMethodField()
+    # Add these computed fields
+    latest_ivr_status = serializers.CharField(source='latest_ivr_status', read_only=True)
+    latest_ivr_status_display = serializers.CharField(source='latest_ivr_status_display', read_only=True)
+    latest_ivr_pdf_url = serializers.CharField(source='latest_ivr_pdf_url', read_only=True)
+    ivr_count = serializers.IntegerField(source='ivr_count', read_only=True)
+    has_approved_ivr = serializers.BooleanField(source='has_approved_ivr', read_only=True)
     
     class Meta:
         model = Patient
         fields = [
             'id',
-            'provider',
             'first_name',
             'last_name',
             'middle_initial',
@@ -38,13 +40,17 @@ class PatientSerializer(serializers.ModelSerializer):
             'medical_record_number',
             'wound_size_length',
             'wound_size_width',
-            'ivrStatus',
-            'activate_Account',
             'date_created',
             'date_updated',
-            'latestIvrPdfUrl',  # Computed field
+            'activate_Account',
+            # New IVR-related fields
+            'latest_ivr_status',
+            'latest_ivr_status_display',
+            'latest_ivr_pdf_url',
+            'ivr_count',
+            'has_approved_ivr',
         ]
-        read_only_fields = ['id', 'provider', 'date_created', 'date_updated', 'latestIvrPdfUrl']
+        read_only_fields = ['id', 'date_created', 'date_updated']
     
     def get_latestIvrPdfUrl(self, obj):
         """
@@ -74,3 +80,182 @@ class PatientSerializer(serializers.ModelSerializer):
         except Exception as e:
             logger.error(f"Error generating IVR PDF URL for patient {obj.id}: {str(e)}")
             return None
+        
+class IVRFormSerializer(serializers.ModelSerializer):
+    """Full serializer for IVR forms with all details"""
+    provider_name = serializers.CharField(source='provider.full_name', read_only=True)
+    patient_name = serializers.SerializerMethodField()
+    reviewed_by_name = serializers.CharField(source='reviewed_by.full_name', read_only=True, allow_null=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    
+    class Meta:
+        model = IVRForm
+        fields = [
+            'id',
+            'provider',
+            'provider_name',
+            'patient',
+            'patient_name',
+            'physician_name',
+            'contact_name',
+            'phone',
+            'facility_address',
+            'facility_city_state_zip',
+            'wound_size_length',
+            'wound_size_width',
+            'pdf_url',
+            'pdf_blob_name',
+            'status',
+            'status_display',
+            'admin_notes',
+            'submitted_at',
+            'updated_at',
+            'reviewed_at',
+            'reviewed_by',
+            'reviewed_by_name',
+        ]
+        read_only_fields = [
+            'id',
+            'provider',
+            'submitted_at',
+            'updated_at',
+            'reviewed_at',
+            'reviewed_by',
+        ]
+    
+    def get_patient_name(self, obj):
+        return f"{obj.patient.first_name} {obj.patient.last_name}"
+
+
+class IVRFormCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating new IVR forms"""
+    class Meta:
+        model = IVRForm
+        fields = [
+            'patient',
+            'physician_name',
+            'contact_name',
+            'phone',
+            'facility_address',
+            'facility_city_state_zip',
+            'wound_size_length',
+            'wound_size_width',
+            'pdf_url',
+            'pdf_blob_name',
+        ]
+    
+    def create(self, validated_data):
+        # Provider is set from the request user in the view
+        validated_data['provider'] = self.context['request'].user
+        return super().create(validated_data)
+
+
+class IVRFormListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for listing IVR forms"""
+    patient_name = serializers.SerializerMethodField()
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    reviewed_by_name = serializers.CharField(source='reviewed_by.full_name', read_only=True, allow_null=True)
+    class Meta:
+        model = IVRForm
+        fields = [
+            'id',
+            'patient',
+            'patient_name',
+            'physician_name',  # ✅ Added
+            'contact_name',    # ✅ Added
+            'phone',           # ✅ Added
+            'status',
+            'status_display',
+            'submitted_at',
+            'reviewed_at',
+            'reviewed_by',
+            'reviewed_by_name',
+            'admin_notes',     # ✅ Added so frontend can show notes
+            'pdf_url',
+        ]
+    
+    def get_patient_name(self, obj):
+        return f"{obj.patient.first_name} {obj.patient.last_name}"
+
+
+class IVRFormUpdateStatusSerializer(serializers.ModelSerializer):
+    """Serializer for admin to update IVR status"""
+    class Meta:
+        model = IVRForm
+        fields = ['status', 'admin_notes']
+    
+    def validate_status(self, value):
+        valid_statuses = ['pending', 'approved', 'denied', 'cancelled']
+        if value not in valid_statuses:
+            raise serializers.ValidationError(f"Invalid status. Must be one of: {', '.join(valid_statuses)}")
+        return value
+    
+    def update(self, instance, validated_data):
+        status = validated_data.get('status')
+        admin_notes = validated_data.get('admin_notes', '')
+        
+        request = self.context.get('request')
+        reviewed_by = request.user if request else None
+        
+        if status == 'approved':
+            instance.mark_as_approved(reviewed_by_user=reviewed_by, notes=admin_notes)
+        elif status == 'denied':
+            instance.mark_as_denied(reviewed_by_user=reviewed_by, notes=admin_notes)
+        elif status == 'cancelled':
+            instance.status = 'cancelled'
+            instance.reviewed_at = timezone.now()
+            if admin_notes:
+                instance.admin_notes = admin_notes
+            instance.save()
+        else:
+            instance.status = status
+            if admin_notes:
+                instance.admin_notes = admin_notes
+            instance.save()
+        
+        return instance
+
+
+# ============ UPDATE EXISTING PATIENT SERIALIZER ============
+
+class PatientSerializer(serializers.ModelSerializer):
+    # Add these computed fields
+    latest_ivr_status = serializers.CharField(source='latest_ivr_status', read_only=True)
+    latest_ivr_status_display = serializers.CharField(source='latest_ivr_status_display', read_only=True)
+    latest_ivr_pdf_url = serializers.CharField(source='latest_ivr_pdf_url', read_only=True)
+    ivr_count = serializers.IntegerField(source='ivr_count', read_only=True)
+    has_approved_ivr = serializers.BooleanField(source='has_approved_ivr', read_only=True)
+    
+    class Meta:
+        model = Patient
+        fields = [
+            'id',
+            'first_name',
+            'last_name',
+            'middle_initial',
+            'date_of_birth',
+            'email',
+            'address',
+            'city',
+            'state',
+            'zip_code',
+            'phone_number',
+            'primary_insurance',
+            'primary_insurance_number',
+            'secondary_insurance',
+            'secondary_insurance_number',
+            'tertiary_insurance',
+            'tertiary_insurance_number',
+            'medical_record_number',
+            'wound_size_length',
+            'wound_size_width',
+            'date_created',
+            'date_updated',
+            'activate_Account',
+            # New IVR-related fields
+            'latest_ivr_status',
+            'latest_ivr_status_display',
+            'latest_ivr_pdf_url',
+            'ivr_count',
+            'has_approved_ivr',
+        ]

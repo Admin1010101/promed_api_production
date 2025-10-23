@@ -5,23 +5,26 @@ from datetime import datetime
 from django.conf import settings
 from django.utils.text import slugify
 from django.template.loader import render_to_string 
+from django.shortcuts import get_object_or_404
 from django.core.mail import EmailMessage
+from django.db.models import Count, Q
 from io import BytesIO 
 
 # Import pisa for PDF generation
 from xhtml2pdf import pisa 
 
-from rest_framework import generics
+from rest_framework import generics, permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework import status
 from . import serializers as api_serializers
 
 from azure.storage.blob import BlobServiceClient
 from azure.storage.blob import ContentSettings 
 
-from patients.models import Patient
+from patients.models import Patient,IVRForm
 from onboarding_ops.models import ProviderForm
 from utils.azure_storage import generate_sas_url 
 from provider_auth.models import User
@@ -432,3 +435,169 @@ def get_patient_ivr_forms(request, patient_id):
             "error": "Failed to retrieve IVR forms for patient",
             "detail": str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class IVRFormListCreateView(generics.ListCreateAPIView):
+    """
+    List all IVR forms for the authenticated provider or create a new one.
+    GET: List all IVR forms
+    POST: Create a new IVR form
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return api_serializers.IVRFormCreateSerializer
+        return api_serializers.IVRFormListSerializer
+    
+    def get_queryset(self):
+        return IVRForm.objects.filter(
+            provider=self.request.user
+        ).select_related('patient', 'provider')
+    
+    def perform_create(self, serializer):
+        serializer.save(provider=self.request.user)
+
+
+class IVRFormDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Retrieve, update, or delete a specific IVR form.
+    Only the provider who created it can access/modify it.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = api_serializers.IVRFormSerializer
+    
+    def get_queryset(self):
+        return IVRForm.objects.filter(provider=self.request.user)
+
+
+class PatientIVRFormsView(generics.ListAPIView):
+    """
+    List all IVR forms for a specific patient.
+    GET: /api/v1/patients/{patient_id}/ivr-forms/
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = api_serializers.IVRFormListSerializer
+    
+    def get_queryset(self):
+        patient_id = self.kwargs.get('patient_id')
+        return IVRForm.objects.filter(
+            patient_id=patient_id,
+            provider=self.request.user
+        ).select_related('patient', 'provider').order_by('-submitted_at')
+
+
+class IVRFormWithdrawView(APIView):
+    """
+    Allow provider to withdraw their pending IVR form.
+    POST: /api/v1/ivr-forms/{id}/withdraw/
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request, pk):
+        try:
+            ivr_form = get_object_or_404(
+                IVRForm,
+                pk=pk,
+                provider=request.user
+            )
+            
+            if ivr_form.withdraw():
+                return Response(
+                    {'message': 'IVR form withdrawn successfully'},
+                    status=status.HTTP_200_OK
+                )
+            else:
+                return Response(
+                    {'error': 'Only pending IVR forms can be withdrawn'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+        except IVRForm.DoesNotExist:
+            return Response(
+                {'error': 'IVR form not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+
+# ============ ADMIN IVR VIEWS ============
+
+class AdminIVRFormListView(generics.ListAPIView):
+    """
+    Admin view to list all IVR forms with filtering options.
+    GET: /api/v1/admin/ivr-forms/
+    Query params: ?status=pending&patient=123
+    """
+    permission_classes = [permissions.IsAdminUser]
+    serializer_class = api_serializers.IVRFormSerializer
+    
+    def get_queryset(self):
+        queryset = IVRForm.objects.all().select_related(
+            'patient', 'provider', 'reviewed_by'
+        ).order_by('-submitted_at')
+        
+        # Filter by status
+        status_filter = self.request.query_params.get('status')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        # Filter by patient
+        patient_id = self.request.query_params.get('patient')
+        if patient_id:
+            queryset = queryset.filter(patient_id=patient_id)
+        
+        # Filter by provider
+        provider_id = self.request.query_params.get('provider')
+        if provider_id:
+            queryset = queryset.filter(provider_id=provider_id)
+        
+        return queryset
+
+
+class AdminIVRFormDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Admin view to get/update/delete a specific IVR form.
+    GET/PATCH/DELETE: /api/v1/admin/ivr-forms/{id}/
+    """
+    permission_classes = [permissions.IsAdminUser]
+    queryset = IVRForm.objects.all()
+    
+    def get_serializer_class(self):
+        if self.request.method in ['PATCH', 'PUT']:
+            return api_serializers.IVRFormUpdateStatusSerializer
+        return api_serializers.IVRFormSerializer
+    
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(
+            instance, 
+            data=request.data, 
+            partial=partial,
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        
+        # Return full IVR data after update
+        return_serializer = api_serializers.IVRFormSerializer(instance)
+        return Response(return_serializer.data)
+
+
+class AdminIVRStatsView(APIView):
+    """
+    Admin view to get IVR statistics.
+    GET: /api/v1/admin/ivr-forms/stats/
+    """
+    permission_classes = [permissions.IsAdminUser]
+    
+    def get(self, request):
+        stats =  IVRForm.objects.aggregate(
+            total=Count('id'),
+            pending=Count('id', filter=Q(status='pending')),
+            approved=Count('id', filter=Q(status='approved')),
+            denied=Count('id', filter=Q(status='denied')),
+            cancelled=Count('id', filter=Q(status='cancelled')),
+            withdrawn=Count('id', filter=Q(status='withdrawn')),
+        )
+        
+        return Response(stats, status=status.HTTP_200_OK)
