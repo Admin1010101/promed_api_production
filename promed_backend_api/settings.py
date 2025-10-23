@@ -60,6 +60,7 @@ ALLOWED_HOSTS = [
     '169.254.129.3',
     '169.254.129.2',
     '169.254.130.3:8000',
+    '169.254.130.5:8000',
     'promedhealthplus.com',
     'app-promed-frontend-prod-dev-chfcguavbacqfybc.westus2-01.azurewebsites.net',
     'promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net',
