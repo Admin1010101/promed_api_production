@@ -3,13 +3,16 @@ from rest_framework import serializers
 from patients.models import Patient, IVRForm
 from onboarding_ops.models import ProviderForm
 from django.conf import settings
+from django.utils import timezone  # ✅ Added missing import
 from utils.azure_storage import generate_sas_url
 import logging
 
 
 logger = logging.getLogger(__name__)
 
+
 class PatientSerializer(serializers.ModelSerializer):
+    """Serializer for Patient model with IVR-related computed fields"""
     # Add these computed fields
     latest_ivr_status = serializers.CharField(source='latest_ivr_status', read_only=True)
     latest_ivr_status_display = serializers.CharField(source='latest_ivr_status_display', read_only=True)
@@ -51,36 +54,8 @@ class PatientSerializer(serializers.ModelSerializer):
             'has_approved_ivr',
         ]
         read_only_fields = ['id', 'date_created', 'date_updated']
-    
-    def get_latestIvrPdfUrl(self, obj):
-        """
-        Get the latest IVR form PDF URL with SAS token for the patient.
-        Returns None if no IVR form exists.
-        """
-        try:
-            # Get the most recent IVR form for this patient
-            latest_ivr = ProviderForm.objects.filter(
-                patient=obj,
-                form_type='Patient IVR Form',
-                completed=True
-            ).order_by('-date_created').first()
-            
-            if latest_ivr and latest_ivr.completed_form:
-                # Generate SAS URL with 72 hour expiry
-                sas_url = generate_sas_url(
-                    blob_name=latest_ivr.completed_form,
-                    container_name=settings.AZURE_MEDIA_CONTAINER,
-                    permission='r',
-                    expiry_hours=72
-                )
-                return sas_url
-            
-            return None
-            
-        except Exception as e:
-            logger.error(f"Error generating IVR PDF URL for patient {obj.id}: {str(e)}")
-            return None
-        
+
+
 class IVRFormSerializer(serializers.ModelSerializer):
     """Full serializer for IVR forms with all details"""
     provider_name = serializers.CharField(source='provider.full_name', read_only=True)
@@ -155,22 +130,23 @@ class IVRFormListSerializer(serializers.ModelSerializer):
     patient_name = serializers.SerializerMethodField()
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     reviewed_by_name = serializers.CharField(source='reviewed_by.full_name', read_only=True, allow_null=True)
+    
     class Meta:
         model = IVRForm
         fields = [
             'id',
             'patient',
             'patient_name',
-            'physician_name',  # ✅ Added
-            'contact_name',    # ✅ Added
-            'phone',           # ✅ Added
+            'physician_name',
+            'contact_name',
+            'phone',
             'status',
             'status_display',
             'submitted_at',
             'reviewed_at',
             'reviewed_by',
             'reviewed_by_name',
-            'admin_notes',     # ✅ Added so frontend can show notes
+            'admin_notes',
             'pdf_url',
         ]
     
@@ -214,48 +190,3 @@ class IVRFormUpdateStatusSerializer(serializers.ModelSerializer):
             instance.save()
         
         return instance
-
-
-# ============ UPDATE EXISTING PATIENT SERIALIZER ============
-
-class PatientSerializer(serializers.ModelSerializer):
-    # Add these computed fields
-    latest_ivr_status = serializers.CharField(source='latest_ivr_status', read_only=True)
-    latest_ivr_status_display = serializers.CharField(source='latest_ivr_status_display', read_only=True)
-    latest_ivr_pdf_url = serializers.CharField(source='latest_ivr_pdf_url', read_only=True)
-    ivr_count = serializers.IntegerField(source='ivr_count', read_only=True)
-    has_approved_ivr = serializers.BooleanField(source='has_approved_ivr', read_only=True)
-    
-    class Meta:
-        model = Patient
-        fields = [
-            'id',
-            'first_name',
-            'last_name',
-            'middle_initial',
-            'date_of_birth',
-            'email',
-            'address',
-            'city',
-            'state',
-            'zip_code',
-            'phone_number',
-            'primary_insurance',
-            'primary_insurance_number',
-            'secondary_insurance',
-            'secondary_insurance_number',
-            'tertiary_insurance',
-            'tertiary_insurance_number',
-            'medical_record_number',
-            'wound_size_length',
-            'wound_size_width',
-            'date_created',
-            'date_updated',
-            'activate_Account',
-            # New IVR-related fields
-            'latest_ivr_status',
-            'latest_ivr_status_display',
-            'latest_ivr_pdf_url',
-            'ivr_count',
-            'has_approved_ivr',
-        ]

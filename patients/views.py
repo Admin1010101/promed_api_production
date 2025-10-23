@@ -414,7 +414,7 @@ def get_patient_ivr_forms(request, patient_id):
                 'patient_id': patient.id,
                 'patient_name': patient.full_name,
                 'patient_mrn': patient.medical_record_number,
-                'ivr_status': patient.ivrStatus,
+                'ivr_status': patient.latest_ivr_status,
                 'primary_insurance': patient.primary_insurance,
                 'date_created': form.date_created.isoformat(),
                 'pdf_url': pdf_url,
