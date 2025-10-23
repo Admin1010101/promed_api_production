@@ -1,9 +1,5 @@
 from django.contrib import admin
 from .models import Patient, IVRForm
-
-# Register your models here.
-admin.site.register(Patient)
-
 @admin.register(IVRForm)
 class IVRFormAdmin(admin.ModelAdmin):
     list_display = [
