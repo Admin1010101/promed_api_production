@@ -26,7 +26,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 # Local Application Imports
-from .models import User, Profile, EmailVerificationToken, Verification_Code, IVRForm
+from .models import User, Profile, EmailVerificationToken, Verification_Code
 from . import models as api_models
 from . import serializers as api_serializers
 from .serializers import MyTokenObtainPairSerializer, UserSerializer, EmptySerializer
