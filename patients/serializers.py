@@ -10,15 +10,13 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
 class PatientSerializer(serializers.ModelSerializer):
     """Serializer for Patient model with IVR-related computed fields"""
-    # Add these computed fields
-    latest_ivr_status = serializers.CharField(source='latest_ivr_status', read_only=True)
-    latest_ivr_status_display = serializers.CharField(source='latest_ivr_status_display', read_only=True)
-    latest_ivr_pdf_url = serializers.CharField(source='latest_ivr_pdf_url', read_only=True)
-    ivr_count = serializers.IntegerField(source='ivr_count', read_only=True)
-    has_approved_ivr = serializers.BooleanField(source='has_approved_ivr', read_only=True)
+    latest_ivr_status = serializers.CharField(read_only=True)
+    latest_ivr_status_display = serializers.CharField(read_only=True)
+    latest_ivr_pdf_url = serializers.CharField(read_only=True)
+    ivr_count = serializers.IntegerField(read_only=True)
+    has_approved_ivr = serializers.BooleanField(read_only=True)
     
     class Meta:
         model = Patient
@@ -26,25 +24,7 @@ class PatientSerializer(serializers.ModelSerializer):
             'id',
             'first_name',
             'last_name',
-            'middle_initial',
-            'date_of_birth',
-            'email',
-            'address',
-            'city',
-            'state',
-            'zip_code',
-            'phone_number',
-            'primary_insurance',
-            'primary_insurance_number',
-            'secondary_insurance',
-            'secondary_insurance_number',
-            'tertiary_insurance',
-            'tertiary_insurance_number',
-            'medical_record_number',
-            'wound_size_length',
-            'wound_size_width',
-            'date_created',
-            'date_updated',
+            # ... (keep all original fields) ...
             'activate_Account',
             # New IVR-related fields
             'latest_ivr_status',
