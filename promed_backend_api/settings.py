@@ -97,16 +97,16 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 USER_APPS = [
-    'provider_auth.apps.ProviderAuthConfig',
-    'onboarding_ops.apps.OnboardingOpsConfig',
-    'patients.apps.PatientsConfig',
-    'sales_rep.apps.SalesRepConfig',
-    'notes.apps.NotesConfig',
-    'orders.apps.OrdersConfig',
-    'order_items.apps.OrderItemsConfig',
-    'cart.apps.CartConfig',
-    'product.apps.ProductConfig',
-    'notifications.apps.NotificationsConfig',
+    'provider_auth',
+    'onboarding_ops',
+    'patients',
+    'sales_rep',
+    'notes',
+    'orders',
+    'order_items',
+    'cart',
+    'product',
+    'notifications',
 ]
 
 THIRD_PARTY_APPS = [
