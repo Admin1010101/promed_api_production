@@ -158,9 +158,11 @@ class Patient(models.Model):
     medical_record_number = models.CharField(max_length=255, null=True, blank=True)
     wound_size_length = models.PositiveIntegerField(null=True, blank=True)
     wound_size_width = models.PositiveIntegerField(null=True, blank=True)
-    date_created = models.DateTimeField(auto_now_add=True)
-    date_updated = models.DateTimeField(auto_now=True)
+    wound_size_depth = models.PositiveIntegerField(null=True, blank=True)
     activate_Account = models.CharField(max_length=50, choices=account_activation_choices, null=True, blank=True, default="Activated")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+   
 
     @property
     def full_name(self):
