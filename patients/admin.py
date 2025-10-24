@@ -1,12 +1,10 @@
-# patients/admin.py
-
 from django.contrib import admin
 from django.db.models import Count
 from django.utils import timezone
 from .models import Patient, IVRForm # Import Patient and IVRForm
 
 # -------------------------------------------------------------
-# IVRForm Admin (No changes needed, kept for completeness)
+# IVRForm Admin 
 # -------------------------------------------------------------
 @admin.register(IVRForm)
 class IVRFormAdmin(admin.ModelAdmin):
@@ -19,7 +17,7 @@ class IVRFormAdmin(admin.ModelAdmin):
         'provider__first_name', 'provider__last_name', 'provider__email'
     ]
     readonly_fields = ['submitted_at', 'updated_at']
-    # ... (rest of fieldsets and save_model) ...
+    # You may need to add fieldsets or other configurations here if you use them.
 
 # -------------------------------------------------------------
 # IVRForm Inline
@@ -33,7 +31,7 @@ class IVRFormInline(admin.TabularInline):
     show_change_link = True
 
 # -------------------------------------------------------------
-# Enhanced PatientAdmin (Ready to run after model fix)
+# Enhanced PatientAdmin
 # -------------------------------------------------------------
 @admin.register(Patient)
 class PatientAdmin(admin.ModelAdmin):
@@ -45,13 +43,13 @@ class PatientAdmin(admin.ModelAdmin):
         'get_ivr_count',
         'get_order_count',
         'city',
-        'created_at', # ⬅️ Now exists on the model
+        'created_at',
     )
 
     list_filter = (
         'provider',
         'state',
-        'created_at', # ⬅️ Now exists on the model
+        'created_at',
     )
 
     search_fields = (
@@ -65,8 +63,9 @@ class PatientAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
+        # 🌟 FIX APPLIED HERE: 'ivrform' corrected to 'ivr_forms'
         qs = qs.annotate(
-            ivr_count=Count('ivrform', distinct=True),
+            ivr_count=Count('ivr_forms', distinct=True), 
             order_count=Count('orders', distinct=True)
         ).select_related('provider')
         return qs
@@ -115,9 +114,9 @@ class PatientAdmin(admin.ModelAdmin):
             )
         }),
         ('Timestamps', {
-            'fields': ('created_at', 'updated_at'), # ⬅️ Now functional
+            'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
         }),
     )
 
-    readonly_fields = ('created_at', 'updated_at', 'age') # ⬅️ Now functional
+    readonly_fields = ('created_at', 'updated_at', 'age')
