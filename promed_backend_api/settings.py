@@ -50,40 +50,40 @@ LOCAL_CLIENT_URL = 'http://localhost:3000'
 
 AZURE_APP_NAME = 'app-promed-backend-prod-dev'
 
-ALLOWED_HOSTS = [
-    f'{AZURE_APP_NAME}.azurewebsites.net',
-    f'{AZURE_APP_NAME}.scm.azurewebsites.net',
-    '*.westus2-01.azurewebsites.net',
-    '169.254.129.6',
-    '169.254.129.5',
-    '169.254.129.4',
-    '169.254.129.3',
-    '169.254.129.2',
-    '169.254.130.3:8000',
-    '169.254.130.5:8000',
-    '169.254.130.4:8000',
-    '169.254.130.7:8000',
-    'promedhealthplus.com',
-    'app-promed-frontend-prod-dev-chfcguavbacqfybc.westus2-01.azurewebsites.net',
-    'promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net',
-    '127.0.0.1',
-    '[::1]',
-]
-
 # ALLOWED_HOSTS = [
-#     # Static Azure URLs and Custom Domains
 #     f'{AZURE_APP_NAME}.azurewebsites.net',
 #     f'{AZURE_APP_NAME}.scm.azurewebsites.net',
-#     '*.azurewebsites.net', # For safety, if needed
+#     '*.westus2-01.azurewebsites.net',
+#     '169.254.129.6',
+#     '169.254.129.5',
+#     '169.254.129.4',
+#     '169.254.129.3',
+#     '169.254.129.2',
+#     '169.254.130.3:8000',
+#     '169.254.130.5:8000',
+#     '169.254.130.4:8000',
+#     '169.254.130.7:8000',
 #     'promedhealthplus.com',
 #     'app-promed-frontend-prod-dev-chfcguavbacqfybc.westus2-01.azurewebsites.net',
 #     'promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net',
-    
-#     # Required for Django to run locally or in the container
 #     '127.0.0.1',
-#     '[::1]', # IPv6 loopback
-#     '*' # Use '*' if you can't list every subdomain, but list primary ones first
+#     '[::1]',
 # ]
+
+ALLOWED_HOSTS = [
+    # Static Azure URLs and Custom Domains
+    f'{AZURE_APP_NAME}.azurewebsites.net',
+    f'{AZURE_APP_NAME}.scm.azurewebsites.net',
+    '*.azurewebsites.net', # For safety, if needed
+    'promedhealthplus.com',
+    'app-promed-frontend-prod-dev-chfcguavbacqfybc.westus2-01.azurewebsites.net',
+    'promedhealth-frontdoor-h4c4bkcxfkduezec.z02.azurefd.net',
+    
+    # Required for Django to run locally or in the container
+    '127.0.0.1',
+    '[::1]', # IPv6 loopback
+    '*' # Use '*' if you can't list every subdomain, but list primary ones first
+]
 
 if os.getenv('WEBSITE_HOSTNAME'):
     ALLOWED_HOSTS.append(os.getenv('WEBSITE_HOSTNAME'))
