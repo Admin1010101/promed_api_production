@@ -62,9 +62,11 @@ class User(AbstractUser):
     npi_number = models.CharField(max_length=10, null=True, blank=True)
     is_approved = models.BooleanField(default=False)
     welcome_email_sent = models.BooleanField(default=False)
+    is_verified = models.BooleanField(default=False)
+    baa_signed = models.BooleanField(default=False)
+    baa_signed_at = models.DateTimeField(null=True, blank=True)
     date_joined = models.DateTimeField(auto_now_add=True)
     date_updated = models.DateTimeField(auto_now=True)
-    is_verified = models.BooleanField(default=False)
     
     groups = models.ManyToManyField(
         Group,
