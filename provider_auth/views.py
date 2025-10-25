@@ -43,10 +43,11 @@ class MyTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         logger.info("=" * 50)
         logger.info("LOGIN ATTEMPT STARTED")
-        
+
         serializer = self.get_serializer(data=request.data)
-        
+
         try:
+            # This step performs authentication and all pre-checks (is_active, is_verified, is_approved)
             serializer.is_valid(raise_exception=True)
         except Exception as e:
             logger.error(f"Serializer validation FAILED: {str(e)}")
@@ -54,24 +55,46 @@ class MyTokenObtainPairView(TokenObtainPairView):
                 getattr(serializer, 'errors', {'detail': str(e)}),
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         user = serializer.user
+
+        # =========================================================
+        # 🆕 BAA AGREEMENT ENFORCEMENT CHECK
+        # =========================================================
+        if not user.has_signed_baa:
+            user_data = UserSerializer(user).data
+            logger.warning(f"BAA required for user: {user.email}. Denying access and prompting for BAA signing.")
+            
+            # Return a 403 response with a specific flag for the client
+            return Response({
+                'baa_required': True,
+                'detail': 'Provider must sign the Business Associate Agreement to continue.',
+                'user': user_data
+            }, status=status.HTTP_403_FORBIDDEN)
+        # =========================================================
+        
+        
+        # --- Continue with MFA and Token Generation ONLY if BAA is signed ---
         
         # Generate tokens
         refresh = serializer.validated_data['refresh']
         access = serializer.validated_data['access']
-        
+
         # MFA code setup
         method = request.data.get('method', 'email')
-        session_id = str(uuid.uuid4())  # ✅ NEW session ID every time
+        session_id = str(uuid.uuid4())
         
         logger.info(f"Creating NEW verification with method: {method}")
         logger.info(f"New Session ID: {session_id}")
         
-        # ✅ FIX: Delete ALL old verification codes for this user
+        # FIX: Delete ALL old verification codes for this user
         deleted_count = api_models.Verification_Code.objects.filter(user=user).delete()[0]
         logger.info(f"Deleted {deleted_count} old verification codes for user: {user.email}")
         
+        
+        # ----------------------------------------------------
+        # MFA Logic (SMS/Email)
+        # ----------------------------------------------------
         if method == 'sms' and user.phone_number:
             try:
                 account_sid = os.getenv('ACCOUNT_SID')
@@ -86,9 +109,8 @@ class MyTokenObtainPairView(TokenObtainPairView):
                 
                 client = Client(account_sid, auth_token)
                 
-                # ✅ FIX: Cancel any pending Twilio verifications first
+                # FIX: Cancel any pending Twilio verifications first
                 try:
-                    # Get any pending verifications
                     verifications = client.verify.v2.services(verify_service_sid).verifications.list(
                         to=str(user.phone_number),
                         status='pending'
@@ -102,7 +124,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
                 except Exception as e:
                     logger.warning(f"Could not cancel old verifications: {e}")
                 
-                # ✅ NOW create new verification
+                # NOW create new verification
                 verification = client.verify.v2.services(verify_service_sid).verifications.create(
                     to=str(user.phone_number),
                     channel='sms'
@@ -111,7 +133,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
                 # Store session_id with method for verification
                 api_models.Verification_Code.objects.create(
                     user=user,
-                    code='',  # Empty for Twilio-managed codes
+                    code='',
                     method=method,
                     session_id=session_id
                 )
@@ -128,7 +150,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
         
         elif method == 'email':
             try:
-                # ✅ Generate NEW random code
+                # Generate NEW random code
                 code = str(random.randint(100000, 999999))
                 
                 api_models.Verification_Code.objects.create(
@@ -157,6 +179,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
                 {"error": "Invalid MFA method or missing phone number for SMS"},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        # ----------------------------------------------------
         
         user_data = UserSerializer(user).data
         
@@ -167,43 +190,11 @@ class MyTokenObtainPairView(TokenObtainPairView):
             'access': str(access),
             'refresh': str(refresh),
             'mfa_required': True,
-            'session_id': session_id,  # ✅ New session ID
+            'session_id': session_id,
             'user': user_data,
             'detail': f'Verification code sent via {method}.'
         }, status=status.HTTP_200_OK)
 
-# class RegisterUser(generics.CreateAPIView):
-#     queryset = User.objects.all()
-#     permission_classes = [AllowAny]
-#     serializer_class = api_serializers.RegisterSerializer
-    
-#     def perform_create(self, serializer):
-#         user = serializer.save()
-
-#         # Ensure profile exists (if not created in serializer)
-#         profile = getattr(user, 'profile', None)
-#         if profile and not profile.image:
-#             profile.image = 'defaults/default_user.jpg'
-#             profile.save()
-
-#         token, created = EmailVerificationToken.objects.get_or_create(user=user)
-#         verification_link = f"{BASE_CLIENT_URL}/#/verify-email/{token.token}"
-
-#         email_html_message = render_to_string(
-#             'provider_auth/email_verification.html',
-#             {
-#                 'user': user,
-#                 'verification_link': verification_link
-#             }
-#         )
-#         send_mail(
-#             subject='Verify Your Email Address',
-#             message=f"Click the link to verify your email: {verification_link}",
-#             html_message=email_html_message,
-#             from_email=settings.DEFAULT_FROM_EMAIL,
-#             recipient_list=[user.email],
-#             fail_silently=False
-#         )
 
 class RegisterUser(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -639,5 +630,195 @@ class PublicContactView(generics.CreateAPIView):
             print(f"Error sending public inquiry email: {e}")
             return Response(
                 {'error': 'Failed to send message.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class SignBAAView(generics.UpdateAPIView):
+    """
+    Allows an authenticated user (who is locked out by BAA) to submit the signed agreement.
+    After signing, initiates MFA flow exactly like the login process.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = api_serializers.BAASignatureSerializer
+    
+    def update(self, request, *args, **kwargs):
+        user = request.user
+        
+        # Prevent double-signing
+        if user.has_signed_baa:
+            return Response(
+                {"detail": "BAA already signed."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validate the BAA form data
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        
+        try:
+            # =====================================================
+            # STEP 1: Update User Model - Mark BAA as Signed
+            # =====================================================
+            user.has_signed_baa = True
+            user.baa_signed_date = timezone.now()
+            user.save()
+            
+            logger.info(f"✅ BAA successfully signed for user: {user.email}")
+            
+            # OPTIONAL BUT RECOMMENDED: Store complete BAA record for compliance
+            # Example:
+            # SignedAgreement.objects.create(
+            #     user=user,
+            #     monthly_volume=data['monthly_volume'],
+            #     provider_company_name=data['provider_company_name'],
+            #     effective_date=data['effective_date'],
+            #     signatory_name=data['signatory_name'],
+            #     signatory_title=data['signatory_title'],
+            #     signature=data['signature'],
+            #     signature_date=data['signature_date'],
+            #     agreement_text=FULL_BAA_TEXT  # Store the actual agreement text
+            # )
+
+            # =====================================================
+            # STEP 2: Initiate MFA Flow (Same as Login)
+            # =====================================================
+            
+            # Get MFA method from request (default to email)
+            method = request.data.get('method', 'email')
+            session_id = str(uuid.uuid4())
+            
+            logger.info(f"Initiating MFA after BAA signing with method: {method}")
+            logger.info(f"New Session ID: {session_id}")
+            
+            # Clean up old verification codes for this user
+            deleted_count = api_models.Verification_Code.objects.filter(user=user).delete()[0]
+            logger.info(f"Deleted {deleted_count} old verification codes for user: {user.email}")
+            
+            # Generate new access token (temporary, for MFA session)
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+            
+            # =====================================================
+            # STEP 3: Send MFA Code Based on Method
+            # =====================================================
+            
+            if method == 'sms' and user.phone_number:
+                # SMS Verification via Twilio
+                try:
+                    account_sid = os.getenv('ACCOUNT_SID')
+                    auth_token = os.getenv('AUTH_TOKEN')
+                    verify_service_sid = os.getenv('VERIFY_SERVICE_SID')
+                    
+                    if not all([account_sid, auth_token, verify_service_sid]):
+                        logger.error("SMS service not configured")
+                        return Response(
+                            {"error": "SMS service not configured"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                        )
+                    
+                    client = Client(account_sid, auth_token)
+                    
+                    # Cancel any pending Twilio verifications for this number
+                    try:
+                        verifications = client.verify.v2.services(verify_service_sid).verifications.list(
+                            to=str(user.phone_number),
+                            status='pending'
+                        )
+                        for v in verifications:
+                            try:
+                                client.verify.v2.services(verify_service_sid).verifications(v.sid).update(
+                                    status='canceled'
+                                )
+                                logger.info(f"Canceled old Twilio verification: {v.sid}")
+                            except:
+                                pass
+                    except Exception as e:
+                        logger.warning(f"Could not cancel old verifications: {e}")
+                    
+                    # Create new SMS verification
+                    verification = client.verify.v2.services(verify_service_sid).verifications.create(
+                        to=str(user.phone_number),
+                        channel='sms'
+                    )
+                    
+                    # Store session with empty code (Twilio manages the code)
+                    api_models.Verification_Code.objects.create(
+                        user=user,
+                        code='',  # Empty for Twilio
+                        method=method,
+                        session_id=session_id
+                    )
+                    
+                    logger.info(f"✅ SMS verification sent to {user.phone_number} after BAA signing")
+                    logger.info(f"Twilio SID: {verification.sid}, Status: {verification.status}")
+                    
+                except Exception as e:
+                    logger.error(f"SMS sending failed after BAA signing: {str(e)}")
+                    return Response(
+                        {"error": f"Failed to send SMS verification: {str(e)}"},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+            
+            elif method == 'email' or not user.phone_number:
+                # Email Verification (Fallback if SMS selected but no phone number)
+                if method == 'sms' and not user.phone_number:
+                    logger.warning(f"SMS requested but no phone number for {user.email}, using email instead")
+                    method = 'email'
+                
+                try:
+                    # Generate random 6-digit code
+                    code = str(random.randint(100000, 999999))
+                    
+                    # Store verification code
+                    api_models.Verification_Code.objects.create(
+                        user=user,
+                        code=code,
+                        method=method,
+                        session_id=session_id
+                    )
+                    
+                    # Send email with code
+                    send_mail(
+                        subject='Login Verification Code',
+                        message=f'Your login verification code is {code}. This code will expire in 10 minutes.',
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[user.email]
+                    )
+                    
+                    logger.info(f"✅ Email verification sent to {user.email} after BAA signing with code: {code}")
+                    
+                except Exception as e:
+                    logger.error(f"Email sending failed after BAA signing: {str(e)}")
+                    return Response(
+                        {"error": f"Failed to send email verification: {str(e)}"},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+            else:
+                return Response(
+                    {"error": "Invalid MFA method or missing phone number for SMS"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # =====================================================
+            # STEP 4: Return MFA Session Data to Frontend
+            # =====================================================
+            
+            logger.info("✅ BAA SIGNED - Returning MFA session")
+            logger.info("=" * 50)
+            
+            return Response({
+                'success': True,
+                'access': access_token,
+                'session_id': session_id,
+                'mfa_required': True,
+                'method': method,
+                'detail': f'BAA signed successfully. Verification code sent via {method}.'
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"❌ Error during BAA signing process for {user.email}: {str(e)}")
+            return Response(
+                {"error": "Failed to process BAA signature."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

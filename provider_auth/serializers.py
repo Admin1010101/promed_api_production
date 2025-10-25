@@ -177,10 +177,12 @@ class RegisterSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     username = serializers.CharField(read_only=True)
     role = serializers.CharField(read_only=True)
+    has_signed_baa = serializers.BooleanField(read_only=True)
+    baa_signed_date = serializers.DateTimeField(read_only=True)
     class Meta:
         model = User
         fields = (
-            'id', 'email', 'full_name', 'username', 'phone_number', 'country_code','role',
+            'id', 'email', 'full_name', 'username', 'phone_number', 'country_code','role', 'has_signed_baa', 'baa_signed_date',
         )
 
 
@@ -236,5 +238,69 @@ class RequestPasswordResetSerializer(serializers.Serializer):
 class EmptySerializer(serializers.Serializer):
     """Used for views that don't take body data (like token verification)."""
     pass
+
+# ... (Keep all existing serializers above) ...
+
+# ----------------------------------------------------
+# BAA AGREEMENT SERIALIZER
+# ----------------------------------------------------
+class BAASignatureSerializer(serializers.Serializer):
+    """
+    Serializer for validating and receiving the mandatory BAA signature and data.
+    """
+    # 1. Anticipated Average Monthly Volume
+    monthly_volume = serializers.CharField(
+        required=True, 
+        max_length=100, 
+        help_text="Anticipated Average Monthly Volume."
+    )
+    
+    # 2. Provider Company Name
+    provider_company_name = serializers.CharField(
+        required=True, 
+        max_length=255,
+        help_text="Provider Company Name (pre-filled from registration)."
+    )
+    
+    # 3. Date (Effective Date)
+    effective_date = serializers.DateField(
+        required=True, 
+        help_text="The date the BAA becomes effective."
+    )
+    
+    # 4. Authorized Signatory Name
+    signatory_name = serializers.CharField(
+        required=True, 
+        max_length=255,
+        help_text="Authorized Signatory Name (pre-filled from user profile)."
+    )
+    
+    # 5. Authorized Signatory Title
+    signatory_title = serializers.CharField(
+        required=True, 
+        max_length=255,
+        help_text="Authorized Signatory Title (pre-filled from user profile)."
+    )
+
+    # 6. Authorized Signatory Signature (The typed name, serving as e-signature)
+    signature = serializers.CharField(
+        required=True, 
+        max_length=255,
+        help_text="The full name typed by the user as their electronic signature."
+    )
+    
+    # 7. Signature Date
+    signature_date = serializers.DateField(
+        required=True, 
+        help_text="The date the signatory provided their signature."
+    )
+    
+    # Optional: Custom validation if needed (e.g., ensuring signature matches name)
+    def validate(self, attrs):
+        # Example validation: Signature should match the provided name
+        if attrs.get('signature') != attrs.get('signatory_name'):
+            # Note: For a strict e-signature, you might require them to match the pre-filled name exactly.
+            pass 
+        return attrs
 
     
