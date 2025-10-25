@@ -1,10 +1,10 @@
 # Standard Library
-import os
-import uuid
-import random
 import logging
-from io import BytesIO
+import os
+import random
+import uuid
 from datetime import datetime
+from io import BytesIO
 
 # Third-Party Libraries
 from dotenv import load_dotenv
@@ -12,30 +12,32 @@ from twilio.rest import Client
 
 # Django
 from django.conf import settings
-from django.core.exceptions import ValidationError as DjangoValidationError
-from django.core.mail import send_mail, EmailMessage
 from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.files.base import ContentFile
+from django.core.mail import EmailMessage, send_mail
 from django.template.loader import render_to_string
 from django.utils import timezone
-from django.core.files.base import ContentFile
 from django.utils.text import slugify
 
 # Django REST Framework
-from rest_framework import generics, status, permissions
+from rest_framework import generics, permissions, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 # Local Application Imports
-from .models import User, Profile, EmailVerificationToken, Verification_Code
-from . import models as api_models
-from . import serializers as api_serializers
-from .serializers import MyTokenObtainPairSerializer, UserSerializer, EmptySerializer
-from promed_backend_api.settings import BASE_CLIENT_URL, DEFAULT_FROM_EMAIL
 from patients.models import Patient
+from promed_backend_api.settings import BASE_CLIENT_URL, DEFAULT_FROM_EMAIL
 from promed_backend_api.storage_backends import AzureMediaStorage
 from utils.pdf_generator import generate_baa_pdf
+
+from . import models as api_models
+from . import serializers as api_serializers
+from .models import EmailVerificationToken, Profile, User, Verification_Code
+from .serializers import EmptySerializer, MyTokenObtainPairSerializer, UserSerializer
+
 
 load_dotenv()
 
