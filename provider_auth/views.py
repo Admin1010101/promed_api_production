@@ -34,7 +34,7 @@ from . import serializers as api_serializers
 from .serializers import MyTokenObtainPairSerializer, UserSerializer, EmptySerializer
 from promed_backend_api.settings import BASE_CLIENT_URL, DEFAULT_FROM_EMAIL
 from patients.models import Patient
-from utils.azure_storage import AzureMediaStorage
+from promed_backend_api.storage_backends import AzureMediaStorage
 from utils.pdf_generator import generate_baa_pdf
 
 load_dotenv()
