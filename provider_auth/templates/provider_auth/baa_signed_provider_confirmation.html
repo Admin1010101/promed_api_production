@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BAA Signed Confirmation</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+
+    <div style="max-width: 600px; margin: 20px auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
+        <h2 style="color: #0F766E; text-align: center;">BAA Signed Confirmation - ProMed Health Plus</h2>
+        <hr style="border: 0; border-top: 1px solid #eee;">
+        
+        {% if user.is_staff %}
+            <p><strong>Administrator Notification:</strong></p>
+            <p>A new Business Associate and Purchase Agreement (BAA) has been signed by a Provider.</p>
+        {% else %}
+            <p>Dear {{ user.full_name | default:"Provider" }},</p>
+            <p>Thank you for completing and electronically signing the **Business Associate Agreement (BAA)** and **Purchase Agreement** with ProMed Health Plus, LLC.</p>
+            <p>Your enrollment process is now complete. **Please keep the attached PDF for your records.**</p>
+        {% endif %}
+
+        <hr style="margin-top: 20px; border: 0; border-top: 1px solid #eee;">
+
+        <p><strong>Agreement Details:</strong></p>
+        <ul style="list-style-type: none; padding: 0;">
+            <li><strong>Provider Company:</strong> {{ baa_data.provider_company_name }}</li>
+            <li><strong>Signed By:</strong> {{ baa_data.signatory_name }} ({{ baa_data.signatory_title }})</li>
+            <li><strong>Signed Date:</strong> {{ signed_date | date:"F d, Y, H:i" }}</li>
+            <li><strong>Provider Email:</strong> {{ user.email }}</li>
+        </ul>
+
+        <p style="margin-top: 20px; font-style: italic; color: #555;">
+            This email serves as an official confirmation. The signed agreement is attached as a PDF document.
+        </p>
+
+        <div style="text-align: center; margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee; font-size: 10pt; color: #777;">
+            <p>&copy; {{ year }} ProMed Health Plus, LLC. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

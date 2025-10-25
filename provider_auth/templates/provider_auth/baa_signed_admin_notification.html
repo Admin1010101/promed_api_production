@@ -1,0 +1,264 @@
+{# templates/provider_auth/baa_full_document.html #}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Business Associate Agreement</title>
+    <meta charset="utf-8">
+    <style>
+        /* Basic styles for PDF rendering */
+        body { font-family: 'Helvetica', sans-serif; font-size: 10pt; line-height: 1.6; color: #333; }
+        h1 { font-size: 16pt; color: #0F766E; text-align: center; margin-bottom: 12pt; font-weight: bold; }
+        h2 { font-size: 14pt; color: #333; text-align: center; margin-bottom: 8pt; }
+        h3 { font-size: 12pt; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 4pt; margin-top: 15pt; margin-bottom: 8pt; font-weight: bold; }
+        p { margin-bottom: 8pt; text-align: justify; }
+        ul, ol { margin-left: 20pt; margin-bottom: 8pt; }
+        li { margin-bottom: 4pt; }
+        strong { font-weight: bold; }
+        .header-logo { display: block; margin: 0 auto 10pt auto; width: 70px; height: 70px; }
+        .agreement-section { margin-bottom: 15pt; }
+        .form-input-display { display: flex; flex-direction: row; margin-bottom: 5pt; }
+        .form-input-label { width: 35%; font-weight: bold; }
+        .form-input-value { width: 65%; border-bottom: 1px solid #eee; padding-bottom: 2px; }
+        .footer-text { font-size: 8pt; color: gray; text-align: center; margin-top: 20pt; }
+    </style>
+</head>
+<body>
+    <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
+        {# Header #}
+        <div style="text-align: center;">
+            <img src="https://promedhealthplus.com/static/logo.png" alt="ProMed Logo" class="header-logo" /> {# Use a publicly accessible URL for the logo #}
+            <h1>ProMed Health Plus, LLC</h1>
+        </div>
+        
+        <h2>Business Associate and Purchase Agreement Acceptance</h2>
+        <p style="text-align: center; font-style: italic; color: #555;">Document generated on {{ signed_date }} for {{ user.full_name }} ({{ user.email }})</p>
+
+        <hr style="margin-top: 20px; margin-bottom: 20px; border: 0; border-top: 1px solid #eee;" />
+
+        {# AGREEMENT TEXT - Directly from BAAAgreementText.jsx #}
+        {# This section needs to be manually copied and adapted from BAAAgreementText.jsx #}
+        <div class="agreement-section">
+            <h3 style="text-align: center;">HIPAA-Compliant Agreement Between Distributor and Provider</h3>
+            <p>
+                This Business Associate Agreement ("Agreement") is entered into as of 
+                <span style="font-weight: bold;"> ({{ form_data.effectiveDate }})</span> by and between: ProMed Health Plus, LLC 
+                ("Business Associate") and <span style="font-weight: bold;">({{ form_data.providerCompanyName }})</span>
+                , collectively referred to as the "Parties."
+            </p>
+
+            <p style="font-weight: bold;">1. Purpose:</p>
+            <p>
+                This Agreement ensures compliance with the Health Insurance Portability and Accountability Act 
+                of 1996 (HIPAA), the HITECH Act, and related regulations. It governs how ProMed Health Plus, LLC 
+                ("ProMed") may receive, use, or disclose Protected Health Information (PHI) while performing services 
+                for the Provider, including insurance verification (IVR) submissions, billing assistance, order 
+                management, and logistics related to wound-care biologic products.
+            </p>
+
+            <p style="font-weight: bold;">2. Definitions:</p>
+            <ul>
+                <li><strong>Covered Entity:</strong> The Provider, as defined by 45 CFR § 160.103.</li>
+                <li><strong>Business Associate:</strong> ProMed Health Plus, LLC.</li>
+                <li><strong>PHI:</strong> Protected Health Information as defined by HIPAA.</li>
+                <li><strong>Breach:</strong> Any impermissible use or disclosure of PHI not permitted by this Agreement or HIPAA.</li>
+                <li><strong>Portal:</strong> The secure ProMed online platform through which the Provider submits IVRs, documentation, and orders.</li>
+            </ul>
+
+            <p style="font-weight: bold;">3. Permitted Uses and Disclosures:</p>
+            <p>ProMed may use or disclose PHI only to:</p>
+            <ul>
+                <li>Perform services for the Provider such as IVR submissions, order fulfillment, billing, and communication with manufacturers.</li>
+                <li>Comply with applicable law, court orders, or lawful requests.</li>
+                <li>De-identify PHI for internal quality improvement or analytics, never for marketing or resale.</li>
+            </ul>
+            <p>
+                All uses and disclosures shall comply with the minimum necessary standard required by 45 CFR § 164.502(b).
+            </p>
+
+            <p style="font-weight: bold;">4. Safeguards</p>
+            <p>
+                (A) General Safeguards: ProMed shall implement administrative, physical, and technical safeguards consistent with 45 CFR §§
+                164.308–312 to protect the confidentiality, integrity, and availability of PHI. Subcontractors who receive PHI from ProMed must
+                sign written agreements imposing the same restrictions and protections.
+            </p>
+            <p>
+                (B) Portal and Electronic Access: ProMed maintains a secure, HIPAA-compliant Provider Portal that enables the Provider to submit
+                IVRs, patient documentation, order forms, and related data necessary for product distribution and billing. ProMed will implement and
+                maintain appropriate safeguards within the Portal, including but not limited to:
+            </p>
+            <ul>
+                <li>Encrypted data transmission (SSL/TLS)</li>
+                <li>Secure user authentication and role-based access control</li>
+                <li>Continuous system monitoring and audit logs</li>
+                <li>Routine data backup and disaster-recovery measures</li>
+                <li>Hosting on HIPAA-compliant infrastructure</li>
+            </ul>
+            <p>The Provider agrees to:</p>
+            <ol>
+                <li>Grant Portal access only to authorized staff;</li>
+                <li>Keep login credentials confidential; and</li>
+                <li>Promptly report any unauthorized access, suspected breach, or staff changes to ProMed.</li>
+            </ol>
+            <p>
+                Use of the Portal constitutes acknowledgment of shared HIPAA responsibilities between the Parties.
+            </p>
+
+            <p style="font-weight: bold;">5. Reporting Obligations:</p>
+            <p>
+                ProMed shall notify the Provider within ten (10) business days of discovering any unauthorized use or disclosure of PHI, security
+                incident, or breach. The notice will describe:
+            </p>
+            <ul>
+                <li>The nature of the PHI involved;</li>
+                <li>The date and circumstances of the breach;</li>
+                <li>Mitigation actions taken; and</li>
+                <li>Preventive measures implemented.</li>
+            </ul>
+
+            <p style="font-weight: bold;">6. Access, Amendment, and Accounting:</p>
+            <p>Upon request, ProMed shall:</p>
+            <ul>
+                <li>Provide access to PHI as required by 45 CFR § 164.524;</li>
+                <li>Make amendments to PHI as directed under 45 CFR § 164.526; and</li>
+                <li>Maintain and furnish an accounting of disclosures as required under 45 CFR § 164.528.</li>
+            </ul>
+
+            <p style="font-weight: bold;">7. Term and Termination:</p>
+            <p>(A) Term: This Agreement remains effective until terminated by either Party with 30 days' written notice.</p>
+            <p>(B) Termination for Cause: The Provider may terminate immediately if ProMed materially breaches this Agreement and fails to cure the breach within 30 days of notice.</p>
+            <p>(C) Return or Destruction of PHI: Upon termination, ProMed will return or destroy all PHI if feasible; otherwise, it will continue to protect the PHI under this Agreement.</p>
+
+            <p style="font-weight: bold;">8. Indemnification:</p>
+            <p>
+                Each Party shall indemnify and hold harmless the other from any claim, loss, or liability arising from its own negligence, willful
+                misconduct, or violation of HIPAA or this Agreement.
+            </p>
+
+            <p style="font-weight: bold;">9. Miscellaneous:</p>
+            <p>(A) This Agreement shall be governed by the laws of the State of [State].</p>
+            <p>(B) The Parties agree that a valid electronic signature or digital execution shall be treated as binding.</p>
+            <p>(C) This Agreement supersedes any prior BAA between the Parties.</p>
+            <p>(D) The obligations herein shall survive termination to the extent PHI remains in either Party's possession.</p>
+
+            <p style="font-weight: bold;">10. Incorporation by Reference</p>
+            <p>
+                This BAA is incorporated by reference into any existing or future Provider Sales Agreement between the Parties, and compliance with this
+                BAA is a condition of continued business with ProMed Health Plus, LLC.
+            </p>
+
+            <hr style="margin-top: 20px; margin-bottom: 20px; border: 0; border-top: 1px dashed #ccc;" />
+
+            {# PURCHASE AGREEMENT SECTION #}
+            <h3 style="text-align: center;">ProMed Health Plus – Purchase Agreement</h3>
+            <p>
+                This Sales Agreement ("Agreement") is entered into by and between ProMed Health Plus, LLC ("ProMed"),
+                a medical product distributor, and the undersigned medical provider or facility ("Provider"),
+                collectively referred to as the "Parties."
+            </p>
+
+            <p style="font-weight: bold;">1. Terms of Sale:</p>
+            <p>
+                The provider agrees to purchase wound care and skin substitute products offered by ProMed and its affiliated manufacturers. All
+                product orders placed by the provider shall be subject to the terms outlined herein.
+            </p>
+
+            <p style="font-weight: bold;">2. Purchasing:</p>
+            <p>
+                The final price for the Provider on all qualified product purchases made through ProMed shall be calculated as a percentage of the
+                Medicare payment limit as specified in the CMS published quarterly ASP pricing file. The applicable percentage is determined by the
+                date payment is received by ProMed, as follows:
+            </p>
+            <ul>
+                <li>For payment received within 30 days of the invoice date, the Provider's price shall be <strong>50% of the Medicare payment limit.</strong></li>
+                <li>For payment received after 31 days, the Provider's price shall be <strong>60% of the Medicare payment limit.</strong></li>
+            </ul>
+            <p>
+                The pricing terms may be modified by ProMed with 30 days' written notice.
+            </p>
+
+            <p style="font-weight: bold;">3. Payment Terms:</p>
+            <p>
+                Unless otherwise agreed upon in writing, payment is due within 30 days of the delivery date. Payments can be made via check, ACH or credit
+                card. The provider agrees to pay all reasonable costs of collection, including legal fees, if applicable.
+            </p>
+
+            <p style="font-weight: bold;">4. Use of Manufacturers:</p>
+            <p>
+                The provider acknowledges and agrees that ProMed may fulfill product orders using one or more third-party manufacturers or distributors.
+                The provider agrees to be bound by the sales agreements and fulfillment terms of these manufacturers, where applicable. ProMed shall not be
+                held liable for any independent obligations, product warranties, or operational issues related to these manufacturers. Any disputes
+                concerning product quality, delays, or terms outside ProMed's control must be directed to the appropriate manufacturer.
+            </p>
+
+            <p style="font-weight: bold;">5. Product Responsibility:</p>
+            <p>
+                Unused items may be eligible for return only if unopened and returned promptly in accordance with the manufacturer's policies. The provider
+                may be financially responsible for improperly returned or non-returned items.
+            </p>
+
+            <p style="font-weight: bold;">6. Termination:</p>
+            <p>
+                ProMed and/or its manufacturers reserve the right to limit or terminate credit terms at any time. ProMed may modify the terms of this
+                agreement with 30 day written notice.
+            </p>
+
+            <p style="font-weight: bold;">7. Representations:</p>
+            <p>
+                The provider states that the information submitted to ProMed is true and accurate and acknowledges that this agreement is entered into for
+                the purpose of establishing a purchasing relationship with ProMed and its designated manufacturers.
+            </p>
+
+            <p style="margin-top: 20px; text-align: center; font-weight: bold; color: #555;">END OF AGREEMENT TEXT</p>
+        </div>
+
+        <hr style="margin-top: 20px; margin-bottom: 20px; border: 0; border-top: 2px solid #0F766E;" />
+
+        {# AGREEMENT EXECUTION SECTION - From BAAForm.jsx inputs #}
+        <div class="agreement-section">
+            <h3 style="text-align: center;">Agreement Execution Details</h3>
+
+            <div class="form-input-display">
+                <div class="form-input-label">Anticipated Average Monthly Volume:</div>
+                <div class="form-input-value">{{ form_data.monthlyVolume }}</div>
+            </div>
+            <div class="form-input-display">
+                <div class="form-input-label">Provider Company Name:</div>
+                <div class="form-input-value">{{ form_data.providerCompanyName }}</div>
+            </div>
+            <div class="form-input-display">
+                <div class="form-input-label">Effective Date:</div>
+                <div class="form-input-value">{{ form_data.effectiveDate }}</div>
+            </div>
+            <div class="form-input-display">
+                <div class="form-input-label">Authorized Signatory Name:</div>
+                <div class="form-input-value">{{ form_data.signatoryName }}</div>
+            </div>
+            <div class="form-input-display">
+                <div class="form-input-label">Authorized Signatory Title:</div>
+                <div class="form-input-value">{{ form_data.signatoryTitle }}</div>
+            </div>
+            <div class="form-input-display">
+                <div class="form-input-label">Authorized Signatory Signature:</div>
+                <div class="form-input-value">{{ form_data.signature }}</div>
+            </div>
+            <div class="form-input-display">
+                <div class="form-input-label">Signature Date:</div>
+                <div class="form-input-value">{{ form_data.signatureDate }}</div>
+            </div>
+            
+            <p style="margin-top: 15px; font-style: italic; text-align: center; font-size: 9pt;">
+                By electronically signing this document, the signatory confirms they are authorized to bind 
+                the Provider company to this agreement and accepts all terms herein.
+            </p>
+        </div>
+
+        {# FOOTER #}
+        <div class="footer-text">
+            ProMed Health Plus, LLC<br/>
+            30839 E Thousand Oaks Blvd, Westlake Village, CA 91362<br/>
+            Phone: 267-235-1092 | www.promedhealthplus.com<br/>
+            Document Generated: {{ signed_date }}
+        </div>
+    </div>
+</body>
+</html>
