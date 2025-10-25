@@ -611,10 +611,6 @@ class SignBAAView(generics.UpdateAPIView):
         data = serializer.validated_data
 
         try:
-            # ============================================
-            # STEP 1, 2, 4: Process PDF, Azure, and Emails (Delegated)
-            # ============================================
-            # Calling the utility function we just defined
             pdf_url = process_signed_baa(user, data, generate_baa_pdf) 
             
             # ============================================
@@ -926,3 +922,48 @@ def process_signed_baa(user, baa_data, generate_baa_pdf_func):
         # Non-critical failure, transaction continues
         
     return pdf_url
+
+class PublicContactView(generics.CreateAPIView):
+    serializer_class = api_serializers.PublicContactSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        data = serializer.validated_data
+
+        subject = f"New Public Inquiry from: {data['name']}"
+
+        html_message = render_to_string('provider_auth/public_inquiry.html', {
+            'name': data['name'],
+            'facility': data['facility'],
+            'city': data['city'],
+            'state': data['state'],
+            'zip': data['zip'],
+            'phone': data['phone'],
+            'email': data['email'],
+            'question': data['question'],
+            'year': datetime.now().year
+        })
+
+        recipient_list = list(set([
+            'portal@promedhealthplus.com',
+        ]))
+
+        try:
+            send_mail(
+                subject=subject,
+                message=f"Name: {data['name']}\nFacility: {data['facility']}\nEmail: {data['email']}\nPhone: {data['phone']}\nCity: {data['city']}, {data['state']} {data['zip']}\n\nQuestion:\n{data['question']}",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=recipient_list,
+                html_message=html_message,
+                fail_silently=False,
+            )
+            return Response({'success': 'Message sent successfully.'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(f"Error sending public inquiry email: {e}")
+            return Response(
+                {'error': 'Failed to send message.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
