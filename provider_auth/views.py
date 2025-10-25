@@ -65,9 +65,14 @@ class MyTokenObtainPairView(TokenObtainPairView):
             user_data = UserSerializer(user).data
             logger.warning(f"BAA required for user: {user.email}. Denying access and prompting for BAA signing.")
             
-            # Return a 403 response with a specific flag for the client
+            # ✅ Generate temporary access token (needed to sign BAA)
+            refresh = serializer.validated_data['refresh']
+            access = serializer.validated_data['access']
+            
+            # Return a 403 response with temporary access token
             return Response({
                 'baa_required': True,
+                'access': str(access),  # ✅ CRITICAL: Include temporary access token
                 'detail': 'Provider must sign the Business Associate Agreement to continue.',
                 'user': user_data
             }, status=status.HTTP_403_FORBIDDEN)
@@ -87,7 +92,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
         logger.info(f"Creating NEW verification with method: {method}")
         logger.info(f"New Session ID: {session_id}")
         
-        # FIX: Delete ALL old verification codes for this user
+        # Delete ALL old verification codes for this user
         deleted_count = api_models.Verification_Code.objects.filter(user=user).delete()[0]
         logger.info(f"Deleted {deleted_count} old verification codes for user: {user.email}")
         
@@ -109,7 +114,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
                 
                 client = Client(account_sid, auth_token)
                 
-                # FIX: Cancel any pending Twilio verifications first
+                # Cancel any pending Twilio verifications first
                 try:
                     verifications = client.verify.v2.services(verify_service_sid).verifications.list(
                         to=str(user.phone_number),
@@ -194,7 +199,6 @@ class MyTokenObtainPairView(TokenObtainPairView):
             'user': user_data,
             'detail': f'Verification code sent via {method}.'
         }, status=status.HTTP_200_OK)
-
 
 class RegisterUser(generics.CreateAPIView):
     queryset = User.objects.all()
