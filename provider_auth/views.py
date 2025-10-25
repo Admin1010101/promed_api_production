@@ -636,6 +636,100 @@ class PublicContactView(generics.CreateAPIView):
 class SignBAAView(generics.UpdateAPIView):
     """
     Allows an authenticated user (who is locked out by BAA) to submit the signed agreement.
+    After signing, initiates MFA flow via EMAIL only.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = api_serializers.BAASignatureSerializer
+    
+    def update(self, request, *args, **kwargs):
+        user = request.user
+        
+        # Prevent double-signing
+        if user.has_signed_baa:
+            return Response(
+                {"detail": "BAA already signed."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validate the BAA form data
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        
+        try:
+            user.has_signed_baa = True
+            user.baa_signed_date = timezone.now()
+            user.save()
+            
+            logger.info(f"✅ BAA successfully signed for user: {user.email}")
+            
+            method = 'email'  # Fixed to email only
+            session_id = str(uuid.uuid4())
+            
+            logger.info(f"Initiating EMAIL MFA after BAA signing")
+            logger.info(f"New Session ID: {session_id}")
+            
+            # Clean up old verification codes for this user
+            deleted_count = api_models.Verification_Code.objects.filter(user=user).delete()[0]
+            logger.info(f"Deleted {deleted_count} old verification codes for user: {user.email}")
+            
+            # Generate new access token (temporary, for MFA session)
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+            
+            # =====================================================
+            # STEP 3: Send Email Verification Code
+            # =====================================================
+            
+            try:
+                # Generate random 6-digit code
+                code = str(random.randint(100000, 999999))
+                
+                # Store verification code
+                api_models.Verification_Code.objects.create(
+                    user=user,
+                    code=code,
+                    method=method,
+                    session_id=session_id
+                )
+                
+                # Send email with code
+                send_mail(
+                    subject='Login Verification Code',
+                    message=f'Your login verification code is {code}. This code will expire in 10 minutes.',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email]
+                )
+                
+                logger.info(f"✅ Email verification sent to {user.email} after BAA signing with code: {code}")
+                
+            except Exception as e:
+                logger.error(f"Email sending failed after BAA signing: {str(e)}")
+                return Response(
+                    {"error": f"Failed to send email verification: {str(e)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+            
+            logger.info("✅ BAA SIGNED - Returning EMAIL MFA session")
+            logger.info("=" * 50)
+            
+            return Response({
+                'success': True,
+                'access': access_token,
+                'session_id': session_id,
+                'mfa_required': True,
+                'method': method,
+                'detail': 'BAA signed successfully. Verification code sent to your email.'
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"❌ Error during BAA signing process for {user.email}: {str(e)}")
+            return Response(
+                {"error": "Failed to process BAA signature."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    """
+    Allows an authenticated user (who is locked out by BAA) to submit the signed agreement.
     After signing, initiates MFA flow exactly like the login process.
     """
     permission_classes = [permissions.IsAuthenticated]
