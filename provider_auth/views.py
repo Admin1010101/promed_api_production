@@ -676,11 +676,7 @@ class SignBAAView(generics.UpdateAPIView):
             # Generate new access token (temporary, for MFA session)
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
-            
-            # =====================================================
-            # STEP 3: Send Email Verification Code
-            # =====================================================
-            
+                        
             try:
                 # Generate random 6-digit code
                 code = str(random.randint(100000, 999999))
@@ -751,34 +747,12 @@ class SignBAAView(generics.UpdateAPIView):
         data = serializer.validated_data
         
         try:
-            # =====================================================
-            # STEP 1: Update User Model - Mark BAA as Signed
-            # =====================================================
             user.has_signed_baa = True
             user.baa_signed_date = timezone.now()
             user.save()
             
             logger.info(f"✅ BAA successfully signed for user: {user.email}")
-            
-            # OPTIONAL BUT RECOMMENDED: Store complete BAA record for compliance
-            # Example:
-            # SignedAgreement.objects.create(
-            #     user=user,
-            #     monthly_volume=data['monthly_volume'],
-            #     provider_company_name=data['provider_company_name'],
-            #     effective_date=data['effective_date'],
-            #     signatory_name=data['signatory_name'],
-            #     signatory_title=data['signatory_title'],
-            #     signature=data['signature'],
-            #     signature_date=data['signature_date'],
-            #     agreement_text=FULL_BAA_TEXT  # Store the actual agreement text
-            # )
 
-            # =====================================================
-            # STEP 2: Initiate MFA Flow (Same as Login)
-            # =====================================================
-            
-            # Get MFA method from request (default to email)
             method = request.data.get('method', 'email')
             session_id = str(uuid.uuid4())
             
@@ -792,10 +766,6 @@ class SignBAAView(generics.UpdateAPIView):
             # Generate new access token (temporary, for MFA session)
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
-            
-            # =====================================================
-            # STEP 3: Send MFA Code Based on Method
-            # =====================================================
             
             if method == 'sms' and user.phone_number:
                 # SMS Verification via Twilio
@@ -893,10 +863,6 @@ class SignBAAView(generics.UpdateAPIView):
                     {"error": "Invalid MFA method or missing phone number for SMS"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            
-            # =====================================================
-            # STEP 4: Return MFA Session Data to Frontend
-            # =====================================================
             
             logger.info("✅ BAA SIGNED - Returning MFA session")
             logger.info("=" * 50)
