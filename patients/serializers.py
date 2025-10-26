@@ -43,8 +43,8 @@ class PatientSerializer(serializers.ModelSerializer):
             'medical_record_number',
             'wound_size_length',
             'wound_size_width',
-            'date_created',
-            'date_updated',
+            'created_at',  # ✅ FIXED: changed from date_created
+            'updated_at',  # ✅ FIXED: changed from date_updated
             'activate_Account',
             # IVR-related fields
             'latest_ivr_status',
@@ -53,7 +53,7 @@ class PatientSerializer(serializers.ModelSerializer):
             'ivr_count',
             'has_approved_ivr',
         ]
-        read_only_fields = ['id', 'date_created', 'date_updated']
+        read_only_fields = ['id', 'created_at', 'updated_at']  # ✅ FIXED: changed field names
 
 
 class IVRFormSerializer(serializers.ModelSerializer):
