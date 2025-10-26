@@ -611,20 +611,12 @@ class SignBAAView(generics.UpdateAPIView):
         data = serializer.validated_data
 
         try:
-            pdf_url = process_signed_baa(user, data, generate_baa_pdf) 
-            
-            # ============================================
-            # STEP 3: Update User Model
-            # ============================================
+            pdf_url = process_signed_baa(user, data)
+
             user.has_signed_baa = True
             user.baa_signed_at = timezone.now()
             user.save()
 
-            logger.info(f"✅ BAA successfully signed for user: {user.email}")
-
-            # ============================================
-            # STEP 5: Initiate MFA
-            # ============================================
             method = 'email'
             session_id = str(uuid.uuid4())
 
@@ -654,9 +646,6 @@ class SignBAAView(generics.UpdateAPIView):
             )
             logger.info(f"✅ MFA initiated for {user.email}")
 
-            # ============================================
-            # STEP 6: Final Response
-            # ============================================
             return Response({
                 'success': True,
                 'access': access_token,
@@ -671,169 +660,12 @@ class SignBAAView(generics.UpdateAPIView):
             # Catching exceptions from PDF generation, Azure storage, etc.
             logger.error(f"❌ Error during BAA signing process for {user.email}: {str(e)}", exc_info=True)
             return Response(
-                {"error": "Failed to process BAA signature. Check logs for details."},
+                {"error": f"Failed to process BAA signature: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-class SignBAAView(generics.UpdateAPIView):
-    """
-    Allows an authenticated user to submit the signed BAA agreement.
-    Generates PDF, emails it, stores in Azure, and initiates MFA.
-    """
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = api_serializers.BAASignatureSerializer
-    
-    def update(self, request, *args, **kwargs):
-        user = request.user
-        
-        if user.has_signed_baa:
-            return Response(
-                {"detail": "BAA already signed."}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
 
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-        
-        try:
-            # ============================================
-            # STEP 1: Generate PDF
-            # ============================================
-            pdf_buffer = generate_baa_pdf(user, data)
-            pdf_filename = f"BAA_{user.email}_{data['signature_date']}.pdf"
-            
-            # ============================================
-            # STEP 2: Store PDF in Azure Blob Storage
-            # ============================================
-            storage = AzureMediaStorage()
-            pdf_path = f"baa_agreements/{user.id}/{pdf_filename}"
-            pdf_file = ContentFile(pdf_buffer.read())
-            saved_path = storage.save(pdf_path, pdf_file)
-            pdf_url = storage.url(saved_path)
-            
-            logger.info(f"✅ BAA PDF stored at: {pdf_url}")
-            
-            # ============================================
-            # STEP 3: Update User Model
-            # ============================================
-            user.has_signed_baa = True
-            user.baa_signed_at = timezone.now()
-            user.save()
-            
-            logger.info(f"✅ BAA successfully signed for user: {user.email}")
-            
-            # ============================================
-            # STEP 4: Email PDF to Admin and Provider
-            # ============================================
-            admin_recipients = [
-                'portal@promedhealthplus.com',
-                'harold@promedhealthplus.com',
-            ]
-            
-            # Reset buffer for email attachment
-            pdf_buffer.seek(0)
-            
-            # Email to Admin
-            admin_subject = f"New BAA Signed: {user.full_name}"
-            admin_message = render_to_string(
-                'provider_auth/baa_signed_admin_notification.html',
-                {
-                    'user': user,
-                    'baa_data': data,
-                    'pdf_url': pdf_url,
-                    'signed_date': timezone.now(),
-                    'year': datetime.now().year
-                }
-            )
-            
-            admin_email = EmailMessage(
-                subject=admin_subject,
-                body=admin_message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                to=admin_recipients,
-            )
-            admin_email.content_subtype = "html"
-            admin_email.attach(pdf_filename, pdf_buffer.read(), 'application/pdf')
-            admin_email.send(fail_silently=False)
-            
-            logger.info(f"✅ BAA PDF emailed to admins")
-            
-            # Email to Provider
-            pdf_buffer.seek(0)  # Reset buffer again
-            
-            provider_subject = "Your Signed BAA Agreement - ProMed Health Plus"
-            provider_message = render_to_string(
-                'provider_auth/baa_signed_provider_confirmation.html',
-                {
-                    'user': user,
-                    'baa_data': data,
-                    'signed_date': timezone.now(),
-                    'year': datetime.now().year
-                }
-            )
-            
-            provider_email = EmailMessage(
-                subject=provider_subject,
-                body=provider_message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                to=[user.email],
-            )
-            provider_email.content_subtype = "html"
-            provider_email.attach(pdf_filename, pdf_buffer.read(), 'application/pdf')
-            provider_email.send(fail_silently=False)
-            
-            logger.info(f"✅ BAA PDF emailed to provider: {user.email}")
-            
-            # ============================================
-            # STEP 5: Initiate MFA
-            # ============================================
-            method = 'email'
-            session_id = str(uuid.uuid4())
-            
-            deleted_count = api_models.Verification_Code.objects.filter(user=user).delete()[0]
-            logger.info(f"Deleted {deleted_count} old verification codes")
-            
-            refresh = RefreshToken.for_user(user)
-            access_token = str(refresh.access_token)
-            
-            code = str(random.randint(100000, 999999))
-            
-            api_models.Verification_Code.objects.create(
-                user=user,
-                code=code,
-                method=method,
-                session_id=session_id
-            )
-            
-            send_mail(
-                subject='Login Verification Code',
-                message=f'Your login verification code is {code}. This code will expire in 10 minutes.',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email]
-            )
-            
-            logger.info(f"✅ MFA initiated for {user.email}")
-            
-            return Response({
-                'success': True,
-                'access': access_token,
-                'session_id': session_id,
-                'mfa_required': True,
-                'method': method,
-                'pdf_url': pdf_url,
-                'detail': 'BAA signed successfully. Verification code sent to your email.'
-            }, status=status.HTTP_200_OK)
-
-        except Exception as e:
-            logger.error(f"❌ Error during BAA signing process for {user.email}: {str(e)}")
-            return Response(
-                {"error": "Failed to process BAA signature."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-            
-
-def process_signed_baa(user, baa_data, generate_baa_pdf_func):
+def process_signed_baa(user, baa_data):
     """
     Handles PDF generation, Azure storage, and email distribution for a signed BAA.
     
@@ -842,7 +674,7 @@ def process_signed_baa(user, baa_data, generate_baa_pdf_func):
     """
     
     # 1. Generate PDF
-    pdf_buffer = generate_baa_pdf_func(user, baa_data)
+    pdf_buffer = generate_baa_pdf(user, baa_data)
     
     # Define Azure Path and PDF Filename for consistency
     provider_slug = slugify(user.full_name or user.email.split('@')[0])
@@ -920,8 +752,8 @@ def process_signed_baa(user, baa_data, generate_baa_pdf_func):
     except Exception as e:
         logger.warning(f"⚠️ Email failed for BAA for {user.email}: {str(e)}", exc_info=True)
         # Non-critical failure, transaction continues
-        
     return pdf_url
+        
 
 class PublicContactView(generics.CreateAPIView):
     serializer_class = api_serializers.PublicContactSerializer
