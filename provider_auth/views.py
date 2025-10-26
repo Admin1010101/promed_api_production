@@ -5,11 +5,9 @@ import random
 import uuid
 from datetime import datetime
 from io import BytesIO
-
 # Third-Party Libraries
 from dotenv import load_dotenv
 from twilio.rest import Client
-
 # Django
 from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
@@ -19,30 +17,25 @@ from django.core.mail import EmailMessage, send_mail
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.text import slugify
-
 # Django REST Framework
 from rest_framework import generics, permissions, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
-
 # Local Application Imports
 from patients.models import Patient
 from promed_backend_api.settings import BASE_CLIENT_URL, DEFAULT_FROM_EMAIL
 from promed_backend_api.storage_backends import AzureMediaStorage
 from utils.pdf_generator import generate_baa_pdf
-
 from . import models as api_models
 from . import serializers as api_serializers
 from .models import EmailVerificationToken, Profile, User, Verification_Code
 from .serializers import EmptySerializer, MyTokenObtainPairSerializer, UserSerializer
 
-
 load_dotenv()
 
 logger = logging.getLogger(__name__)
-
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
 
@@ -64,9 +57,6 @@ class MyTokenObtainPairView(TokenObtainPairView):
 
         user = serializer.user
 
-        # =========================================================
-        # 🆕 BAA AGREEMENT ENFORCEMENT CHECK
-        # =========================================================
         if not user.has_signed_baa:
             user_data = UserSerializer(user).data
             logger.warning(f"BAA required for user: {user.email}. Denying access and prompting for BAA signing.")
