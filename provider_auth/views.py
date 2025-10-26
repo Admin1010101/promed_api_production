@@ -27,7 +27,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from patients.models import Patient
 from promed_backend_api.settings import BASE_CLIENT_URL, DEFAULT_FROM_EMAIL
 from promed_backend_api.storage_backends import AzureMediaStorage
-from utils.pdf_generator import generate_baa_pdf
+from .utils.pdf_generator import generate_baa_pdf
 from . import models as api_models
 from . import serializers as api_serializers
 from .models import EmailVerificationToken, Profile, User, Verification_Code
