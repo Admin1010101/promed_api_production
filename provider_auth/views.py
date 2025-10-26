@@ -744,7 +744,6 @@ def process_signed_baa(user, baa_data):
         # Non-critical failure, transaction continues
     return pdf_url
         
-
 class PublicContactView(generics.CreateAPIView):
     serializer_class = api_serializers.PublicContactSerializer
     permission_classes = [permissions.AllowAny]
