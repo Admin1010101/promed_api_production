@@ -146,12 +146,12 @@
                 {% if profile %}
                 <div class="info-row">
                     <span class="info-label">🏢 Facility:</span>
-                    <span class="info-value">{{ profile.facility_name|default:"Not provided" }}</span>
+                    <span class="info-value">{{ user.facility_name|default:"Not provided" }}</span>
                 </div>
                 
                 <div class="info-row">
                     <span class="info-label">🔢 NPI Number:</span>
-                    <span class="info-value">{{ profile.npi_number|default:"Not provided" }}</span>
+                    <span class="info-value">{{ user.npi_number|default:"Not provided" }}</span>
                 </div>
                 {% endif %}
                 
