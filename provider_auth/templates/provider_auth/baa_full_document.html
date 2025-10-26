@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Business Associate Agreement - {{ user.full_name }}</title>
+    <style>
+        @page {
+            size: letter;
+            margin: 1in;
+        }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            font-size: 18pt;
+            margin-bottom: 20px;
+            color: #00A389;
+        }
+        h2 {
+            font-size: 14pt;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #00A389;
+        }
+        p {
+            margin-bottom: 10px;
+            text-align: justify;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .form-data {
+            background-color: #f5f5f5;
+            padding: 15px;
+            margin: 20px 0;
+            border-left: 4px solid #00A389;
+        }
+        .form-data p {
+            margin: 8px 0;
+        }
+        .form-data strong {
+            color: #00A389;
+        }
+        .signature-section {
+            margin-top: 40px;
+            border-top: 2px solid #00A389;
+            padding-top: 20px;
+        }
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 9pt;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>BUSINESS ASSOCIATE AGREEMENT</h1>
+    
+    <div class="section">
+        <p><strong>Between:</strong> ProMed Health Plus, LLC ("Covered Entity")</p>
+        <p><strong>And:</strong> {{ form_data.providerCompanyName }} ("Business Associate")</p>
+        <p><strong>Effective Date:</strong> {{ form_data.effectiveDate }}</p>
+    </div>
+
+    <div class="section">
+        <h2>1. PURPOSE</h2>
+        <p>
+            This Business Associate Agreement ("Agreement") is entered into pursuant to the Health Insurance 
+            Portability and Accountability Act of 1996 ("HIPAA"), as amended by the Health Information Technology 
+            for Economic and Clinical Health Act ("HITECH"), and their implementing regulations (collectively, 
+            the "HIPAA Rules").
+        </p>
+        <p>
+            Business Associate provides certain services to or on behalf of Covered Entity that involve the use 
+            or disclosure of Protected Health Information ("PHI"). This Agreement establishes the permitted and 
+            required uses and disclosures of PHI by Business Associate and sets forth the parties' respective 
+            obligations to protect the privacy and security of PHI.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>2. DEFINITIONS</h2>
+        <p>
+            Terms used but not otherwise defined in this Agreement shall have the meanings given to those terms 
+            under the HIPAA Rules.
+        </p>
+        <p>
+            <strong>Protected Health Information ("PHI")</strong> means individually identifiable health information 
+            that is transmitted or maintained in any form or medium by Business Associate on behalf of Covered Entity.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>3. OBLIGATIONS OF BUSINESS ASSOCIATE</h2>
+        <p>Business Associate agrees to:</p>
+        <ul>
+            <li>Use or disclose PHI only as permitted by this Agreement or as required by law;</li>
+            <li>Use appropriate safeguards to prevent use or disclosure of PHI other than as permitted by this Agreement;</li>
+            <li>Implement administrative, physical, and technical safeguards that reasonably and appropriately protect the confidentiality, integrity, and availability of electronic PHI;</li>
+            <li>Report to Covered Entity any use or disclosure of PHI not provided for by this Agreement;</li>
+            <li>Report to Covered Entity any Security Incident or Breach of Unsecured PHI;</li>
+            <li>Ensure that any subcontractors that create, receive, maintain, or transmit PHI agree to the same restrictions and conditions;</li>
+            <li>Make PHI available to individuals as required under 45 CFR § 164.524;</li>
+            <li>Make PHI available for amendment and incorporate amendments as required under 45 CFR § 164.526;</li>
+            <li>Make available information required to provide an accounting of disclosures as required under 45 CFR § 164.528;</li>
+            <li>Make internal practices, books, and records relating to the use and disclosure of PHI available to the Secretary of HHS for purposes of determining Covered Entity's compliance with HIPAA;</li>
+            <li>Return or destroy all PHI upon termination of this Agreement, if feasible.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>4. PERMITTED USES AND DISCLOSURES</h2>
+        <p>
+            Business Associate may use or disclose PHI only to perform functions, activities, or services for 
+            or on behalf of Covered Entity as specified in the underlying service agreement, provided such use 
+            or disclosure would not violate the HIPAA Privacy Rule if done by Covered Entity.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>5. TERM AND TERMINATION</h2>
+        <p>
+            This Agreement shall be effective as of the Effective Date and shall remain in effect until terminated 
+            by either party with thirty (30) days written notice, or until all PHI is destroyed or returned to 
+            Covered Entity.
+        </p>
+        <p>
+            Upon termination, Business Associate shall return or destroy all PHI that Business Associate maintains 
+            in any form, and retain no copies.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>6. BREACH NOTIFICATION</h2>
+        <p>
+            Business Associate shall notify Covered Entity within five (5) business days of discovery of any 
+            Breach of Unsecured PHI, providing all available information required for Covered Entity to meet 
+            its breach notification obligations under 45 CFR § 164.410.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>7. INDEMNIFICATION</h2>
+        <p>
+            Business Associate shall indemnify and hold harmless Covered Entity from any claims, damages, or 
+            costs arising from Business Associate's breach of this Agreement or violation of applicable HIPAA Rules.
+        </p>
+    </div>
+
+    <div class="form-data">
+        <h2>Provider Information</h2>
+        <p><strong>Company Name:</strong> {{ form_data.providerCompanyName }}</p>
+        <p><strong>Estimated Monthly Patient Volume:</strong> {{ form_data.monthlyVolume }}</p>
+        <p><strong>Signatory Name:</strong> {{ form_data.signatoryName }}</p>
+        <p><strong>Signatory Title:</strong> {{ form_data.signatoryTitle }}</p>
+    </div>
+
+    <div class="signature-section">
+        <h2>SIGNATURE</h2>
+        <p><strong>Signed by:</strong> {{ form_data.signature }}</p>
+        <p><strong>Date Signed:</strong> {{ form_data.signatureDate }}</p>
+        <p><strong>Document Generated:</strong> {{ signed_date }}</p>
+    </div>
+
+    <div class="footer">
+        <p>
+            This Business Associate Agreement is legally binding and has been electronically signed.<br>
+            ProMed Health Plus, LLC | {{ year }}<br>
+            For questions, contact: portal@promedhealthplus.com
+        </p>
+    </div>
+</body>
+</html>
