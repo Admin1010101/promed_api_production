@@ -92,6 +92,8 @@ class ProductAdmin(admin.ModelAdmin):
             # Display a small thumbnail in the list view
             return format_html('<img src="{}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;" />', obj.image.url)
         return "No Image"
+    
+admin.site.register(ProductVariant)
 
 # NOTE: Remove the simple admin.site.register(Product) and admin.site.register(ProductVariant)
 # The @admin.register(Product) decorator replaces it for the Product model.
