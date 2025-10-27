@@ -113,6 +113,8 @@ class OrderAdmin(admin.ModelAdmin):
     def total_items_ordered(self, obj):
         # Access the annotated value
         return obj._total_items or 0
+    
+admin.site.register(OrderItem)
 
 # NOTE: Remove the simple admin.site.register(Order) if you use the decorator
 # admin.site.register(Order, OrderAdmin)
