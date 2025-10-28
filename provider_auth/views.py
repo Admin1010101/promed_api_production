@@ -36,6 +36,7 @@ from .serializers import EmptySerializer, MyTokenObtainPairSerializer, UserSeria
 load_dotenv()
 
 logger = logging.getLogger(__name__)
+
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
 
@@ -50,8 +51,17 @@ class MyTokenObtainPairView(TokenObtainPairView):
             serializer.is_valid(raise_exception=True)
         except Exception as e:
             logger.error(f"Serializer validation FAILED: {str(e)}")
+            
+            # ✅ FIX: Check if serializer has errors before accessing them
+            if hasattr(serializer, '_validated_data'):
+                # If is_valid() was called but raised an exception
+                error_response = serializer.errors if hasattr(serializer, '_errors') else {'detail': str(e)}
+            else:
+                # If is_valid() was never called successfully
+                error_response = {'detail': str(e)}
+            
             return Response(
-                getattr(serializer, 'errors', {'detail': str(e)}),
+                error_response,
                 status=status.HTTP_400_BAD_REQUEST
             )
 
