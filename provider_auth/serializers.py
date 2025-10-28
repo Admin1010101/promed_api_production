@@ -179,16 +179,20 @@ class UserSerializer(serializers.ModelSerializer):
     role = serializers.CharField(read_only=True)
     has_signed_baa = serializers.BooleanField(read_only=True)
     baa_signed_date = serializers.DateTimeField(read_only=True)
+    has_completed_tour = serializers.BooleanField(read_only=True) 
     class Meta:
         model = User
         fields = (
-            'id', 'email', 'full_name', 'username', 'phone_number', 'country_code','role', 'has_signed_baa', 'baa_signed_date',
+            'id', 'email', 'full_name', 'username', 'phone_number', 
+            'country_code','role', 'has_signed_baa', 'baa_signed_date',
+            'has_completed_tour'
         )
 
 
 class ProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     image = serializers.SerializerMethodField()
+    has_completed_tour = serializers.BooleanField(source='user.has_completed_tour', read_only=True)
 
     class Meta:
         model = Profile

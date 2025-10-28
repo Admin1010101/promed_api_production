@@ -788,3 +788,44 @@ class PublicContactView(generics.CreateAPIView):
                 {'error': 'Failed to send message.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+class CompleteTourView(generics.UpdateAPIView):
+    """
+    Marks the user's dashboard tour as completed.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = EmptySerializer  # No data needed
+
+    def update(self, request, *args, **kwargs):
+        user = request.user
+        
+        if user.has_completed_tour:
+            return Response(
+                {"detail": "Tour already completed."},
+                status=status.HTTP_200_OK
+            )
+        
+        user.has_completed_tour = True
+        user.tour_completed_at = timezone.now()
+        user.save()
+        
+        logger.info(f"✅ User {user.email} completed dashboard tour")
+        
+        return Response(
+            {"success": True, "detail": "Tour marked as completed."},
+            status=status.HTTP_200_OK
+        )
+        
+class ResetTourView(generics.UpdateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = EmptySerializer
+
+    def update(self, request, *args, **kwargs):
+        user = request.user
+        user.has_completed_tour = False
+        user.tour_completed_at = None
+        user.save()
+        
+        return Response(
+            {"success": True, "detail": "Tour reset successfully."},
+            status=status.HTTP_200_OK
+        )

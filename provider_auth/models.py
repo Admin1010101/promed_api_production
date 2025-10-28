@@ -65,6 +65,8 @@ class User(AbstractUser):
     is_verified = models.BooleanField(default=False)
     has_signed_baa = models.BooleanField(default=False)
     baa_signed_at = models.DateTimeField(null=True, blank=True)
+    has_completed_tour = models.BooleanField(default=False)
+    tour_completed_at = models.DateTimeField(null=True, blank=True)  
     date_joined = models.DateTimeField(auto_now_add=True)
     date_updated = models.DateTimeField(auto_now=True)
     
