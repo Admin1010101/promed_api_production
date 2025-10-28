@@ -18,4 +18,5 @@ urlpatterns = [
     path('contact/submit/', api_views.PublicContactView.as_view(), name='public_inquiry_form'),
     path('provider/sign-baa/', api_views.SignBAAView.as_view(), name='sign-baa'),
     path('provider/complete-tour/', api_views.CompleteTourView.as_view(), name='complete-tour'),
+    path('provider/reset-tour/', api_views.ResetTourView.as_view(), name='reset-tour'),
 ]
