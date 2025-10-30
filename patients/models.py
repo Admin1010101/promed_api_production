@@ -1,3 +1,5 @@
+# patients/models.py - UPDATED to include wound_size_depth
+
 from django.db import models
 from django.conf import settings
 from phonenumber_field.modelfields import PhoneNumberField
@@ -5,7 +7,6 @@ from provider_auth.models import User
 from django.utils import timezone
 
 ivr_status_choices = (("Pending", "Pending"), ("Approved", "Approved"), ("Denied", "Denied"))
-
 account_activation_choices = (("Activated", "Activated"), ("Deactivated", "Deactivated"))
 
 class IVRForm(models.Model):
@@ -30,7 +31,7 @@ class IVRForm(models.Model):
         help_text="The provider who submitted this IVR form"
     )
     patient = models.ForeignKey(
-        'Patient',  # Use string reference since Patient is defined in same file
+        'Patient',
         on_delete=models.CASCADE, 
         related_name='ivr_forms',
         help_text="The patient this IVR form is for"
@@ -43,20 +44,27 @@ class IVRForm(models.Model):
     facility_address = models.TextField(blank=True)
     facility_city_state_zip = models.CharField(max_length=255, blank=True)
     
-    # Wound information
+    # ✅ UPDATED: Wound information - Added depth field
     wound_size_length = models.DecimalField(
         max_digits=5, 
         decimal_places=2, 
         null=True, 
         blank=True,
-        help_text="Wound length in cm"
+        help_text="Wound length in cm (head to toe)"
     )
     wound_size_width = models.DecimalField(
         max_digits=5, 
         decimal_places=2, 
         null=True, 
         blank=True,
-        help_text="Wound width in cm"
+        help_text="Wound width in cm (side to side, perpendicular to length)"
+    )
+    wound_size_depth = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        null=True, 
+        blank=True,
+        help_text="Wound depth in cm (measured at deepest point)"
     )
     
     # PDF Storage
@@ -137,6 +145,7 @@ class IVRForm(models.Model):
     def is_approved(self):
         return self.status == 'approved'
 
+
 class Patient(models.Model):
     provider = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='patients')
     first_name = models.CharField(max_length=255)
@@ -156,12 +165,33 @@ class Patient(models.Model):
     tertiary_insurance = models.CharField(max_length=255, null=True, blank=True)
     tertiary_insurance_number = models.CharField(max_length=255, null=True, blank=True)
     medical_record_number = models.CharField(max_length=255, null=True, blank=True)
-    wound_size_length = models.PositiveIntegerField(null=True, blank=True)
-    wound_size_width = models.PositiveIntegerField(null=True, blank=True)
+    
+    # ✅ UPDATED: Wound measurements - Added depth field
+    wound_size_length = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Wound length in cm (head to toe)"
+    )
+    wound_size_width = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Wound width in cm (side to side, perpendicular to length)"
+    )
+    wound_size_depth = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Wound depth in cm (measured at deepest point)"
+    )
+    
     activate_Account = models.CharField(max_length=50, choices=account_activation_choices, null=True, blank=True, default="Activated")
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, blank=True, null=True)
-   
 
     @property
     def full_name(self):
@@ -169,10 +199,20 @@ class Patient(models.Model):
 
     def __str__(self):
         return str(f'{self.first_name} {self.last_name}')
-
+    
     @property
-    def full_name(self):
-        return f"{self.first_name} {self.last_name}"
+    def wound_surface_area(self):
+        """Calculate wound surface area (L × W) in cm²"""
+        if self.wound_size_length and self.wound_size_width:
+            return float(self.wound_size_length) * float(self.wound_size_width)
+        return 0
+    
+    @property
+    def wound_volume(self):
+        """Calculate approximate wound volume (L × W × D) in cm³"""
+        if self.wound_size_length and self.wound_size_width and self.wound_size_depth:
+            return float(self.wound_size_length) * float(self.wound_size_width) * float(self.wound_size_depth)
+        return 0
     
     @property
     def latest_ivr(self):
