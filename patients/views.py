@@ -144,7 +144,6 @@ class PatientDetailView(generics.RetrieveUpdateDestroyAPIView):
             return Response({'error': str(e), 'detail': 'An error occurred while deleting the patient'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # --- IVR Submission Function (FIXED to use IVRForm model) ---
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def save_patient_vr_form(request):
@@ -165,7 +164,7 @@ def save_patient_vr_form(request):
         return Response({"error": "Patient not found or does not belong to this provider."}, status=status.HTTP_404_NOT_FOUND)
     
     try:
-        # 2. PDF Generation (Context is kept the same for rendering)
+        # 2. PDF Generation (Context includes depth for documentation)
         context = {
             'form_data': form_data,
             'patient': patient,
@@ -206,22 +205,22 @@ def save_patient_vr_form(request):
             logger.error("Blob upload verification failed")
             raise Exception("Failed to verify file upload to Azure")
 
-        # 4. Save to IVRForm model (CRITICAL FIX)
-        # Assuming your frontend sends key fields in `form_data` or a separate object
-        # We try to extract common fields required by the IVRForm model
+        # 4. Save to IVRForm model with all wound measurements
         ivr_form = IVRForm.objects.create(
             provider=request.user,
             patient=patient,  
-            status='pending', # Default for a new submission
+            status='pending',
             pdf_blob_name=blob_path,
-            # Attempt to map fields from form_data to IVRForm's fields
+            # Map fields from form_data to IVRForm's fields
             physician_name=form_data.get('physician_name', patient.full_name),
             contact_name=form_data.get('contact_name', patient.full_name),
             phone=form_data.get('phone', patient.phone_number),
             facility_address=form_data.get('facility_address', patient.address),
             facility_city_state_zip=form_data.get('facility_city_state_zip', f"{patient.city}, {patient.state} {patient.zip_code}"),
+            # ✅ Include all wound measurements (depth is for documentation, not ordering)
             wound_size_length=form_data.get('wound_size_length', patient.wound_size_length),
             wound_size_width=form_data.get('wound_size_width', patient.wound_size_width),
+            wound_size_depth=form_data.get('wound_size_depth', patient.wound_size_depth),
         )
         
         # 5. Generate SAS URL for response and email
@@ -230,12 +229,17 @@ def save_patient_vr_form(request):
         # Optional: Update the IVRForm object with the public URL if the model has a pdf_url field
         if hasattr(ivr_form, 'pdf_url'):
              ivr_form.pdf_url = sas_url
-             ivr_form.save() # Save again to update the URL
+             ivr_form.save()
 
         # 6. Send email to provider/user
         try:
             provider_email = request.user.email
             if provider_email:
+                # Calculate surface area for email (used for ordering calculations)
+                wound_surface_area = 0
+                if patient.wound_size_length and patient.wound_size_width:
+                    wound_surface_area = float(patient.wound_size_length) * float(patient.wound_size_width)
+                
                 subject = f"IVR Form Submitted - {patient.full_name}"
                 email_body = render_to_string('email/ivr_form_submission.html', {
                     'provider': request.user,
@@ -243,6 +247,8 @@ def save_patient_vr_form(request):
                     'form_data': form_data,
                     'sas_url': sas_url,
                     'submission_date': datetime.now().strftime('%B %d, %Y at %I:%M %p'),
+                    'wound_surface_area': round(wound_surface_area, 2),
+                    'max_order_area': round(wound_surface_area * 1.2, 2),
                 })
                 email = EmailMessage(subject, email_body, settings.DEFAULT_FROM_EMAIL, [provider_email])
                 email.content_subtype = "html"
@@ -256,7 +262,7 @@ def save_patient_vr_form(request):
 
         return Response({
             "success": True,
-            "form_id": ivr_form.id, # Use the new IVRForm ID
+            "form_id": ivr_form.id,
             "sas_url": sas_url,
             "blob_path": blob_path,
             "message": "Patient IVR Form PDF saved, emailed, and linked successfully"
@@ -269,10 +275,6 @@ def save_patient_vr_form(request):
             "error": "Failed to process Patient IVR form submission.",
             "detail": str(e)
         }, status=500)
-        
-# ❌ DELETED the redundant/conflicting get_patient_ivr_forms function.
-
-# --- IVR Form List/Detail/Withdraw Views (Unchanged and Correct) ---
 
 class IVRFormListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]

@@ -1,24 +1,26 @@
 # patients/serializers.py
 from rest_framework import serializers
 from patients.models import Patient, IVRForm
-from onboarding_ops.models import ProviderForm
 from django.conf import settings
 from django.utils import timezone
 from utils.azure_storage import generate_sas_url
 import logging
-
 
 logger = logging.getLogger(__name__)
 
 
 class PatientSerializer(serializers.ModelSerializer):
     """Serializer for Patient model with IVR-related computed fields"""
-    # IVR-related computed fields - no source needed since they match property names
+    # IVR-related computed fields
     latest_ivr_status = serializers.CharField(read_only=True)
     latest_ivr_status_display = serializers.CharField(read_only=True)
     latest_ivr_pdf_url = serializers.CharField(read_only=True)
     ivr_count = serializers.IntegerField(read_only=True)
     has_approved_ivr = serializers.BooleanField(read_only=True)
+    
+    # Computed wound measurements
+    wound_surface_area = serializers.FloatField(read_only=True)
+    wound_volume = serializers.FloatField(read_only=True)
     
     class Meta:
         model = Patient
@@ -43,8 +45,11 @@ class PatientSerializer(serializers.ModelSerializer):
             'medical_record_number',
             'wound_size_length',
             'wound_size_width',
-            'created_at',  # ✅ FIXED: changed from date_created
-            'updated_at',  # ✅ FIXED: changed from date_updated
+            'wound_size_depth',  # ✅ Added depth field
+            'wound_surface_area',  # ✅ Computed surface area
+            'wound_volume',  # ✅ Computed volume
+            'created_at',
+            'updated_at',
             'activate_Account',
             # IVR-related fields
             'latest_ivr_status',
@@ -53,7 +58,7 @@ class PatientSerializer(serializers.ModelSerializer):
             'ivr_count',
             'has_approved_ivr',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']  # ✅ FIXED: changed field names
+        read_only_fields = ['id', 'created_at', 'updated_at']
 
 
 class IVRFormSerializer(serializers.ModelSerializer):
@@ -78,6 +83,7 @@ class IVRFormSerializer(serializers.ModelSerializer):
             'facility_city_state_zip',
             'wound_size_length',
             'wound_size_width',
+            'wound_size_depth',  # ✅ Added depth field
             'pdf_url',
             'pdf_blob_name',
             'status',
@@ -130,6 +136,7 @@ class IVRFormCreateSerializer(serializers.ModelSerializer):
             'facility_city_state_zip',
             'wound_size_length',
             'wound_size_width',
+            'wound_size_depth',  # ✅ Added depth field
             'pdf_url',
             'pdf_blob_name',
         ]
