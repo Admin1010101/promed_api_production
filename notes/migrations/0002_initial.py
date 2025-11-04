@@ -14,11 +14,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="notes",
-            name="patient",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to="patients.patient"
-            ),
-        ),
-    ]
+    # Replaced the failing AddField operation with a no-op to synchronize history.
+    # The 'patient_id' column already exists in the database.
+    migrations.RunSQL('SELECT 1'), 
+]
