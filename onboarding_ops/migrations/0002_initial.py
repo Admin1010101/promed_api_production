@@ -16,47 +16,35 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="providerdocument",
-            name="user",
-            field=models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="provider_documents",
-                to=settings.AUTH_USER_MODEL,
-            ),
+    # **FIX: Replaced duplicated 'user' AddField with no-op.**
+    migrations.RunSQL('SELECT 1'), 
+    
+    # This AddField for 'patient' must remain, unless it also causes an error later.
+    migrations.AddField(
+        model_name="providerform",
+        name="patient",
+        field=models.ForeignKey(
+            blank=True,
+            null=True,
+            on_delete=django.db.models.deletion.SET_NULL,
+            to="patients.patient",
         ),
-        migrations.AddField(
-            model_name="providerform",
-            name="patient",
-            field=models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                to="patients.patient",
-            ),
+    ),
+    
+    # **FIX: Replaced duplicated 'user' AddField with no-op.**
+    migrations.RunSQL('SELECT 1'), 
+
+    migrations.AddIndex(
+        model_name="providerform",
+        index=models.Index(
+            fields=["user", "form_type", "completed"],
+            name="onboarding__user_id_f0a689_idx",
         ),
-        migrations.AddField(
-            model_name="providerform",
-            name="user",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="submitted_forms",
-                to=settings.AUTH_USER_MODEL,
-            ),
+    ),
+    migrations.AddIndex(
+        model_name="providerform",
+        index=models.Index(
+            fields=["submission_id"], name="onboarding__submiss_ccaa53_idx"
         ),
-        migrations.AddIndex(
-            model_name="providerform",
-            index=models.Index(
-                fields=["user", "form_type", "completed"],
-                name="onboarding__user_id_f0a689_idx",
-            ),
-        ),
-        migrations.AddIndex(
-            model_name="providerform",
-            index=models.Index(
-                fields=["submission_id"], name="onboarding__submiss_ccaa53_idx"
-            ),
-        ),
-    ]
+    ),
+]
