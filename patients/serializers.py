@@ -21,6 +21,16 @@ class PatientSerializer(serializers.ModelSerializer):
     # Computed wound measurements
     wound_surface_area = serializers.FloatField(read_only=True)
     wound_volume = serializers.FloatField(read_only=True)
+
+    date_of_birth = serializers.DateField(required=False, allow_null=True)
+    email = serializers.EmailField(required=False, allow_null=True, allow_blank=True)
+    phone_number = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    address = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    city = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    state = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    zip_code = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    medical_record_number = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    
     
     class Meta:
         model = Patient
@@ -59,6 +69,20 @@ class PatientSerializer(serializers.ModelSerializer):
             'has_approved_ivr',
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+        # Make extra fields optional at Meta level
+        extra_kwargs = {
+            'middle_initial': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'primary_insurance': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'primary_insurance_number': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'secondary_insurance': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'secondary_insurance_number': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'tertiary_insurance': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'tertiary_insurance_number': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'wound_size_length': {'required': False, 'allow_null': True},
+            'wound_size_width': {'required': False, 'allow_null': True},
+            'wound_size_depth': {'required': False, 'allow_null': True},
+        }
 
 
 class IVRFormSerializer(serializers.ModelSerializer):

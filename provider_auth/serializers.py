@@ -193,7 +193,7 @@ class ProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     image = serializers.SerializerMethodField()
     has_completed_tour = serializers.BooleanField(source='user.has_completed_tour', read_only=True)
-
+    facility = serializers.CharField(source='user.facility', read_only=True) # Added facility field
     class Meta:
         model = Profile
         fields = '__all__'

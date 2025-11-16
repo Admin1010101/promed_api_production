@@ -32,10 +32,31 @@ from . import models as api_models
 from . import serializers as api_serializers
 from .models import EmailVerificationToken, Profile, User, Verification_Code
 from .serializers import EmptySerializer, MyTokenObtainPairSerializer, UserSerializer
+from rest_framework.views import APIView 
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
+
+
+class ValidateRegistrationFields(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        """
+        Validate registration fields without creating a user.
+        Only validates without saving to database.
+        """
+        # Create serializer instance with data but don't save
+        serializer = api_serializers.RegisterSerializer(data=request.data)
+        
+        # Check if data is valid
+        if serializer.is_valid():
+            # Valid! Return success without creating user
+            return Response({"valid": True}, status=status.HTTP_200_OK)
+        else:
+            # Invalid! Return field-specific errors
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
