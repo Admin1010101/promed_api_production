@@ -103,7 +103,8 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         return {
             'refresh': str(refresh),
             'access': str(refresh.access_token),
-            'method': method, # Pass the selected method back to the view
+            'method': method, # Pass the selected method back to the view,
+            'role': user.role,
         }
 
 
@@ -185,7 +186,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'email', 'full_name', 'username', 'phone_number', 
             'country_code','role', 'has_signed_baa', 'baa_signed_date',
-            'has_completed_tour'
+            'has_completed_tour', 'city', 'state', 'country', 'facility', 'facility_phone_number'
         )
 
 

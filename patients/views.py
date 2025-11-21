@@ -212,11 +212,11 @@ def save_patient_vr_form(request):
             status='pending',
             pdf_blob_name=blob_path,
             # Map fields from form_data to IVRForm's fields
-            physician_name=form_data.get('physician_name', patient.full_name),
-            contact_name=form_data.get('contact_name', patient.full_name),
-            phone=form_data.get('phone', patient.phone_number),
-            facility_address=form_data.get('facility_address', patient.address),
-            facility_city_state_zip=form_data.get('facility_city_state_zip', f"{patient.city}, {patient.state} {patient.zip_code}"),
+            physician_name=form_data.get('physicianName', '') or '',
+            contact_name=form_data.get('contactName', '') or '',
+            phone=form_data.get('phone', '') or '',
+            facility_address=form_data.get('facilityAddress', '') or '',  # ✅ facilityAddress not facility_address
+            facility_city_state_zip=form_data.get('facilityCityStateZip', '') or '',  # ✅ facilityCityStateZip
             # ✅ Include all wound measurements (depth is for documentation, not ordering)
             wound_size_length=form_data.get('wound_size_length', patient.wound_size_length),
             wound_size_width=form_data.get('wound_size_width', patient.wound_size_width),

@@ -4,3 +4,5 @@ from django.apps import AppConfig
 class SalesRepConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'sales_rep'
+    def ready(self):
+        import sales_rep.signals

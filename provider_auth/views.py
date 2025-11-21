@@ -23,6 +23,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 # Local Application Imports
 from patients.models import Patient
 from promed_backend_api.settings import BASE_CLIENT_URL, DEFAULT_FROM_EMAIL
@@ -774,7 +776,76 @@ def process_signed_baa(user, baa_data):
         logger.warning(f"⚠️ Email failed for BAA for {user.email}: {str(e)}", exc_info=True)
         # Non-critical failure, transaction continues
     return pdf_url
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_baa_document(request):
+    """Get the signed BAA document URL for the current user"""
+    user = request.user
+    
+    print(f"🔍 User: {user.email}, has_signed_baa: {user.has_signed_baa}")  # Debug
+    
+    if not user.has_signed_baa:
+        return Response({
+            "error": "BAA has not been signed yet"
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    try:
+        from django.utils.text import slugify
+        from azure.storage.blob import BlobServiceClient
+        from utils.azure_storage import generate_sas_url
         
+        provider_slug = slugify(user.full_name or user.email.split('@')[0])
+        blob_prefix = f"provider_forms/{provider_slug}/BAA_form/"
+        
+        print(f"📁 Looking for BAA at: {blob_prefix}")  # Debug
+        
+        blob_service_client = BlobServiceClient.from_connection_string(
+            settings.AZURE_STORAGE_CONNECTION_STRING
+        )
+        container_client = blob_service_client.get_container_client(
+            settings.AZURE_MEDIA_CONTAINER
+        )
+        
+        blobs = list(container_client.list_blobs(name_starts_with=blob_prefix))
+        
+        print(f"📄 Found {len(blobs)} blobs")  # Debug
+        
+        if not blobs:
+            return Response({
+                "error": "BAA document not found in storage",
+                "searched_path": blob_prefix
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        latest_blob = sorted(blobs, key=lambda x: x.name, reverse=True)[0]
+        
+        print(f"✅ Latest blob: {latest_blob.name}")  # Debug
+        
+        sas_url = generate_sas_url(
+            latest_blob.name, 
+            settings.AZURE_MEDIA_CONTAINER, 
+            'r',
+            24
+        )
+        
+        print(f"🔗 SAS URL generated successfully")  # Debug
+        
+        return Response({
+            "success": True,
+            "baa_pdf_url": sas_url,
+            "signed_at": user.baa_signed_at.strftime('%b %d, %Y %I:%M %p') if user.baa_signed_at else None,
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"❌ Error: {str(e)}")
+        print(traceback.format_exc())
+        return Response({
+            "error": "Could not retrieve BAA document",
+            "detail": str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 class PublicContactView(generics.CreateAPIView):
     serializer_class = api_serializers.PublicContactSerializer
     permission_classes = [permissions.AllowAny]

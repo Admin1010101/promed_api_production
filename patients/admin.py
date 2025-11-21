@@ -65,8 +65,8 @@ class PatientAdmin(admin.ModelAdmin):
         qs = super().get_queryset(request)
         # 🌟 FIX APPLIED HERE: 'ivrform' corrected to 'ivr_forms'
         qs = qs.annotate(
-            ivr_count=Count('ivr_forms', distinct=True), 
-            order_count=Count('orders', distinct=True)
+            admin_ivr_count=Count('ivr_forms', distinct=True), 
+            admin_order_count=Count('orders', distinct=True)
         ).select_related('provider')
         return qs
 
@@ -91,11 +91,11 @@ class PatientAdmin(admin.ModelAdmin):
 
     @admin.display(description='IVR Count', ordering='ivr_count')
     def get_ivr_count(self, obj):
-        return obj.ivr_count
+        return obj.admin_ivr_count
 
     @admin.display(description='Order Count', ordering='order_count')
     def get_order_count(self, obj):
-        return obj.order_count
+        return obj.admin_order_count
 
     inlines = [IVRFormInline]
 
