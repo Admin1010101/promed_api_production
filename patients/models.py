@@ -37,7 +37,7 @@ class IVRForm(models.Model):
         help_text="The patient this IVR form is for"
     )
     
-    # IVR Form Data
+    # IVR Form Data fields
     physician_name = models.CharField(max_length=255, blank=True)
     contact_name = models.CharField(max_length=255, blank=True)
     phone = models.CharField(max_length=20, blank=True)
