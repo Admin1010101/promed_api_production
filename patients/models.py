@@ -8,6 +8,19 @@ from django.utils import timezone
 
 ivr_status_choices = (("Pending", "Pending"), ("Approved", "Approved"), ("Denied", "Denied"))
 account_activation_choices = (("Activated", "Activated"), ("Deactivated", "Deactivated"))
+WOUND_TYPE_CHOICES = [
+    ('slow_healing', 'Slow-healing incision'),
+    ('dehisced', 'Dehisced wound'),
+    ('dfu', 'DFU'),
+    ('vlu', 'VLU'),
+]
+
+DRAINAGE_CHOICES = [
+    ('none', 'None'),
+    ('light', 'Light'),
+    ('moderate', 'Moderate'),
+    ('heavy', 'Heavy'),
+]
 
 class IVRForm(models.Model):
     """
@@ -37,7 +50,7 @@ class IVRForm(models.Model):
         help_text="The patient this IVR form is for"
     )
     
-    # IVR Form Data fields
+    # IVR Form Data
     physician_name = models.CharField(max_length=255, blank=True)
     contact_name = models.CharField(max_length=255, blank=True)
     phone = models.CharField(max_length=20, blank=True)
@@ -187,6 +200,40 @@ class Patient(models.Model):
         null=True,
         blank=True,
         help_text="Wound depth in cm (measured at deepest point)"
+    )
+    wound_type = models.CharField(
+        max_length=20,
+        choices=WOUND_TYPE_CHOICES,
+        blank=True,
+        null=True,
+        help_text="Patient's primary wound type (used as default for new orders)"
+    )
+    wound_location = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Patient's primary wound location"
+    )
+    is_chronic_wound = models.BooleanField(
+        default=False,
+        help_text="Whether patient has chronic wounds"
+    )
+    wound_drainage = models.CharField(
+        max_length=20,
+        choices=DRAINAGE_CHOICES,
+        blank=True,
+        null=True,
+        help_text="Typical drainage level for this patient"
+    )
+    conservative_care = models.BooleanField(
+        default=False,
+        help_text="Whether patient requires conservative care approach"
+    )
+    default_icd10_code = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        help_text="Patient's primary ICD-10 code (used for pre-filling)"
     )
     
     activate_Account = models.CharField(max_length=50, choices=account_activation_choices, null=True, blank=True, default="Activated")
