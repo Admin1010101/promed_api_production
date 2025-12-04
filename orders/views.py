@@ -13,6 +13,16 @@ from rest_framework.response import Response
 from decimal import Decimal
 import re  
 import logging
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from .serializers import (
+    CareKitOrderSerializer, 
+    CareKitOrderCreateSerializer, 
+    CareKitOrderListSerializer
+)
+from django.shortcuts import get_object_or_404
 
 logger = logging.getLogger(__name__)
 
@@ -359,3 +369,192 @@ class InvoicePDFView(APIView):
         except Exception as e:
             logger.error(f"❌ Error retrieving invoice PDF: {e}", exc_info=True)
             raise Http404("Could not retrieve invoice")
+        
+
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_carekit_order(request):
+    """
+    Create a new CareKit order from Conservative Care dashboard
+    
+    POST /api/v1/orders/carekit/create/
+    
+    Expected payload:
+    {
+        "patient": 1,
+        "wound_type": "dfu",
+        "wound_location": "Right foot",
+        "is_chronic_wound": false,
+        "wound_drainage": "moderate",
+        "conservative_care": true,
+        "icd10_code": "L97.512",
+        "kit_duration": "30-day",
+        "kit_size": "2x2",
+        "facility_name": "Main Clinic",
+        "phone_number": "+1234567890",
+        "street": "123 Main St",
+        "city": "Los Angeles",
+        "zip_code": "90001",
+        "country": "US"
+    }
+    
+    Returns:
+    {
+        "success": true,
+        "message": "Order created successfully",
+        "data": { ... full order object ... }
+    }
+    """
+    serializer = CareKitOrderCreateSerializer(
+        data=request.data,
+        context={'request': request}
+    )
+    
+    if serializer.is_valid():
+        order = serializer.save()
+        
+        # Return full order details using CareKitOrderSerializer
+        response_serializer = CareKitOrderSerializer(order)
+        
+        return Response(
+            {
+                'success': True,
+                'message': 'Order created successfully',
+                'data': response_serializer.data
+            },
+            status=status.HTTP_201_CREATED
+        )
+    
+    return Response(
+        {
+            'success': False,
+            'errors': serializer.errors
+        },
+        status=status.HTTP_400_BAD_REQUEST
+    )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_recent_orders(request):
+    """
+    Get recent CareKit orders for the logged-in provider
+    
+    GET /api/v1/orders/recent/?limit=10
+    
+    Query params:
+    - limit: number of orders to return (default: 10, max: 50)
+    
+    Returns:
+    {
+        "success": true,
+        "count": 5,
+        "data": [ ... array of order objects ... ]
+    }
+    """
+    # Get limit from query params, default to 10, max 50
+    try:
+        limit = int(request.GET.get('limit', 10))
+        limit = min(limit, 50)  # Cap at 50
+    except (ValueError, TypeError):
+        limit = 10
+    
+    # Fetch orders for current provider
+    orders = api_models.Order.objects.filter(
+        provider=request.user
+    ).select_related('patient').order_by('-created_at')[:limit]
+    
+    # Use lightweight serializer for list view
+    serializer = CareKitOrderListSerializer(orders, many=True)
+    
+    return Response({
+        'success': True,
+        'count': len(serializer.data),
+        'data': serializer.data
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def reorder_carekit(request, order_id):
+    """
+    Create a reorder based on a previous order
+    
+    POST /api/v1/orders/<order_id>/reorder/
+    
+    Optional payload to override fields:
+    {
+        "kit_duration": "15-day",  // Override kit duration
+        "kit_size": "1x1"          // Override kit size
+    }
+    
+    Returns:
+    {
+        "success": true,
+        "message": "Reorder created successfully",
+        "data": { ... full order object ... }
+    }
+    """
+    # Get the original order
+    original_order = get_object_or_404(
+        api_models.Order,
+        id=order_id,
+        provider=request.user  # Security: ensure order belongs to current user
+    )
+    
+    # Create new order data based on original order
+    new_order_data = {
+        'patient': original_order.patient.id,
+        
+        # Wound details (copy from original)
+        'wound_type': original_order.wound_type,
+        'wound_location': original_order.wound_location,
+        'is_chronic_wound': original_order.is_chronic_wound,
+        'wound_drainage': original_order.wound_drainage,
+        'conservative_care': original_order.conservative_care,
+        'icd10_code': original_order.icd10_code,
+        
+        # Kit details (allow overrides from request)
+        'kit_duration': request.data.get('kit_duration', original_order.kit_duration),
+        'kit_size': request.data.get('kit_size', original_order.kit_size),
+        
+        # Facility/shipping details (copy from original)
+        'facility_name': original_order.facility_name,
+        'phone_number': original_order.phone_number,
+        'street': original_order.street,
+        'city': original_order.city,
+        'zip_code': original_order.zip_code,
+        'country': original_order.country,
+    }
+    
+    # Create the new order
+    serializer = CareKitOrderCreateSerializer(
+        data=new_order_data,
+        context={'request': request}
+    )
+    
+    if serializer.is_valid():
+        order = serializer.save()
+        
+        # Return full order details
+        response_serializer = CareKitOrderSerializer(order)
+        
+        return Response(
+            {
+                'success': True,
+                'message': 'Reorder created successfully',
+                'original_order_id': original_order.id,
+                'data': response_serializer.data
+            },
+            status=status.HTTP_201_CREATED
+        )
+    
+    return Response(
+        {
+            'success': False,
+            'errors': serializer.errors
+        },
+        status=status.HTTP_400_BAD_REQUEST
+    )

@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 class PatientSerializer(serializers.ModelSerializer):
     """Serializer for Patient model with IVR-related computed fields"""
     # IVR-related computed fields
+    full_name = serializers.CharField(read_only=True)
     latest_ivr_status = serializers.CharField(read_only=True)
     latest_ivr_status_display = serializers.CharField(read_only=True)
     latest_ivr_pdf_url = serializers.CharField(read_only=True)
@@ -39,6 +40,7 @@ class PatientSerializer(serializers.ModelSerializer):
             'first_name',
             'last_name',
             'middle_initial',
+            'full_name',
             'date_of_birth',
             'email',
             'address',
@@ -58,17 +60,25 @@ class PatientSerializer(serializers.ModelSerializer):
             'wound_size_depth',  # ✅ Added depth field
             'wound_surface_area',  # ✅ Computed surface area
             'wound_volume',  # ✅ Computed volume
+            'wound_type',
+            'wound_location',
+            'is_chronic_wound',
+            'wound_drainage',
+            'conservative_care',
+            'default_icd10_code',
+            'activate_Account',
             'created_at',
             'updated_at',
-            'activate_Account',
+            # 'activate_Account',
             # IVR-related fields
             'latest_ivr_status',
             'latest_ivr_status_display',
             'latest_ivr_pdf_url',
             'ivr_count',
             'has_approved_ivr',
+
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'full_name',]
 
         # Make extra fields optional at Meta level
         extra_kwargs = {
@@ -82,6 +92,10 @@ class PatientSerializer(serializers.ModelSerializer):
             'wound_size_length': {'required': False, 'allow_null': True},
             'wound_size_width': {'required': False, 'allow_null': True},
             'wound_size_depth': {'required': False, 'allow_null': True},
+            'wound_type': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'wound_location': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'wound_drainage': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'default_icd10_code': {'required': False, 'allow_blank': True, 'allow_null': True},
         }
 
 
